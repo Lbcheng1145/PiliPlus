@@ -114,7 +114,7 @@ class _AboutPageState extends State<AboutPage> {
               onTap: () => Utils.checkUpdate(false),
               onLongPress: () =>
                   Utils.copyText(_aboutController.currentVersion.value),
-              title: const Text('当前版本'),
+              title: const Text('当前版本（自编译版本）'),
               leading: const Icon(Icons.commit_outlined),
               trailing: Text(
                 _aboutController.currentVersion.value,
@@ -131,7 +131,7 @@ Commit Hash: ${BuildConfig.commitHash}''',
             ),
             leading: const Icon(Icons.info_outline),
             onTap: () => Utils.launchURL(
-                'https://github.com/bggRGjQaUbCoE/PiliPlus/commit/${BuildConfig.commitHash}'),
+                'https://github.com/Lbcheng1145/PiliPlus/commit/${BuildConfig.commitHash}'),
             onLongPress: () => Utils.copyText(BuildConfig.commitHash),
           ),
           // Obx(
