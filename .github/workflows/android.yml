@@ -54,15 +54,7 @@ jobs:
           version_name=$(yq e .version pubspec.yaml | cut -d "+" -f 1)
           sed -i "s/version: .*/version: $version_name-$(git rev-parse --short HEAD)+$(git rev-list --count HEAD)/g" pubspec.yaml
 
-      - name: Write key
-        run: |
-          if [ ! -z "${{ secrets.SIGN_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.SIGN_KEYSTORE_BASE64 }}" | base64 --decode > android/app/key.jks
-            echo storeFile='key.jks' >> android/key.properties
-            echo storePassword='${{ secrets.KEYSTORE_PASSWORD }}' >> android/key.properties
-            echo keyAlias='${{ secrets.KEY_ALIAS }}' >> android/key.properties
-            echo keyPassword='${{ secrets.KEY_PASSWORD }}' >> android/key.properties
-          fi
+
 
       - name: flutter build apk
         run: |
