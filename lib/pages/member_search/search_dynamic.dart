@@ -4,7 +4,6 @@ import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/loading_widget.dart';
 import 'package:PiliPlus/common/widgets/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
-import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/pages/member_search/controller.dart';
 import 'package:PiliPlus/utils/extension.dart';
@@ -14,7 +13,6 @@ import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:waterfall_flow/waterfall_flow.dart';
 
@@ -216,17 +214,8 @@ class SearchDynamic extends StatelessWidget {
     required String content,
   }) {
     return InkWell(
-      onTap: () async {
-        SmartDialog.showLoading();
-        dynamic res = await DynamicsHttp.dynamicDetail(id: id);
-        if (res['status']) {
-          SmartDialog.dismiss();
-          Get.toNamed('/dynamicDetail',
-              arguments: {'item': res['data'], 'floor': 1, 'action': 'detail'});
-        } else {
-          SmartDialog.dismiss();
-          SmartDialog.showToast(res['msg']);
-        }
+      onTap: () {
+        Utils.pushDynFromId(id);
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
