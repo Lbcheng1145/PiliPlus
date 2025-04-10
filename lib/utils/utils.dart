@@ -50,6 +50,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 import 'package:path/path.dart' as path;
+import 'package:uuid/v4.dart';
 
 import '../models/home/rcmd/result.dart';
 import '../models/model_rec_video_item.dart';
@@ -103,7 +104,11 @@ class Utils {
   }
 
   /// 定时关闭
-  static void scheduleExit(context, isFullScreen, [bool isLive = false]) {
+  static void scheduleExit(BuildContext context, isFullScreen,
+      [bool isLive = false]) {
+    if (!context.mounted) {
+      return;
+    }
     const List<int> scheduleTimeChoices = [0, 15, 30, 45, 60];
     const TextStyle titleStyle = TextStyle(fontSize: 14);
     if (isLive) {
@@ -408,7 +413,7 @@ class Utils {
       RegExp(r'(@(\d+[a-z]_?)*)(\..*)?$', caseSensitive: false);
 
   static String thumbnailImgUrl(String? src, [int? quality]) {
-    if (src != null) {
+    if (src != null && quality != 100) {
       bool hasMatch = false;
       src = src.splitMapJoin(
         regExp,
@@ -430,7 +435,10 @@ class Utils {
 
   static bool? _isIpad;
 
-  static Future<bool> isIpad() async {
+  static FutureOr<bool> isIpad() async {
+    if (Platform.isIOS.not) {
+      return false;
+    }
     if (_isIpad != null) {
       return _isIpad!;
     }
@@ -443,7 +451,7 @@ class Utils {
   static void shareText(String text) async {
     try {
       Rect? sharePositionOrigin;
-      if (Platform.isIOS && (await isIpad())) {
+      if (await isIpad()) {
         sharePositionOrigin = Rect.fromLTWH(0, 0, Get.width, Get.height / 2);
       }
       Share.share(
@@ -563,6 +571,9 @@ class Utils {
     required Function isFullScreen,
     double? padding,
   }) {
+    if (!context.mounted) {
+      return;
+    }
     Get.generalDialog(
       barrierLabel: '',
       barrierDismissible: true,
@@ -572,17 +583,7 @@ class Utils {
                 child: Column(
                   children: [
                     const Spacer(flex: 3),
-                    Expanded(
-                      flex: 7,
-                      child: MediaQuery.removePadding(
-                        context: context,
-                        removeTop: true,
-                        removeBottom: true,
-                        removeLeft: true,
-                        removeRight: true,
-                        child: child,
-                      ),
-                    ),
+                    Expanded(flex: 7, child: child),
                     if (isFullScreen() && padding != null)
                       SizedBox(height: padding),
                   ],
@@ -592,16 +593,7 @@ class Utils {
                 child: Row(
                   children: [
                     const Spacer(),
-                    Expanded(
-                      child: MediaQuery.removePadding(
-                        context: context,
-                        removeTop: true,
-                        removeBottom: true,
-                        removeLeft: true,
-                        removeRight: true,
-                        child: child,
-                      ),
-                    ),
+                    Expanded(child: child),
                   ],
                 ),
               );
@@ -784,6 +776,9 @@ class Utils {
       isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       sheetAnimationStyle: AnimationStyle(curve: Curves.ease),
+      constraints: BoxConstraints(
+        maxWidth: min(640, min(Get.width, Get.height)),
+      ),
       builder: (BuildContext context) {
         return DraggableScrollableSheet(
           minChildSize: 0,
@@ -891,17 +886,6 @@ class Utils {
         SmartDialog.showToast('暂未支持的类型，请联系开发者');
         break;
 
-      /// 纯文字动态查看
-      case 'DYNAMIC_TYPE_WORD':
-        debugPrint('纯文本');
-        Utils.toDupNamed(
-          '/dynamicDetail',
-          arguments: {
-            'item': item,
-            'floor': floor,
-          },
-        );
-        break;
       case 'DYNAMIC_TYPE_LIVE_RCMD':
         DynamicLiveModel liveRcmd = item.modules.moduleDynamic.major.liveRcmd;
         ModuleAuthorModel author = item.modules.moduleAuthor;
@@ -963,10 +947,13 @@ class Utils {
         }
         break;
 
+      // 纯文字动态查看
+      // case 'DYNAMIC_TYPE_WORD':
+      // # 装扮/剧集点评/普通分享
       // case 'DYNAMIC_TYPE_COMMON_SQUARE':
-      // /// 转发的动态
+      // 转发的动态
       // case 'DYNAMIC_TYPE_FORWARD':
-      // /// 图文动态查看
+      // 图文动态查看
       // case 'DYNAMIC_TYPE_DRAW':
       default:
         Utils.toDupNamed(
@@ -1208,6 +1195,9 @@ class Utils {
                         isScrollControlled: true,
                         backgroundColor: Theme.of(context).colorScheme.surface,
                         sheetAnimationStyle: AnimationStyle(curve: Curves.ease),
+                        constraints: BoxConstraints(
+                          maxWidth: min(640, min(Get.width, Get.height)),
+                        ),
                         builder: (BuildContext context) {
                           return DraggableScrollableSheet(
                             minChildSize: 0,
@@ -1885,22 +1875,6 @@ class Utils {
     }
   }
 
-  static double getSheetHeight(BuildContext context) {
-    double height = context.height.abs();
-    double width = context.width.abs();
-    if (height > width) {
-      //return height * 0.7;
-      double paddingTop = MediaQueryData.fromView(
-              WidgetsBinding.instance.platformDispatcher.views.single)
-          .padding
-          .top;
-      paddingTop += width * 9 / 16;
-      return height - paddingTop;
-    }
-    //横屏状态
-    return height;
-  }
-
   static void appSign(Map<String, dynamic> params,
       [String appkey = Constants.appKey, String appsec = Constants.appSec]) {
     params['appkey'] = appkey;
@@ -1915,18 +1889,25 @@ class Utils {
   }
 
   static List<int> generateRandomBytes(int minLength, int maxLength) {
-    return List<int>.generate(random.nextInt(maxLength - minLength + 1),
-        (_) => random.nextInt(0x60) + 0x20);
+    return List<int>.generate(
+      minLength + random.nextInt(maxLength - minLength + 1),
+      (_) => 0x26 + random.nextInt(0x59), // dm_img_str不能有`%`
+    );
   }
 
   static String base64EncodeRandomString(int minLength, int maxLength) {
-    List<int> randomBytes = generateRandomBytes(minLength, maxLength);
-    return base64.encode(randomBytes);
+    final randomBytes = generateRandomBytes(minLength, maxLength);
+    final randomBase64 = base64.encode(randomBytes);
+    return randomBase64.substring(0, randomBase64.length - 2);
   }
 
   static String getFileName(String uri, {bool fileExt = true}) {
     final i0 = uri.lastIndexOf('/') + 1;
     final i1 = fileExt ? uri.length : uri.lastIndexOf('.');
     return uri.substring(i0, i1);
+  }
+
+  static String genBuvid3() {
+    return '${const UuidV4().generate().toUpperCase()}${random.nextInt(100000).toString().padLeft(5, "0")}infoc';
   }
 }

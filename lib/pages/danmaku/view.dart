@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:PiliPlus/grpc/dm/v1/dm.pb.dart';
 import 'package:PiliPlus/utils/extension.dart';
@@ -73,7 +74,7 @@ class _PlDanmakuState extends State<PlDanmaku> {
   // 播放器状态监听
   void playerListener(PlayerStatus? status) {
     if (status == PlayerStatus.playing) {
-      _controller?.onResume();
+      _controller?.resume();
     } else {
       _controller?.pause();
     }
@@ -92,6 +93,10 @@ class _PlDanmakuState extends State<PlDanmaku> {
       return;
     }
 
+    if (playerController.playerStatus.status.value != PlayerStatus.playing) {
+      return;
+    }
+
     int currentPosition = position.inMilliseconds;
     currentPosition -= currentPosition % 100; //取整百的毫秒数
     if (currentPosition == latestAddedPosition) {
@@ -103,22 +108,34 @@ class _PlDanmakuState extends State<PlDanmaku> {
         _plDanmakuController.getCurrentDanmaku(currentPosition);
     if (currentDanmakuList != null) {
       for (DanmakuElem e in currentDanmakuList) {
-        _controller!.addDanmaku(
-          DanmakuContentItem(
-            e.content,
-            color: playerController.blockTypes.contains(6)
-                ? Colors.white
-                : DmUtils.decimalToColor(e.color),
-            type: DmUtils.getPosition(e.mode),
-            isColorful: playerController.showVipDanmaku &&
-                    e.colorful == DmColorfulType.VipGradualColor
-                ? true
-                : null,
-            count: widget.playerController.mergeDanmaku && e.hasAttr()
-                ? e.attr
-                : null,
-          ),
-        );
+        if (e.mode == 7) {
+          try {
+            _controller!.addDanmaku(
+              SpecialDanmakuContentItem.fromList(
+                DmUtils.decimalToColor(e.color),
+                e.fontsize.toDouble(),
+                jsonDecode(e.content.replaceAll('\n', '\\n')),
+              ),
+            );
+          } catch (_) {}
+        } else {
+          _controller!.addDanmaku(
+            DanmakuContentItem(
+              e.content,
+              color: playerController.blockTypes.contains(6)
+                  ? Colors.white
+                  : DmUtils.decimalToColor(e.color),
+              type: DmUtils.getPosition(e.mode),
+              isColorful: playerController.showVipDanmaku &&
+                      e.colorful == DmColorfulType.VipGradualColor
+                  ? true
+                  : null,
+              count: widget.playerController.mergeDanmaku && e.hasAttr()
+                  ? e.attr
+                  : null,
+            ),
+          );
+        }
       }
     }
   }

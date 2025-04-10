@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:PiliPlus/grpc/app/dynamic/v2/dynamic.pb.dart' as dyn;
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/storage.dart';
@@ -129,8 +131,11 @@ class AuthorPanelGrpc extends StatelessWidget {
             onPressed: () {
               showModalBottomSheet(
                 context: context,
-                useRootNavigator: true,
+                useSafeArea: true,
                 isScrollControlled: true,
+                constraints: BoxConstraints(
+                  maxWidth: min(640, min(Get.width, Get.height)),
+                ),
                 builder: (context) {
                   return MorePanel(
                     item: item,
@@ -158,14 +163,13 @@ class MorePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
-      // clipBehavior: Clip.hardEdge,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           InkWell(
-            onTap: () => Get.back(),
+            onTap: Get.back,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(28),
               topRight: Radius.circular(28),

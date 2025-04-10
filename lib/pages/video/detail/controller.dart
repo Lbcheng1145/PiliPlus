@@ -41,6 +41,7 @@ import 'package:PiliPlus/utils/utils.dart';
 import 'package:PiliPlus/utils/video_utils.dart';
 import 'package:get/get_navigation/src/dialog/dialog_route.dart';
 import 'package:hive/hive.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:media_kit/media_kit.dart';
 
 import '../../../utils/id_utils.dart';
@@ -97,7 +98,6 @@ class VideoDetailController extends GetxController
   bool enableHeart = true;
   Floating? floating;
   late final headerCtrKey = GlobalKey<HeaderControlState>();
-  late PreferredSizeWidget headerControl;
 
   Box get setting => GStorage.setting;
 
@@ -288,13 +288,6 @@ class VideoDetailController extends GetxController
     if (Platform.isAndroid) {
       floating = Floating();
     }
-    headerControl = HeaderControl(
-      key: headerCtrKey,
-      controller: plPlayerController,
-      videoDetailCtr: this,
-      floating: floating,
-      heroTag: heroTag,
-    );
 
     // CDN优化
     // enableCDN = setting.get(SettingBoxKey.enableCDN, defaultValue: true);
@@ -641,34 +634,29 @@ class VideoDetailController extends GetxController
                           item.skipType.title,
                           style: TextStyle(fontSize: 13),
                         ),
-                        if (item.skipType == SkipType.showOnly &&
-                            item.segment.second != 0)
+                        if (item.segment.second != 0)
                           SizedBox(
                             width: 36,
                             height: 36,
                             child: IconButton(
-                              tooltip: '跳转至此片段',
+                              tooltip: item.skipType == SkipType.showOnly
+                                  ? '跳至此片段'
+                                  : '跳过此片段',
                               onPressed: () async {
                                 Get.back();
-                                try {
-                                  plPlayerController.danmakuController?.clear();
-                                  await plPlayerController.videoPlayerController
-                                      ?.seek(Duration(
-                                          seconds: item.segment.first));
-                                  if (GStorage.blockToast) {
-                                    _showBlockToast(
-                                        '已跳至${item.segmentType.shortTitle}');
-                                  }
-                                } catch (e) {
-                                  _showBlockToast('跳转失败: $e');
-                                }
+                                onSkip(
+                                  item,
+                                  item.skipType != SkipType.showOnly,
+                                );
                               },
                               style: IconButton.styleFrom(
                                 padding: EdgeInsets.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
                               icon: Icon(
-                                Icons.my_location,
+                                item.skipType == SkipType.showOnly
+                                    ? Icons.my_location
+                                    : MdiIcons.debugStepOver,
                                 size: 18,
                                 color: Theme.of(context)
                                     .colorScheme
@@ -703,14 +691,16 @@ class VideoDetailController extends GetxController
     videoLabel.value = '';
     segmentList.clear();
     segmentProgressList = null;
-    dynamic result = await Request().get(
+    final result = await Request().get(
       '${GStorage.blockServer}/api/skipSegments',
       queryParameters: {
         'videoID': bvid,
         'cid': cid.value,
       },
     );
-    handleSBData(result);
+    if (result.statusCode == 200) {
+      handleSBData(result);
+    }
   }
 
   void handleSBData(result) {
@@ -744,6 +734,7 @@ class VideoDetailController extends GetxController
                 skipType = SkipType.showOnly;
               }
             }
+
             int convert(value) {
               return switch (value) {
                 int() => value,
@@ -752,7 +743,7 @@ class VideoDetailController extends GetxController
               };
             }
 
-            return SegmentModel(
+            final segmentModel = SegmentModel(
               UUID: item['UUID'],
               segmentType: segmentType,
               segment: Pair(
@@ -761,18 +752,51 @@ class VideoDetailController extends GetxController
               ),
               skipType: skipType,
             );
+
+            if (positionSubscription == null &&
+                !isShowCover.value &&
+                plPlayerController.videoPlayerController != null) {
+              final currPost = plPlayerController.position.value.inSeconds;
+              if (currPost > segmentModel.segment.first &&
+                  currPost < segmentModel.segment.second) {
+                if (segmentModel.skipType == SkipType.alwaysSkip) {
+                  _lastPos = 0;
+                  plPlayerController.videoPlayerController!.stream.buffer.first
+                      .then((_) {
+                    onSkip(segmentModel);
+                  });
+                } else if (segmentModel.skipType == SkipType.skipOnce) {
+                  _lastPos = 0;
+                  segmentModel.hasSkipped = true;
+                  plPlayerController.videoPlayerController!.stream.buffer.first
+                      .then((_) {
+                    onSkip(segmentModel);
+                  });
+                } else if (segmentModel.skipType == SkipType.skipManually) {
+                  onAddItem(segmentModel);
+                }
+              }
+            }
+
+            return segmentModel;
           },
         ).toList());
 
         // _segmentProgressList
         segmentProgressList ??= <Segment>[];
         segmentProgressList!.addAll(segmentList.map((item) {
-          double start = (item.segment.first / ((data.timeLength ?? 0) / 1000))
-              .clamp(0.0, 1.0);
-          double end = (item.segment.second / ((data.timeLength ?? 0) / 1000))
-              .clamp(0.0, 1.0);
+          double start =
+              (item.segment.first / (data.timeLength! / 1000)).clamp(0.0, 1.0);
+          double end =
+              (item.segment.second / (data.timeLength! / 1000)).clamp(0.0, 1.0);
           return Segment(start, end, _getColor(item.segmentType));
         }).toList());
+
+        if (positionSubscription == null &&
+            (!isShowCover.value || preInitPlayer)) {
+          initSkip();
+          plPlayerController.segmentList.value = segmentProgressList!;
+        }
       } catch (e) {
         debugPrint('failed to parse sponsorblock: $e');
       }
@@ -781,9 +805,10 @@ class VideoDetailController extends GetxController
 
   void initSkip() {
     if (segmentList.isNotEmpty) {
+      positionSubscription?.cancel();
       positionSubscription = plPlayerController
           .videoPlayerController?.stream.position
-          .listen((position) async {
+          .listen((position) {
         if (isShowCover.value) {
           return;
         }
@@ -812,6 +837,7 @@ class VideoDetailController extends GetxController
   }
 
   void onAddItem(item) {
+    if (listData.contains(item)) return;
     listData.insert(0, item);
     listKey.currentState?.insertItem(0);
     skipTimer ??= Timer.periodic(const Duration(seconds: 4), (_) {
@@ -898,23 +924,31 @@ class VideoDetailController extends GetxController
     );
   }
 
-  void onSkip(SegmentModel item) async {
+  void onSkip(SegmentModel item, [bool isSkip = true]) async {
     try {
       plPlayerController.danmakuController?.clear();
       await plPlayerController.videoPlayerController
           ?.seek(Duration(seconds: item.segment.second));
-      if (GStorage.blockToast) {
-        _showBlockToast('已跳过${item.segmentType.shortTitle}片段');
-      }
-      if (GStorage.blockTrack) {
-        Request().post(
-          '${GStorage.blockServer}/api/viewedVideoSponsorTime',
-          queryParameters: {'UUID': item.UUID},
-        );
+      if (isSkip) {
+        if (GStorage.blockToast) {
+          _showBlockToast('已跳过${item.segmentType.shortTitle}片段');
+        }
+        if (GStorage.blockTrack) {
+          Request().post(
+            '${GStorage.blockServer}/api/viewedVideoSponsorTime',
+            queryParameters: {'UUID': item.UUID},
+          );
+        }
+      } else {
+        _showBlockToast('已跳至${item.segmentType.shortTitle}');
       }
     } catch (e) {
       debugPrint('failed to skip: $e');
-      _showBlockToast('${item.segmentType.shortTitle}片段跳过失败');
+      if (isSkip) {
+        _showBlockToast('${item.segmentType.shortTitle}片段跳过失败');
+      } else {
+        _showBlockToast('跳转失败');
+      }
     }
   }
 
@@ -1104,9 +1138,6 @@ class VideoDetailController extends GetxController
       _getDmTrend();
     }
 
-    /// 开启自动全屏时，在player初始化完成后立即传入headerControl
-    plPlayerController.headerControl = headerControl;
-
     if (defaultST != null) {
       defaultST = null;
     }
@@ -1145,7 +1176,7 @@ class VideoDetailController extends GetxController
       data = result['data'];
 
       if (enableSponsorBlock) {
-        await _querySponsorBlock();
+        _querySponsorBlock();
       }
 
       if (data.acceptDesc!.isNotEmpty && data.acceptDesc!.contains('试看')) {
@@ -1186,6 +1217,9 @@ class VideoDetailController extends GetxController
         autoPlay.value = false;
         isShowCover.value = true;
         videoState.value = LoadingState.error('视频资源不存在');
+        if (plPlayerController.isFullScreen.value) {
+          plPlayerController.toggleFullScreen(false);
+        }
         isQuerying = false;
         return;
       }
@@ -1299,6 +1333,9 @@ class VideoDetailController extends GetxController
       autoPlay.value = false;
       isShowCover.value = true;
       videoState.value = LoadingState.error(result['msg']);
+      if (plPlayerController.isFullScreen.value) {
+        plPlayerController.toggleFullScreen(false);
+      }
       if (result['code'] == -404) {
         SmartDialog.showToast('视频不存在或已被删除');
       }
@@ -1468,23 +1505,25 @@ class VideoDetailController extends GetxController
       if (GStorage.showViewPoints &&
           res["view_points"] is List &&
           res["view_points"].isNotEmpty) {
-        viewPointList = (res["view_points"] as List).map((item) {
-          double start =
-              (item['to'] / ((data.timeLength ?? 0) / 1000)).clamp(0.0, 1.0);
-          return Segment(
-            start,
-            start,
-            Colors.black.withOpacity(0.5),
-            item?['content'],
-            item?['imgUrl'],
-            item?['from'],
-            item?['to'],
-          );
-        }).toList();
-        if (plPlayerController.viewPointList.isEmpty) {
-          plPlayerController.viewPointList.value = viewPointList;
-          plPlayerController.showVP.value = showVP = true;
-        }
+        try {
+          viewPointList = (res["view_points"] as List).map((item) {
+            double start =
+                (item['to'] / (data.timeLength! / 1000)).clamp(0.0, 1.0);
+            return Segment(
+              start,
+              start,
+              Colors.black.withOpacity(0.5),
+              item?['content'],
+              item?['imgUrl'],
+              item?['from'],
+              item?['to'],
+            );
+          }).toList();
+          if (plPlayerController.viewPointList.isEmpty) {
+            plPlayerController.viewPointList.value = viewPointList;
+            plPlayerController.showVP.value = showVP = true;
+          }
+        } catch (_) {}
       }
 
       if (res["subtitles"] is List && res["subtitles"].isNotEmpty) {
@@ -1574,6 +1613,7 @@ class VideoDetailController extends GetxController
     // sponsor block
     if (enableSponsorBlock) {
       positionSubscription?.cancel();
+      positionSubscription = null;
       videoLabel.value = '';
       segmentList.clear();
       segmentProgressList = null;

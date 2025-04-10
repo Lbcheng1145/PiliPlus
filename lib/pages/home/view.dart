@@ -155,9 +155,10 @@ class _HomePageState extends State<HomePage>
     return StreamBuilder(
       stream: _homeController.hideSearchBar
           ? _mainController.navSearchStreamDebounce
-              ? _homeController.searchBarStream.stream
+              ? _homeController.searchBarStream?.stream
+                  .distinct()
                   .throttle(const Duration(milliseconds: 500))
-              : _homeController.searchBarStream.stream
+              : _homeController.searchBarStream?.stream.distinct()
           : null,
       initialData: true,
       builder: (BuildContext context, AsyncSnapshot snapshot) {
@@ -259,7 +260,7 @@ class DefaultUser extends StatelessWidget {
   }
 }
 
-Widget msgBadge(mainController) {
+Widget msgBadge(MainController mainController) {
   void toWhisper() {
     mainController.msgUnReadCount.value = '';
     mainController.lastCheckUnreadAt = DateTime.now().millisecondsSinceEpoch;

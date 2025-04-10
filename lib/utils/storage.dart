@@ -5,7 +5,6 @@ import 'package:PiliPlus/common/widgets/pair.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart'
     show kDragContainerExtentPercentage, displacement;
 import 'package:PiliPlus/http/constants.dart';
-import 'package:PiliPlus/http/index.dart';
 import 'package:PiliPlus/models/common/dynamic_badge_mode.dart';
 import 'package:PiliPlus/models/common/sponsor_block/segment_type.dart';
 import 'package:PiliPlus/models/common/sponsor_block/skip_type.dart';
@@ -112,11 +111,11 @@ class GStorage {
         defaultValue: DynamicBadgeMode.number.index,
       )];
 
-  static List<MsgUnReadType> get msgUnReadTypeV2 => List<int>.from(setting.get(
-        SettingBoxKey.msgUnReadTypeV2,
-        defaultValue:
-            List<int>.generate(MsgUnReadType.values.length, (index) => index),
-      )).map((index) => MsgUnReadType.values[index]).toList();
+  static Set<MsgUnReadType> get msgUnReadTypeV2 =>
+      (setting.get(SettingBoxKey.msgUnReadTypeV2) as List?)
+          ?.map((index) => MsgUnReadType.values[index])
+          .toSet() ??
+      MsgUnReadType.values.toSet();
 
   static int get defaultHomePage =>
       setting.get(SettingBoxKey.defaultHomePage, defaultValue: 0);
@@ -342,6 +341,9 @@ class GStorage {
   static bool get showVipDanmaku =>
       GStorage.setting.get(SettingBoxKey.showVipDanmaku, defaultValue: true);
 
+  static bool get showSpecialDanmaku => GStorage.setting
+      .get(SettingBoxKey.showSpecialDanmaku, defaultValue: false);
+
   static bool get mergeDanmaku =>
       GStorage.setting.get(SettingBoxKey.mergeDanmaku, defaultValue: false);
 
@@ -447,6 +449,18 @@ class GStorage {
 
   static bool get navSearchStreamDebounce => GStorage.setting
       .get(SettingBoxKey.navSearchStreamDebounce, defaultValue: false);
+
+  static String get webdavUri =>
+      GStorage.setting.get(SettingBoxKey.webdavUri, defaultValue: '');
+
+  static String get webdavUsername =>
+      GStorage.setting.get(SettingBoxKey.webdavUsername, defaultValue: '');
+
+  static String get webdavPassword =>
+      GStorage.setting.get(SettingBoxKey.webdavPassword, defaultValue: '');
+
+  static String get webdavDirectory =>
+      GStorage.setting.get(SettingBoxKey.webdavDirectory, defaultValue: '/');
 
   static List<double> get dynamicDetailRatio => List<double>.from(setting
       .get(SettingBoxKey.dynamicDetailRatio, defaultValue: [60.0, 40.0]));
@@ -695,6 +709,7 @@ class SettingBoxKey {
       refreshDragPercentage = 'refreshDragPercentage',
       refreshDisplacement = 'refreshDisplacement',
       showVipDanmaku = 'showVipDanmaku',
+      showSpecialDanmaku = 'showSpecialDanmaku',
       mergeDanmaku = 'mergeDanmaku',
       showHotRcmd = 'showHotRcmd',
       audioNormalization = 'audioNormalization',
@@ -732,6 +747,12 @@ class SettingBoxKey {
       fastForBackwardDuration = 'fastForBackwardDuration',
       recordSearchHistory = 'recordSearchHistory',
       navSearchStreamDebounce = 'navSearchStreamDebounce',
+
+      // WebDAV
+      webdavUri = 'webdavUri',
+      webdavUsername = 'webdavUsername',
+      webdavPassword = 'webdavPassword',
+      webdavDirectory = 'webdavDirectory',
 
       // Sponsor Block
       enableSponsorBlock = 'enableSponsorBlock',
@@ -881,9 +902,9 @@ class Accounts {
     for (var type in AccountType.values) {
       accountMode[type] ??= AnonymousAccount();
     }
-    await Future.wait((accountMode.values.toSet()
-          ..retainWhere((i) => !i.activited))
-        .map((i) => Request.buvidActive(i)));
+    // await Future.wait((accountMode.values.toSet()
+    //       ..retainWhere((i) => !i.activited))
+    //     .map((i) => Request.buvidActive(i)));
   }
 
   static Future<void> clear() async {
@@ -892,7 +913,7 @@ class Accounts {
       accountMode[i] = AnonymousAccount();
     }
     await AnonymousAccount().delete();
-    Request.buvidActive(AnonymousAccount());
+    // Request.buvidActive(AnonymousAccount());
   }
 
   static Future<void> close() async {
@@ -914,7 +935,7 @@ class Accounts {
     await (accountMode[key]?..type.remove(key))?.onChange();
     accountMode[key] = account..type.add(key);
     await account.onChange();
-    if (!account.activited) await Request.buvidActive(account);
+    // if (!account.activited) await Request.buvidActive(account);
     switch (key) {
       case AccountType.main:
         await (account.isLogin

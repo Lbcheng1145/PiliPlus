@@ -1,7 +1,7 @@
 // 转发
 import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/image_save.dart';
-import 'package:PiliPlus/common/widgets/imageview.dart';
+import 'package:PiliPlus/common/widgets/image_view.dart';
 import 'package:PiliPlus/common/widgets/network_img_layer.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +21,7 @@ import 'video_panel.dart';
 InlineSpan picsNodes(List<OpusPicsModel> pics, callback) {
   return WidgetSpan(
     child: LayoutBuilder(
-      builder: (context, constraints) => imageview(
+      builder: (context, constraints) => imageView(
         constraints.maxWidth,
         pics
             .map(
@@ -39,7 +39,37 @@ InlineSpan picsNodes(List<OpusPicsModel> pics, callback) {
   );
 }
 
-Widget forWard(item, BuildContext context, source, callback, {floor = 1}) {
+Widget _blockedItem(BuildContext context, item, source) {
+  return Container(
+    width: double.infinity,
+    padding: EdgeInsets.only(
+        left: 12, right: 12, bottom: source == 'detail' ? 8 : 0),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (item.modules.moduleDynamic.major.blocked['title'] != null)
+          Text(
+            item.modules.moduleDynamic.major.blocked['title'],
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+          ),
+        if (item.modules.moduleDynamic.major.blocked['hint_message'] != null)
+          Text(
+            item.modules.moduleDynamic.major.blocked['hint_message'],
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+Widget forWard(bool isSave, item, BuildContext context, source, callback,
+    {floor = 1}) {
   switch (item.type) {
     // 图文
     case 'DYNAMIC_TYPE_DRAW':
@@ -95,10 +125,16 @@ Widget forWard(item, BuildContext context, source, callback, {floor = 1}) {
               Text.rich(
                 richNodes,
                 // 被转发状态(floor=2) 隐藏
-                maxLines: source == 'detail' && floor != 2 ? null : 4,
-                overflow: source == 'detail' && floor != 2
+                maxLines: isSave
                     ? null
-                    : TextOverflow.ellipsis,
+                    : source == 'detail' && floor != 2
+                        ? null
+                        : 4,
+                overflow: isSave
+                    ? null
+                    : source == 'detail' && floor != 2
+                        ? null
+                        : TextOverflow.ellipsis,
               ),
             if (hasPics) ...[
               Text.rich(
@@ -125,47 +161,18 @@ Widget forWard(item, BuildContext context, source, callback, {floor = 1}) {
               item.modules.moduleDynamic.additional.type,
               floor: floor,
             ),
-
-          if (item.modules.moduleDynamic.major.blocked != null) ...[
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.only(
-                  left: 12, right: 12, bottom: source == 'detail' ? 8 : 0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (item.modules.moduleDynamic.major.blocked['title'] != null)
-                    Text(
-                      item.modules.moduleDynamic.major.blocked['title'],
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.secondary,
-                      ),
-                    ),
-                  if (item.modules.moduleDynamic.major
-                          .blocked['hint_message'] !=
-                      null)
-                    Text(
-                      item.modules.moduleDynamic.major.blocked['hint_message'],
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
+          if (item?.modules?.moduleDynamic?.major?.blocked != null)
+            _blockedItem(context, item, source),
         ],
       );
     // 视频
     case 'DYNAMIC_TYPE_AV':
-      return videoSeasonWidget(item, context, 'archive', floor: floor);
+      return videoSeasonWidget(source, item, context, 'archive', floor: floor);
     // 文章
     case 'DYNAMIC_TYPE_ARTICLE':
       return switch (item) {
         DynamicItemModel() => item.isForwarded == true
-            ? articlePanel(item, context, callback, floor: floor)
+            ? articlePanel(source, item, context, callback, floor: floor)
             : item.modules?.moduleDynamic?.major?.blocked != null
                 ? Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -254,19 +261,19 @@ Widget forWard(item, BuildContext context, source, callback, {floor = 1}) {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
           color: Theme.of(context).dividerColor.withOpacity(0.08),
-          child:
-              forWard(item.orig, context, source, callback, floor: floor + 1),
+          child: forWard(isSave, item.orig, context, source, callback,
+              floor: floor + 1),
         ),
       );
     // 直播
     case 'DYNAMIC_TYPE_LIVE_RCMD':
-      return liveRcmdPanel(item, context, floor: floor);
+      return liveRcmdPanel(source, item, context, floor: floor);
     // 直播
     case 'DYNAMIC_TYPE_LIVE':
-      return livePanel(item, context, floor: floor);
+      return livePanel(source, item, context, floor: floor);
     // 合集
     case 'DYNAMIC_TYPE_UGC_SEASON':
-      return videoSeasonWidget(item, context, 'ugcSeason');
+      return videoSeasonWidget(source, item, context, 'ugcSeason');
     case 'DYNAMIC_TYPE_WORD':
       InlineSpan? richNodes = richNode(item, context);
       return floor == 2
@@ -300,10 +307,16 @@ Widget forWard(item, BuildContext context, source, callback, {floor = 1}) {
                   Text.rich(
                     richNodes,
                     // 被转发状态(floor=2) 隐藏
-                    maxLines: source == 'detail' && floor != 2 ? null : 4,
-                    overflow: source == 'detail' && floor != 2
+                    maxLines: isSave
                         ? null
-                        : TextOverflow.ellipsis,
+                        : source == 'detail' && floor != 2
+                            ? null
+                            : 4,
+                    overflow: isSave
+                        ? null
+                        : source == 'detail' && floor != 2
+                            ? null
+                            : TextOverflow.ellipsis,
                   ),
               ],
             )
@@ -314,11 +327,13 @@ Widget forWard(item, BuildContext context, source, callback, {floor = 1}) {
                   item.modules.moduleDynamic.additional.type,
                   floor: floor,
                 )
-              : const SizedBox(height: 0);
+              : item?.modules?.moduleDynamic?.major?.blocked != null
+                  ? _blockedItem(context, item, source)
+                  : const SizedBox(height: 0);
     case 'DYNAMIC_TYPE_PGC':
-      return videoSeasonWidget(item, context, 'pgc', floor: floor);
+      return videoSeasonWidget(source, item, context, 'pgc', floor: floor);
     case 'DYNAMIC_TYPE_PGC_UNION':
-      return videoSeasonWidget(item, context, 'pgc', floor: floor);
+      return videoSeasonWidget(source, item, context, 'pgc', floor: floor);
     // 直播结束
     case 'DYNAMIC_TYPE_NONE':
       return Row(

@@ -47,7 +47,7 @@ class PLVideoPlayer extends StatefulWidget {
     this.videoDetailController,
     this.videoIntroController,
     this.bangumiIntroController,
-    this.headerControl,
+    required this.headerControl,
     this.bottomControl,
     this.danmuWidget,
     this.customWidget,
@@ -63,7 +63,7 @@ class PLVideoPlayer extends StatefulWidget {
   final VideoDetailController? videoDetailController;
   final VideoIntroController? videoIntroController;
   final BangumiIntroController? bangumiIntroController;
-  final PreferredSizeWidget? headerControl;
+  final PreferredSizeWidget headerControl;
   final PreferredSizeWidget? bottomControl;
   final Widget? danmuWidget;
   // List<Widget> or Widget
@@ -170,9 +170,6 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     videoController = plPlayerController.videoController!;
     videoIntroController = widget.videoIntroController;
     bangumiIntroController = widget.bangumiIntroController;
-    plPlayerController.headerControl = widget.headerControl;
-    plPlayerController.bottomControl = widget.bottomControl;
-    plPlayerController.danmuWidget = widget.danmuWidget;
     defaultBtmProgressBehavior = GStorage.setting.get(
         SettingBoxKey.btmProgressBehavior,
         defaultValue: BtmProgressBehavior.values.first.code);
@@ -474,7 +471,8 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
             color: Colors.white,
           ),
           onTap: () {
-            if (anySeason.not) {
+            if (anySeason.not ||
+                widget.videoDetailController?.isPlayAll == true) {
               widget.showEpisodes?.call();
               return;
             }
@@ -1047,9 +1045,11 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                   !plPlayerController.showControls.value;
             },
             onDoubleTapDown: (TapDownDetails details) {
-              // live模式下禁用 锁定时🔒禁用
-              if (plPlayerController.videoType.value == 'live' ||
-                  plPlayerController.controlsLock.value) {
+              if (plPlayerController.controlsLock.value) {
+                return;
+              }
+              if (plPlayerController.videoType.value == 'live') {
+                doubleTapFuc('center');
                 return;
               }
               RenderBox renderBox =
@@ -1287,29 +1287,25 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
             child: ClipRect(
               child: Column(
                 children: [
-                  if (widget.headerControl != null ||
-                      plPlayerController.headerControl != null)
-                    AppBarAni(
-                      controller: animationController,
-                      visible: !plPlayerController.controlsLock.value &&
-                          plPlayerController.showControls.value,
-                      position: 'top',
-                      child: widget.headerControl ??
-                          plPlayerController.headerControl!,
-                    ),
+                  AppBarAni(
+                    controller: animationController,
+                    visible: !plPlayerController.controlsLock.value &&
+                        plPlayerController.showControls.value,
+                    position: 'top',
+                    child: widget.headerControl,
+                  ),
                   const Spacer(),
-                  if (plPlayerController.showControls.value)
-                    AppBarAni(
-                      controller: animationController,
-                      visible: !plPlayerController.controlsLock.value &&
-                          plPlayerController.showControls.value,
-                      position: 'bottom',
-                      child: widget.bottomControl ??
-                          BottomControl(
-                            controller: plPlayerController,
-                            buildBottomControl: buildBottomControl,
-                          ),
-                    ),
+                  AppBarAni(
+                    controller: animationController,
+                    visible: !plPlayerController.controlsLock.value &&
+                        plPlayerController.showControls.value,
+                    position: 'bottom',
+                    child: widget.bottomControl ??
+                        BottomControl(
+                          controller: plPlayerController,
+                          buildBottomControl: buildBottomControl,
+                        ),
+                  ),
                 ],
               ),
             ),

@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:PiliPlus/common/constants.dart';
-import 'package:PiliPlus/common/widgets/imageview.dart';
+import 'package:PiliPlus/common/widgets/image_view.dart';
 import 'package:PiliPlus/common/widgets/report.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/video.dart';
@@ -72,8 +72,11 @@ class ReplyItem extends StatelessWidget {
           feedBack();
           showModalBottomSheet(
             context: context,
-            useRootNavigator: true,
+            useSafeArea: true,
             isScrollControlled: true,
+            constraints: BoxConstraints(
+              maxWidth: min(640, min(Get.width, Get.height)),
+            ),
             builder: (context) {
               return morePanel(
                 context: context,
@@ -498,8 +501,11 @@ class ReplyItem extends StatelessWidget {
                     feedBack();
                     showModalBottomSheet(
                       context: context,
-                      useRootNavigator: true,
+                      useSafeArea: true,
                       isScrollControlled: true,
+                      constraints: BoxConstraints(
+                        maxWidth: min(640, min(Get.width, Get.height)),
+                      ),
                       builder: (context) {
                         return morePanel(
                           context: context,
@@ -993,7 +999,7 @@ class ReplyItem extends StatelessWidget {
       spanChildren.add(
         WidgetSpan(
           child: LayoutBuilder(
-            builder: (context, constraints) => imageview(
+            builder: (context, constraints) => imageView(
               constraints.maxWidth,
               (content.pictures as List)
                   .map(
@@ -1140,12 +1146,8 @@ class ReplyItem extends StatelessWidget {
     Color errorColor = Theme.of(context).colorScheme.error;
 
     return Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQueryData.fromView(
-                      WidgetsBinding.instance.platformDispatcher.views.single)
-                  .padding
-                  .bottom +
-              20),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom + 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -131,9 +133,13 @@ class _PlaySpeedPageState extends State<PlaySpeedPage> {
   void showBottomSheet(index) {
     showModalBottomSheet(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       clipBehavior: Clip.hardEdge,
       backgroundColor: Theme.of(context).colorScheme.surface,
+      constraints: BoxConstraints(
+        maxWidth: min(640, min(Get.width, Get.height)),
+      ),
       builder: (context) {
         return Column(
           mainAxisSize: MainAxisSize.min,

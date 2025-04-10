@@ -67,10 +67,8 @@ class VideoReplyReplyController extends ReplyController
         firstFloor = replies.root;
       }
       if (id != null) {
-        index = replies.root.replies
-            .map((item) => item.id.toInt())
-            .toList()
-            .indexOf(id!);
+        index =
+            replies.root.replies.indexWhere((item) => item.id.toInt() == id);
         if (index == -1) {
           index = null;
         } else {
@@ -85,10 +83,10 @@ class VideoReplyReplyController extends ReplyController
                   index: hasRoot ? index! + 3 : index! + 1,
                   alignment: 0.25,
                 );
+                await Future.delayed(const Duration(milliseconds: 800));
+                await controller?.forward();
+                index = null;
               } catch (_) {}
-              await Future.delayed(const Duration(milliseconds: 800));
-              await controller?.forward();
-              index = null;
             }
           });
         }

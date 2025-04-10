@@ -1,8 +1,8 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:PiliPlus/common/widgets/custom_sliver_persistent_header_delegate.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
+import 'package:PiliPlus/grpc/app/main/community/reply/v1/reply.pb.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/reply_sort_type.dart';
@@ -40,8 +40,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
     with TickerProviderStateMixin {
   late DynamicDetailController _dynamicDetailController;
   AnimationController? _fabAnimationCtr;
-  late StreamController<bool> _titleStreamC; // appBar title
-  bool _visibleTitle = false;
+  final RxBool _visibleTitle = false.obs;
   // String? action;
   // 回复类型
   late int replyType;
@@ -104,7 +103,6 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
     super.initState();
     // floor 1原创 2转发
     init();
-    _titleStreamC = StreamController<bool>();
     // if (action == 'comment') {
     //   _visibleTitle = true;
     //   _titleStreamC.add(true);
@@ -164,7 +162,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
   }
 
   // 查看二级评论
-  void replyReply(context, replyItem, id) {
+  void replyReply(BuildContext context, ReplyInfo replyItem, int? id) {
     EasyThrottle.throttle('replyReply', const Duration(milliseconds: 500), () {
       int oid = replyItem.oid.toInt();
       int rpid = replyItem.id.toInt();
@@ -189,7 +187,13 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
             ),
           );
       if (this.context.orientation == Orientation.portrait) {
-        Get.to(replyReplyPage);
+        Get.to(
+          replyReplyPage,
+          routeName: 'dynamicDetail-Copy',
+          arguments: {
+            'item': _dynamicDetailController.item,
+          },
+        );
       } else {
         ScaffoldState? scaffoldState = Scaffold.maybeOf(context);
         if (scaffoldState != null) {
@@ -213,7 +217,13 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
             ),
           );
         } else {
-          Get.to(replyReplyPage);
+          Get.to(
+            replyReplyPage,
+            routeName: 'dynamicDetail-Copy',
+            arguments: {
+              'item': _dynamicDetailController.item,
+            },
+          );
         }
       }
     });
@@ -227,15 +237,8 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
   void listener() {
     // 标题
     if (_dynamicDetailController.scrollController.positions.length == 1) {
-      if (_dynamicDetailController.scrollController.offset > 55 &&
-          !_visibleTitle) {
-        _visibleTitle = true;
-        _titleStreamC.add(true);
-      } else if (_dynamicDetailController.scrollController.offset <= 55 &&
-          _visibleTitle) {
-        _visibleTitle = false;
-        _titleStreamC.add(false);
-      }
+      _visibleTitle.value =
+          _dynamicDetailController.scrollController.offset > 55;
     }
 
     // fab按钮
@@ -268,7 +271,6 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
 
   @override
   void dispose() {
-    _titleStreamC.close();
     _fabAnimationCtr?.dispose();
     _fabAnimationCtr = null;
     _dynamicDetailController.scrollController.removeListener(listener);
@@ -280,12 +282,10 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: StreamBuilder(
-          stream: _titleStreamC.stream,
-          initialData: false,
-          builder: (context, AsyncSnapshot snapshot) {
+        title: Obx(
+          () {
             return AnimatedOpacity(
-              opacity: snapshot.data ? 1 : 0,
+              opacity: _visibleTitle.value ? 1 : 0,
               duration: const Duration(milliseconds: 300),
               child: AuthorPanel(
                 item: _dynamicDetailController.item,
@@ -811,11 +811,9 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                   } else {
                     return ReplyItemGrpc(
                       replyItem: loadingState.response.replies[index],
-                      showReplyRow: true,
                       replyLevel: '1',
                       replyReply: (replyItem, id) =>
                           replyReply(context, replyItem, id),
-                      replyType: ReplyType.values[replyType],
                       onReply: () {
                         _dynamicDetailController.onReply(
                           context,

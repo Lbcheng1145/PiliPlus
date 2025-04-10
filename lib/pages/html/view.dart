@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:PiliPlus/common/widgets/article_content.dart';
 import 'package:PiliPlus/common/widgets/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
+import 'package:PiliPlus/grpc/app/main/community/reply/v1/reply.pb.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/reply_sort_type.dart';
@@ -161,7 +162,7 @@ class _HtmlRenderPageState extends State<HtmlRenderPage>
     }
   }
 
-  void replyReply(context, replyItem, id) {
+  void replyReply(BuildContext context, ReplyInfo replyItem, int? id) {
     EasyThrottle.throttle('replyReply', const Duration(milliseconds: 500), () {
       int oid = replyItem.oid.toInt();
       int rpid = replyItem.id.toInt();
@@ -186,7 +187,13 @@ class _HtmlRenderPageState extends State<HtmlRenderPage>
             ),
           );
       if (this.context.orientation == Orientation.portrait) {
-        Get.to(replyReplyPage);
+        Get.to(
+          replyReplyPage,
+          routeName: 'htmlRender-Copy',
+          arguments: {
+            'id': _htmlRenderCtr.id,
+          },
+        );
       } else {
         ScaffoldState? scaffoldState = Scaffold.maybeOf(context);
         if (scaffoldState != null) {
@@ -210,7 +217,13 @@ class _HtmlRenderPageState extends State<HtmlRenderPage>
             ),
           );
         } else {
-          Get.to(replyReplyPage);
+          Get.to(
+            replyReplyPage,
+            routeName: 'htmlRender-Copy',
+            arguments: {
+              'id': _htmlRenderCtr.id,
+            },
+          );
         }
       }
     });
@@ -784,11 +797,9 @@ class _HtmlRenderPageState extends State<HtmlRenderPage>
                 } else {
                   return ReplyItemGrpc(
                     replyItem: loadingState.response.replies[index],
-                    showReplyRow: true,
                     replyLevel: '1',
                     replyReply: (replyItem, id) =>
                         replyReply(context, replyItem, id),
-                    replyType: ReplyType.values[type],
                     onReply: () {
                       _htmlRenderCtr.onReply(
                         context,
@@ -851,35 +862,44 @@ class _HtmlRenderPageState extends State<HtmlRenderPage>
 
   Widget get _buildHeader => Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-        child: Row(
-          children: [
-            NetworkImgLayer(
-              width: 40,
-              height: 40,
-              type: 'avatar',
-              src: _htmlRenderCtr.response['avatar']!,
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _htmlRenderCtr.response['uname'],
-                  style: TextStyle(
-                    fontSize: Theme.of(context).textTheme.titleSmall!.fontSize,
+        child: GestureDetector(
+          onTap: () {
+            if (_htmlRenderCtr.mid != null) {
+              Get.toNamed('/member?mid=${_htmlRenderCtr.mid}');
+            }
+          },
+          child: Row(
+            children: [
+              NetworkImgLayer(
+                width: 40,
+                height: 40,
+                type: 'avatar',
+                src: _htmlRenderCtr.response['avatar']!,
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _htmlRenderCtr.response['uname'],
+                    style: TextStyle(
+                      fontSize:
+                          Theme.of(context).textTheme.titleSmall!.fontSize,
+                    ),
                   ),
-                ),
-                Text(
-                  _htmlRenderCtr.response['updateTime'],
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.outline,
-                    fontSize: Theme.of(context).textTheme.labelSmall!.fontSize,
+                  Text(
+                    _htmlRenderCtr.response['updateTime'],
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.outline,
+                      fontSize:
+                          Theme.of(context).textTheme.labelSmall!.fontSize,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const Spacer(),
-          ],
+                ],
+              ),
+              const Spacer(),
+            ],
+          ),
         ),
       );
 

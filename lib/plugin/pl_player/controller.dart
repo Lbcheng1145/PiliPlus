@@ -137,10 +137,6 @@ class PlPlayerController {
     {'attr': BoxFit.scaleDown, 'desc': '限制', 'toast': '仅超出时缩小至播放器尺寸'},
   ];
 
-  PreferredSizeWidget? headerControl;
-  PreferredSizeWidget? bottomControl;
-  Widget? danmuWidget;
-
   String get bvid => _bvid;
   int get cid => _cid;
 
@@ -287,6 +283,7 @@ class PlPlayerController {
   late int subtitlePaddingB = GStorage.subtitlePaddingB;
   late double subtitleBgOpaticy = GStorage.subtitleBgOpaticy;
   late bool showVipDanmaku = GStorage.showVipDanmaku;
+  late bool showSpecialDanmaku = GStorage.showSpecialDanmaku;
   late double subtitleStrokeWidth = GStorage.subtitleStrokeWidth;
   late int subtitleFontWeight = GStorage.subtitleFontWeight;
 

@@ -370,7 +370,9 @@ class Api {
   static const String memberArchive = '/x/space/wbi/arc/search';
 
   // 用户动态搜索
-  static const String memberDynamicSearch = '/x/space/dynamic/search';
+  // static const String memberDynamicSearch = '/x/space/dynamic/search';
+  static const String memberDynamicSearch =
+      '/x/polymer/web-dynamic/v1/feed/space/search';
 
   // 用户动态
   static const String memberDynamic = '/x/polymer/web-dynamic/v1/feed/space';
@@ -695,7 +697,9 @@ class Api {
 
   static const String removeMsg = '/session_svr/v1/session_svr/remove_session';
 
-  static const String removeSysMsg = '/x/sys-msg/del_notify_list';
+  static const String delSysMsg = '/x/sys-msg/del_notify_list';
+
+  static const String delMsgfeed = '/x/msgfeed/del';
 
   static const String setTop = '/session_svr/v1/session_svr/set_top';
 

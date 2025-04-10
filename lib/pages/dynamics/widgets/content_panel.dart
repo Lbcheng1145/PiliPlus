@@ -1,14 +1,14 @@
 // 内容
-import 'package:PiliPlus/common/widgets/imageview.dart';
+import 'package:PiliPlus/common/widgets/image_view.dart';
 import 'package:flutter/material.dart';
 
 import 'rich_node_panel.dart';
 
-Widget content(context, item, source, callback) {
+Widget content(bool isSave, BuildContext context, item, source, callback) {
   InlineSpan picsNodes() {
     return WidgetSpan(
       child: LayoutBuilder(
-        builder: (context, constraints) => imageview(
+        builder: (context, constraints) => imageView(
           constraints.maxWidth,
           (item.modules.moduleDynamic.major.opus.pics as List)
               .map(
@@ -55,7 +55,7 @@ Widget content(context, item, source, callback) {
               child: Text.rich(
                 /// fix 默认20px高度
                 style: TextStyle(
-                  fontSize: source == 'detail' ? 16 : 15,
+                  fontSize: source == 'detail' && !isSave ? 16 : 15,
                 ),
                 richNodes,
                 maxLines: source == 'detail' ? null : 6,

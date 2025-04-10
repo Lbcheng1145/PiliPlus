@@ -178,7 +178,8 @@ class _MainAppState extends State<MainApp>
       onPopInvokedWithResult: (bool didPop, Object? result) async {
         if (_mainController.selectedIndex.value != 0) {
           setIndex(0);
-          _mainController.bottomBarStream.add(true);
+          _mainController.bottomBarStream?.add(true);
+          _homeController.searchBarStream?.add(true);
         } else {
           if (Platform.isAndroid) {
             Utils.channel.invokeMethod('back');
@@ -199,7 +200,8 @@ class _MainAppState extends State<MainApp>
           body: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (useSideBar || context.orientation == Orientation.landscape)
+              if (useSideBar ||
+                  context.orientation == Orientation.landscape) ...[
                 Obx(
                   () => _mainController.navigationBars.length > 1
                       ? NavigationRail(
@@ -234,12 +236,14 @@ class _MainAppState extends State<MainApp>
                           child: userAndSearchVertical,
                         ),
                 ),
-              VerticalDivider(
-                width: 1,
-                indent: MediaQuery.of(context).padding.top,
-                endIndent: MediaQuery.of(context).padding.bottom,
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.06),
-              ),
+                VerticalDivider(
+                  width: 1,
+                  indent: MediaQuery.of(context).padding.top,
+                  endIndent: MediaQuery.of(context).padding.bottom,
+                  color:
+                      Theme.of(context).colorScheme.outline.withOpacity(0.06),
+                ),
+              ],
               Expanded(
                 child: _mainController.mainTabBarView
                     ? CustomTabBarView(
@@ -265,9 +269,10 @@ class _MainAppState extends State<MainApp>
               : StreamBuilder(
                   stream: _mainController.hideTabBar
                       ? _mainController.navSearchStreamDebounce
-                          ? _mainController.bottomBarStream.stream
+                          ? _mainController.bottomBarStream?.stream
+                              .distinct()
                               .throttle(const Duration(milliseconds: 500))
-                          : _mainController.bottomBarStream.stream
+                          : _mainController.bottomBarStream?.stream.distinct()
                       : null,
                   initialData: true,
                   builder: (context, AsyncSnapshot snapshot) {

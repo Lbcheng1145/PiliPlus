@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:PiliPlus/common/widgets/dialog.dart';
 import 'package:PiliPlus/common/widgets/loading_widget.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/loading_state.dart';
@@ -52,7 +53,8 @@ class _SysMsgPageState extends State<SysMsgPage> {
                   _sysMsgController.onLoadMore();
                 }
 
-                String? content = loadingState.response[index].content;
+                final item = loadingState.response[index];
+                String? content = item.content;
                 if (content != null) {
                   try {
                     dynamic jsonContent = json.decode(content);
@@ -64,36 +66,16 @@ class _SysMsgPageState extends State<SysMsgPage> {
                 return ListTile(
                   onTap: () {},
                   onLongPress: () {
-                    showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                              title: const Text('确定删除该通知?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: Get.back,
-                                  child: Text(
-                                    '取消',
-                                    style: TextStyle(
-                                      color:
-                                          Theme.of(context).colorScheme.outline,
-                                    ),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    Get.back();
-                                    _sysMsgController.onRemove(
-                                      loadingState.response[index].id,
-                                      index,
-                                    );
-                                  },
-                                  child: const Text('确定'),
-                                ),
-                              ],
-                            ));
+                    showConfirmDialog(
+                      context: context,
+                      title: '确定删除该通知?',
+                      onConfirm: () {
+                        _sysMsgController.onRemove(item.id, index);
+                      },
+                    );
                   },
                   title: Text(
-                    "${loadingState.response[index].title}",
+                    "${item.title}",
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   subtitle: Column(
@@ -114,13 +96,14 @@ class _SysMsgPageState extends State<SysMsgPage> {
                       SizedBox(
                         width: double.infinity,
                         child: Text(
-                          "${loadingState.response[index].timeAt}",
+                          "${item.timeAt}",
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context)
                               .textTheme
                               .bodyMedium!
                               .copyWith(
+                                fontSize: 13,
                                 color: Theme.of(context).colorScheme.outline,
                               ),
                           textAlign: TextAlign.end,
@@ -151,7 +134,7 @@ class _SysMsgPageState extends State<SysMsgPage> {
   InlineSpan _buildContent(String content) {
     final List<InlineSpan> spanChildren = <InlineSpan>[];
     RegExp urlRegExp = RegExp(
-        r'#\{([^}]*)\}\{([^}]*)\}|https?:\/\/[^\s/\$.?#].[^\s]*|www\.[^\s/\$.?#].[^\s]*|【(.*?)】');
+        r'#\{([^}]*)\}\{([^}]*)\}|https?:\/\/[^\s/\$.?#].[^\s]*|www\.[^\s/\$.?#].[^\s]*|【(.*?)】|（(\d+)）');
     content.splitMapJoin(
       urlRegExp,
       onMatch: (Match match) {
@@ -200,9 +183,29 @@ class _SysMsgPageState extends State<SysMsgPage> {
             );
             spanChildren.add(TextSpan(text: '】'));
           } catch (e) {
+            spanChildren.add(TextSpan(text: match[0]));
+          }
+        } else if (matchStr.startsWith('（')) {
+          try {
+            match[4]; // dynId
+            spanChildren.add(TextSpan(text: '（'));
             spanChildren.add(
-              TextSpan(text: match[0]),
+              TextSpan(
+                text: '查看动态',
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                recognizer: TapGestureRecognizer()
+                  ..onTap = () {
+                    try {
+                      Utils.pushDynFromId(match[4]);
+                    } catch (err) {
+                      SmartDialog.showToast(err.toString());
+                    }
+                  },
+              ),
             );
+            spanChildren.add(TextSpan(text: '）'));
+          } catch (e) {
+            spanChildren.add(TextSpan(text: match[0]));
           }
         } else {
           spanChildren.add(

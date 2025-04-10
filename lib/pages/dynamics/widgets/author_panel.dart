@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import 'package:PiliPlus/common/widgets/report.dart';
+import 'package:PiliPlus/common/widgets/save_panel.dart';
 import 'package:PiliPlus/http/index.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/utils/extension.dart';
@@ -21,6 +24,7 @@ class AuthorPanel extends StatelessWidget {
   final Function? addBannedList;
   final String? source;
   final Function? onRemove;
+  final bool isSave;
 
   const AuthorPanel({
     super.key,
@@ -28,6 +32,7 @@ class AuthorPanel extends StatelessWidget {
     this.addBannedList,
     this.source,
     this.onRemove,
+    this.isSave = false,
   });
 
   Widget _buildAvatar(double size) => NetworkImgLayer(
@@ -39,6 +44,14 @@ class AuthorPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String? pubTime = item.modules.moduleAuthor.pubTs != null
+        ? isSave
+            ? DateTime.fromMillisecondsSinceEpoch(
+                    item.modules.moduleAuthor.pubTs * 1000)
+                .toString()
+                .substring(0, 19)
+            : Utils.dateFormat(item.modules.moduleAuthor.pubTs)
+        : item.modules.moduleAuthor.pubTime;
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -89,22 +102,15 @@ class AuthorPanel extends StatelessWidget {
                           Theme.of(context).textTheme.titleSmall!.fontSize,
                     ),
                   ),
-                  DefaultTextStyle.merge(
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.outline,
-                      fontSize:
-                          Theme.of(context).textTheme.labelSmall!.fontSize,
+                  if (pubTime != null)
+                    Text(
+                      '$pubTime${item.modules.moduleAuthor.pubAction != null ? ' ${item.modules.moduleAuthor.pubAction}' : ''}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.outline,
+                        fontSize:
+                            Theme.of(context).textTheme.labelSmall!.fontSize,
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        Text(Utils.dateFormat(item.modules.moduleAuthor.pubTs)),
-                        if (item.modules.moduleAuthor.pubTs != '' &&
-                            item.modules.moduleAuthor.pubAction != '')
-                          const Text(' '),
-                        Text(item.modules.moduleAuthor.pubAction),
-                      ],
-                    ),
-                  )
                 ],
               ),
             ],
@@ -211,32 +217,36 @@ class AuthorPanel extends StatelessWidget {
     );
   }
 
-  Widget _moreWidget(context) => SizedBox(
-        width: 32,
-        height: 32,
-        child: IconButton(
-          tooltip: '更多',
-          style: ButtonStyle(
-            padding: WidgetStateProperty.all(EdgeInsets.zero),
+  Widget _moreWidget(BuildContext context) => isSave
+      ? const SizedBox.shrink()
+      : SizedBox(
+          width: 32,
+          height: 32,
+          child: IconButton(
+            tooltip: '更多',
+            style: ButtonStyle(
+              padding: WidgetStateProperty.all(EdgeInsets.zero),
+            ),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                useSafeArea: true,
+                isScrollControlled: true,
+                constraints: BoxConstraints(
+                  maxWidth: min(640, min(Get.width, Get.height)),
+                ),
+                builder: (context) {
+                  return morePanel(context);
+                },
+              );
+            },
+            icon: const Icon(Icons.more_vert_outlined, size: 18),
           ),
-          onPressed: () {
-            showModalBottomSheet(
-              context: context,
-              useRootNavigator: true,
-              isScrollControlled: true,
-              builder: (context) {
-                return morePanel(context);
-              },
-            );
-          },
-          icon: const Icon(Icons.more_vert_outlined, size: 18),
-        ),
-      );
+        );
 
   Widget morePanel(context) {
-    return Container(
+    return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
-      // clipBehavior: Clip.hardEdge,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -309,6 +319,15 @@ class AuthorPanel extends StatelessWidget {
                   '已临时屏蔽${item.modules.moduleAuthor.name}(${item.modules.moduleAuthor.mid})，重启恢复');
             },
             minLeadingWidth: 0,
+          ),
+          ListTile(
+            onTap: () {
+              Get.back();
+              SavePanel.toSavePanel(item: item);
+            },
+            minLeadingWidth: 0,
+            leading: const Icon(Icons.save_alt, size: 19),
+            title: Text('保存动态', style: Theme.of(context).textTheme.titleSmall!),
           ),
           if (item.modules.moduleAuthor.mid == Accounts.main.mid) ...[
             ListTile(

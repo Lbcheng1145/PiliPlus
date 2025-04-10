@@ -48,7 +48,7 @@ abstract class CommonSlidePageState<T extends CommonSlidePage>
               if (cumulativeDelta.dx.abs() >= cumulativeDelta.dy.abs()) {
                 isSliding = true;
                 setState(() {
-                  padding = event.localPosition.dx;
+                  padding = event.localPosition.dx.abs();
                 });
               } else {
                 isSliding = false;
@@ -56,7 +56,7 @@ abstract class CommonSlidePageState<T extends CommonSlidePage>
             }
           } else if (isSliding == true) {
             setState(() {
-              padding = event.localPosition.dx;
+              padding = event.localPosition.dx.abs();
             });
           }
         },

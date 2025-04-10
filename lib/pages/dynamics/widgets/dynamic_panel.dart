@@ -14,12 +14,14 @@ class DynamicPanel extends StatelessWidget {
   final String? source;
   final Function? onRemove;
   final Function(List<String>, int)? callback;
+  final bool isSave;
 
   const DynamicPanel({
     required this.item,
     this.source,
     this.onRemove,
     this.callback,
+    this.isSave = false,
     super.key,
   });
 
@@ -29,8 +31,9 @@ class DynamicPanel extends StatelessWidget {
       // padding: source == 'detail'
       //     ? const EdgeInsets.only(bottom: 12)
       //     : EdgeInsets.zero,
-      decoration: source == 'detail' &&
-              Get.context!.orientation == Orientation.landscape
+      decoration: isSave ||
+              (source == 'detail' &&
+                  Get.context!.orientation == Orientation.landscape)
           ? null
           : BoxDecoration(
               border: Border(
@@ -130,15 +133,16 @@ class DynamicPanel extends StatelessWidget {
               item: item,
               source: source,
               onRemove: onRemove,
+              isSave: isSave,
             ),
           ),
           if (item!.modules!.moduleDynamic!.desc != null ||
               item!.modules!.moduleDynamic!.major != null)
-            content(context, item, source, callback),
-          forWard(item, context, source, callback),
+            content(isSave, context, item, source, callback),
+          forWard(isSave, item, context, source, callback),
           const SizedBox(height: 2),
           if (source == null) ActionPanel(item: item),
-          if (source == 'detail') const SizedBox(height: 12),
+          if (source == 'detail' && !isSave) const SizedBox(height: 12),
         ],
       );
 }

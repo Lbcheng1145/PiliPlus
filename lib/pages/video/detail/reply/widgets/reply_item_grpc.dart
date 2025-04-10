@@ -2,12 +2,13 @@ import 'dart:math';
 
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/badge.dart';
-import 'package:PiliPlus/common/widgets/imageview.dart';
+import 'package:PiliPlus/common/widgets/image_view.dart';
 import 'package:PiliPlus/common/widgets/report.dart';
 import 'package:PiliPlus/grpc/app/main/community/reply/v1/reply.pb.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
+import 'package:PiliPlus/common/widgets/save_panel.dart';
 import 'package:PiliPlus/pages/video/detail/reply/widgets/zan_grpc.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/global_data.dart';
@@ -18,7 +19,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:PiliPlus/common/widgets/network_img_layer.dart';
-import 'package:PiliPlus/models/common/reply_type.dart';
 import 'package:PiliPlus/pages/video/detail/index.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/storage.dart';
@@ -30,10 +30,8 @@ class ReplyItemGrpc extends StatelessWidget {
   const ReplyItemGrpc({
     super.key,
     required this.replyItem,
-    this.replyLevel,
-    this.showReplyRow = true,
+    required this.replyLevel,
     this.replyReply,
-    this.replyType,
     this.needDivider = true,
     this.onReply,
     this.onDelete,
@@ -43,16 +41,14 @@ class ReplyItemGrpc extends StatelessWidget {
     this.onViewImage,
     this.onDismissed,
     this.callback,
-    required this.onCheckReply,
-    required this.onToggleTop,
+    this.onCheckReply,
+    this.onToggleTop,
   });
   final ReplyInfo replyItem;
-  final String? replyLevel;
-  final bool showReplyRow;
-  final Function? replyReply;
-  final ReplyType? replyType;
+  final String replyLevel;
+  final Function(ReplyInfo replyItem, int? rpid)? replyReply;
   final bool needDivider;
-  final Function()? onReply;
+  final VoidCallback? onReply;
   final Function(dynamic rpid, dynamic frpid)? onDelete;
   final dynamic upMid;
   final VoidCallback? showDialogue;
@@ -60,8 +56,8 @@ class ReplyItemGrpc extends StatelessWidget {
   final VoidCallback? onViewImage;
   final ValueChanged<int>? onDismissed;
   final Function(List<String>, int)? callback;
-  final ValueChanged<ReplyInfo> onCheckReply;
-  final Function(bool isUpTop, int rpid) onToggleTop;
+  final ValueChanged<ReplyInfo>? onCheckReply;
+  final Function(bool isUpTop, int rpid)? onToggleTop;
 
   @override
   Widget build(BuildContext context) {
@@ -83,8 +79,11 @@ class ReplyItemGrpc extends StatelessWidget {
           // );
           showModalBottomSheet(
             context: context,
-            useRootNavigator: true,
+            useSafeArea: true,
             isScrollControlled: true,
+            constraints: BoxConstraints(
+              maxWidth: min(640, min(Get.width, Get.height)),
+            ),
             builder: (context) {
               return morePanel(
                 context: context,
@@ -156,7 +155,10 @@ class ReplyItemGrpc extends StatelessWidget {
                 ),
               ),
               // ),
-              _buildAuthorPanel(context),
+              SizedBox(
+                width: double.infinity,
+                child: _buildAuthorPanel(context),
+              ),
             ],
           )
         else
@@ -276,8 +278,8 @@ class ReplyItemGrpc extends StatelessWidget {
             Get.toNamed('/member?mid=${replyItem.mid}');
           },
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               lfAvtar(context),
               const SizedBox(width: 12),
@@ -318,7 +320,12 @@ class ReplyItemGrpc extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       Text(
-                        Utils.dateFormat(replyItem.ctime.toInt()),
+                        replyLevel == ''
+                            ? DateTime.fromMillisecondsSinceEpoch(
+                                    replyItem.ctime.toInt() * 1000)
+                                .toString()
+                                .substring(0, 19)
+                            : Utils.dateFormat(replyItem.ctime.toInt()),
                         style: TextStyle(
                           fontSize:
                               Theme.of(context).textTheme.labelSmall!.fontSize,
@@ -344,8 +351,12 @@ class ReplyItemGrpc extends StatelessWidget {
         ),
         // title
         Padding(
-          padding:
-              const EdgeInsets.only(top: 10, left: 45, right: 6, bottom: 4),
+          padding: EdgeInsets.only(
+            top: 10,
+            left: replyLevel == '' ? 6 : 45,
+            right: 6,
+            bottom: 4,
+          ),
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
               String text = replyItem.content.message;
@@ -400,12 +411,12 @@ class ReplyItemGrpc extends StatelessWidget {
           ),
         ),
         // 操作区域
-        buttonAction(context, replyItem.replyControl),
+        if (replyLevel != '') buttonAction(context, replyItem.replyControl),
         // 一楼的评论
-        if (( //replyItem.replyControl!.isShow! ||
+        if (replyLevel == '1' &&
+            ( //replyItem.replyControl!.isShow! ||
                 replyItem.replies.isNotEmpty ||
-                    replyItem.replyControl.subReplyEntryText.isNotEmpty) &&
-            showReplyRow) ...[
+                    replyItem.replyControl.subReplyEntryText.isNotEmpty)) ...[
           Padding(
             padding: const EdgeInsets.only(top: 5, bottom: 12),
             child: replyItemRow(
@@ -501,7 +512,7 @@ class ReplyItemGrpc extends StatelessWidget {
             ),
           ),
         const Spacer(),
-        ZanButtonGrpc(replyItem: replyItem, replyType: replyType),
+        ZanButtonGrpc(replyItem: replyItem),
         const SizedBox(width: 5)
       ],
     );
@@ -529,8 +540,11 @@ class ReplyItemGrpc extends StatelessWidget {
                     feedBack();
                     showModalBottomSheet(
                       context: context,
-                      useRootNavigator: true,
+                      useSafeArea: true,
                       isScrollControlled: true,
+                      constraints: BoxConstraints(
+                        maxWidth: min(640, min(Get.width, Get.height)),
+                      ),
                       builder: (context) {
                         return morePanel(
                           context: context,
@@ -545,15 +559,12 @@ class ReplyItemGrpc extends StatelessWidget {
                   },
                   child: Container(
                     width: double.infinity,
-                    padding: EdgeInsets.fromLTRB(
-                      8,
-                      i == 0 && (extraRow || replyItem.replies.length > 1)
-                          ? 8
-                          : 4,
-                      8,
-                      i == 0 && (extraRow || replyItem.replies.length > 1)
-                          ? 4
-                          : 6,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical:
+                          i == 0 && (extraRow || replyItem.replies.length > 1)
+                              ? 8
+                              : 4,
                     ),
                     child: Semantics(
                       label:
@@ -1034,7 +1045,7 @@ class ReplyItemGrpc extends StatelessWidget {
       spanChildren.add(
         WidgetSpan(
           child: LayoutBuilder(
-            builder: (context, constraints) => imageview(
+            builder: (context, constraints) => imageView(
               constraints.maxWidth,
               content.pictures
                   .map(
@@ -1195,11 +1206,15 @@ class ReplyItemGrpc extends StatelessWidget {
           break;
         case 'checkReply':
           Get.back();
-          onCheckReply(item);
+          onCheckReply?.call(item);
           break;
         case 'top':
           Get.back();
-          onToggleTop(item.replyControl.isUpTop, item.id.toInt());
+          onToggleTop?.call(item.replyControl.isUpTop, item.id.toInt());
+          break;
+        case 'saveReply':
+          Get.back();
+          SavePanel.toSavePanel(upMid: upMid, item: item);
           break;
         default:
       }
@@ -1208,12 +1223,8 @@ class ReplyItemGrpc extends StatelessWidget {
     Color errorColor = Theme.of(context).colorScheme.error;
 
     return Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQueryData.fromView(
-                      WidgetsBinding.instance.platformDispatcher.views.single)
-                  .padding
-                  .bottom +
-              20),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom + 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1278,6 +1289,12 @@ class ReplyItemGrpc extends StatelessWidget {
             minLeadingWidth: 0,
             leading: const Icon(Icons.copy_outlined, size: 19),
             title: Text('自由复制', style: Theme.of(context).textTheme.titleSmall),
+          ),
+          ListTile(
+            onTap: () => menuActionHandler('saveReply'),
+            minLeadingWidth: 0,
+            leading: const Icon(Icons.save_alt, size: 19),
+            title: Text('保存评论', style: Theme.of(context).textTheme.titleSmall),
           ),
           if (item.mid.toInt() == ownerMid)
             ListTile(
