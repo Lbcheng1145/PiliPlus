@@ -47,10 +47,15 @@
 
 ## feat
 
-- [x] 高级弹幕 by @My-Responsitories
+- [x] 直播弹幕发送表情
+- [x] 收藏夹排序
+- [x] 稍后再看`未看`/`未看完`/`已看完`分类
+- [x] WebDAV 备份/恢复设置
+- [x] 保存评论/动态
+- [x] 高级弹幕 by [@My-Responsitories](https://github.com/My-Responsitories)
 - [x] 取消/置顶评论
 - [x] 记笔记
-- [x] 多账号支持 by @My-Responsitories
+- [x] 多账号支持 by [@My-Responsitories](https://github.com/My-Responsitories)
 - [x] 屏蔽带货动态/评论
 - [x] 互动视频
 - [x] 发评/动态反诈
@@ -75,7 +80,6 @@
 - [x] 评论楼中楼定位点击查看的评论
 - [x] 评论楼中楼按热度/时间排序
 - [x] 评论点踩
-- [x] 显示ops专栏
 - [x] 私信发图
 - [x] 投币动画
 - [x] 取消/追番，更新追番状态
@@ -160,7 +164,6 @@
   - [x] 音质选择（视视频而定）
   - [x] 解码格式选择（视视频而定）
   - [x] 弹幕
-  - [ ] 直播弹幕
   - [x] 字幕
   - [x] 记忆播放
   - [x] 视频比例：高度/宽度适应、填充、包含等

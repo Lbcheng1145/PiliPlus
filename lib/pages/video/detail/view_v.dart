@@ -208,9 +208,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   // 获取视频资源，初始化播放器
   Future<void> videoSourceInit() async {
     videoDetailController.queryVideoUrl();
-    if (videoDetailController.showReply) {
-      _videoReplyController.queryData();
-    }
     if (videoDetailController.autoPlay.value) {
       plPlayerController = videoDetailController.plPlayerController;
       plPlayerController!.addStatusLister(playerListener);
@@ -2313,11 +2310,13 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     if (isFullScreen) {
       Utils.showFSSheet(
         context,
-        child: Theme(
-          data: themeData,
-          child: listSheetContent(false),
-        ),
         isFullScreen: () => isFullScreen,
+        child: videoDetailController.plPlayerController.darkVideoPage
+            ? Theme(
+                data: themeData,
+                child: listSheetContent(false),
+              )
+            : listSheetContent(false),
       );
     } else {
       videoDetailController.childKey.currentState?.showBottomSheet(
@@ -2409,15 +2408,21 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     if (isFullScreen) {
       Utils.showFSSheet(
         context,
-        child: Theme(
-          data: themeData,
-          child: ViewPointsPage(
-            enableSlide: false,
-            videoDetailController: videoDetailController,
-            plPlayerController: plPlayerController,
-          ),
-        ),
         isFullScreen: () => isFullScreen,
+        child: videoDetailController.plPlayerController.darkVideoPage
+            ? Theme(
+                data: themeData,
+                child: ViewPointsPage(
+                  enableSlide: false,
+                  videoDetailController: videoDetailController,
+                  plPlayerController: plPlayerController,
+                ),
+              )
+            : ViewPointsPage(
+                enableSlide: false,
+                videoDetailController: videoDetailController,
+                plPlayerController: plPlayerController,
+              ),
       );
     } else {
       videoDetailController.childKey.currentState?.showBottomSheet(

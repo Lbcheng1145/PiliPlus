@@ -135,13 +135,16 @@ class _FavDetailPageState extends State<FavDetailPage> {
                               visualDensity:
                                   VisualDensity(horizontal: -2, vertical: -2),
                             ),
-                            onPressed: () =>
-                                Utils.onCopyOrMove<FavDetailItemData>(
-                              context: context,
-                              isCopy: true,
-                              ctr: _favDetailController,
-                              mediaId: _favDetailController.mediaId,
-                            ),
+                            onPressed: () {
+                              Utils.onCopyOrMove<FavDetailData,
+                                  FavDetailItemData>(
+                                context: context,
+                                isCopy: true,
+                                ctr: _favDetailController,
+                                mediaId: _favDetailController.mediaId,
+                                mid: _favDetailController.mid,
+                              );
+                            },
                             child: Text(
                               '复制',
                               style: TextStyle(
@@ -156,13 +159,16 @@ class _FavDetailPageState extends State<FavDetailPage> {
                               visualDensity:
                                   VisualDensity(horizontal: -2, vertical: -2),
                             ),
-                            onPressed: () =>
-                                Utils.onCopyOrMove<FavDetailItemData>(
-                              context: context,
-                              isCopy: false,
-                              ctr: _favDetailController,
-                              mediaId: _favDetailController.mediaId,
-                            ),
+                            onPressed: () {
+                              Utils.onCopyOrMove<FavDetailData,
+                                  FavDetailItemData>(
+                                context: context,
+                                isCopy: false,
+                                ctr: _favDetailController,
+                                mediaId: _favDetailController.mediaId,
+                                mid: _favDetailController.mid,
+                              );
+                            },
                             child: Text(
                               '移动',
                               style: TextStyle(
@@ -469,11 +475,13 @@ class _FavDetailPageState extends State<FavDetailPage> {
                         Positioned.fill(
                           child: FavVideoCardH(
                             videoItem: item,
-                            callFn: () => _favDetailController.onCancelFav(
-                              index,
-                              item.id!,
-                              item.type!,
-                            ),
+                            onDelFav: _favDetailController.isOwner.value
+                                ? () => _favDetailController.onCancelFav(
+                                      index,
+                                      item.id!,
+                                      item.type!,
+                                    )
+                                : null,
                             onViewFav: () {
                               Utils.toViewPage(
                                 'bvid=${item.bvid}&cid=${item.cid}',
@@ -508,7 +516,6 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                     }
                                   }
                                 : null,
-                            isOwner: _favDetailController.isOwner.value,
                           ),
                         ),
                         Positioned(

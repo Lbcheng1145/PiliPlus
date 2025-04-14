@@ -36,10 +36,11 @@ abstract class CommonController<R, T> extends GetxController
   bool isLoading = false;
   late bool isEnd = false;
   Rx<LoadingState> get loadingState;
+  bool? hasFooter;
 
   Future<LoadingState<R>> customGetData();
 
-  void handleListResponse(List dataList) {}
+  void handleListResponse(List<T> dataList) {}
 
   bool customHandleResponse(bool isRefresh, Success<R> response) {
     return false;
@@ -66,6 +67,8 @@ abstract class CommonController<R, T> extends GetxController
           isEnd = true;
           if (isRefresh) {
             loadingState.value = LoadingState<List<T>?>.success(dataList);
+          } else if (hasFooter == true) {
+            loadingState.refresh();
           }
           isLoading = false;
           return;

@@ -145,6 +145,12 @@ class GStorage {
       setting.get(SettingBoxKey.subtitlePreference,
           defaultValue: SubtitlePreference.values.first.code);
 
+  static bool get useRelativeSlide =>
+      setting.get(SettingBoxKey.useRelativeSlide, defaultValue: false);
+
+  static int get sliderDuration =>
+      setting.get(SettingBoxKey.sliderDuration, defaultValue: 90);
+
   static int get defaultVideoQa => setting.get(
         SettingBoxKey.defaultVideoQa,
         defaultValue: VideoQuality.values.last.code,
@@ -462,6 +468,9 @@ class GStorage {
   static String get webdavDirectory =>
       GStorage.setting.get(SettingBoxKey.webdavDirectory, defaultValue: '/');
 
+  static bool get showPgcTimeline =>
+      GStorage.setting.get(SettingBoxKey.showPgcTimeline, defaultValue: true);
+
   static List<double> get dynamicDetailRatio => List<double>.from(setting
       .get(SettingBoxKey.dynamicDetailRatio, defaultValue: [60.0, 40.0]));
 
@@ -639,6 +648,8 @@ class SettingBoxKey {
       pipNoDanmaku = 'pipNoDanmaku',
       enableAutoLongPressSpeed = 'enableAutoLongPressSpeed',
       subtitlePreference = 'subtitlePreference',
+      useRelativeSlide = 'useRelativeSlide',
+      sliderDuration = 'sliderOffset',
 
       // youtube 双击快进快退
       enableQuickDouble = 'enableQuickDouble',
@@ -747,6 +758,7 @@ class SettingBoxKey {
       fastForBackwardDuration = 'fastForBackwardDuration',
       recordSearchHistory = 'recordSearchHistory',
       navSearchStreamDebounce = 'navSearchStreamDebounce',
+      showPgcTimeline = 'showPgcTimeline',
 
       // WebDAV
       webdavUri = 'webdavUri',

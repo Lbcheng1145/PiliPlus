@@ -15,11 +15,22 @@ class _LogsPageState extends State<LogsPage> {
   late File logsPath;
   late String fileContent;
   List logsContent = [];
+  DateTime? latestLog;
 
   @override
   void initState() {
     getPath();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    if (latestLog != null) {
+      if (DateTime.now().difference(latestLog!) >= Duration(days: 14)) {
+        clearLogs();
+      }
+    }
+    super.dispose();
   }
 
   void getPath() async {
@@ -137,6 +148,9 @@ class _LogsPageState extends State<LogsPage> {
               itemCount: logsContent.length,
               itemBuilder: (context, index) {
                 final log = logsContent[index];
+                if (log['date'] is DateTime) {
+                  latestLog ??= log['date'];
+                }
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,

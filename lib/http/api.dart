@@ -116,6 +116,8 @@ class Api {
 
   static const String sortFav = '/x/v3/fav/resource/sort';
 
+  static const String sortFavFolder = '/x/v3/fav/folder/sort';
+
   // 判断视频是否被收藏（双端）GET
   /// aid
   // https://api.bilibili.com/x/v2/fav/video/favoured
@@ -223,7 +225,7 @@ class Api {
       '${HttpString.tUrl}/dynamic_like/v1/dynamic_like/thumb';
 
   // 获取稍后再看
-  static const String seeYouLater = '/x/v2/history/toview';
+  static const String seeYouLater = '/x/v2/history/toview/web';
 
   // 获取历史记录
   static const String historyList = '/x/web-interface/history/cursor';
@@ -381,7 +383,7 @@ class Api {
   static const String toViewLater = '/x/v2/history/toview/add';
 
   // 移除已观看
-  static const String toViewDel = '/x/v2/history/toview/del';
+  static const String toViewDel = '/x/v2/history/toview/v2/dels';
 
   // 清空稍后再看
   static const String toViewClear = '/x/v2/history/toview/clear';
@@ -753,4 +755,11 @@ class Api {
   static const String addFavArticle = '/x/article/favorites/add';
 
   static const String replyTop = '/x/v2/reply/top';
+
+  static const String getCoin = '${HttpString.accountBaseUrl}/site/getCoin';
+
+  static const String getLiveEmoticons =
+      '${HttpString.liveBaseUrl}/xlive/web-ucenter/v2/emoticon/GetEmoticons';
+
+  static const String pgcTimeline = '/pgc/web/timeline';
 }

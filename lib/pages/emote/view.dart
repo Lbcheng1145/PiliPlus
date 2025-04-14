@@ -8,7 +8,7 @@ import 'controller.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 
 class EmotePanel extends StatefulWidget {
-  final Function onChoose;
+  final ValueChanged<Emote> onChoose;
   const EmotePanel({super.key, required this.onChoose});
 
   @override
@@ -60,7 +60,7 @@ class _EmotePanelState extends State<EmotePanel>
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(8),
                                   onTap: () {
-                                    widget.onChoose(e, e.emote![index]);
+                                    widget.onChoose(e.emote![index]);
                                   },
                                   child: Padding(
                                     padding: const EdgeInsets.all(6),
@@ -117,18 +117,17 @@ class _EmotePanelState extends State<EmotePanel>
                 SizedBox(height: MediaQuery.of(context).padding.bottom),
               ],
             )
-          : _errorWidget,
-      Error() => _errorWidget,
+          : _errorWidget(),
+      Error() => _errorWidget(loadingState.errMsg),
       LoadingState() => throw UnimplementedError(),
     };
   }
 
-  Widget get _errorWidget => Center(
-        child: IconButton(
-          onPressed: () {
-            _emotePanelController.onReload();
-          },
+  Widget _errorWidget([String? errMsg]) => Center(
+        child: TextButton.icon(
+          onPressed: _emotePanelController.onReload,
           icon: Icon(Icons.refresh),
+          label: Text(errMsg ?? '没有数据'),
         ),
       );
 }

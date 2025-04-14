@@ -1,6 +1,8 @@
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/video/later.dart';
+import 'package:PiliPlus/utils/global_data.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import '../common/constants.dart';
@@ -29,6 +31,7 @@ class UserHttp {
     var res = await Request().get(Api.userInfo);
     if (res.data['code'] == 0) {
       UserInfoData data = UserInfoData.fromJson(res.data['data']);
+      GlobalData().coins = data.money;
       return {'status': true, 'data': data};
     } else {
       return {'status': false, 'msg': res.data['message']};
@@ -41,7 +44,7 @@ class UserHttp {
       UserStat data = UserStat.fromJson(res.data['data']);
       return {'status': true, 'data': data};
     } else {
-      return {'status': false, 'data': [], 'msg': res.data['message']};
+      return {'status': false, 'msg': res.data['message']};
     }
   }
 
@@ -60,6 +63,28 @@ class UserHttp {
       return LoadingState.success(FavFolderData.fromJson(res.data['data']));
     } else {
       return LoadingState.error(res.data['message'] ?? '账号未登录');
+    }
+  }
+
+  static Future sortFavFolder({
+    required List<int?> sort,
+  }) async {
+    Map<String, dynamic> data = {
+      'sort': sort.join(','),
+      'csrf': await Request.getCsrf(),
+    };
+    Utils.appSign(data);
+    var res = await Request().post(
+      Api.sortFavFolder,
+      data: data,
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+      ),
+    );
+    if (res.data['code'] == 0) {
+      return {'status': true, 'data': res.data['data']};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
     }
   }
 
@@ -195,16 +220,29 @@ class UserHttp {
   }
 
   // 稍后再看
-  static Future<LoadingState<Map>> seeYouLater() async {
-    var res = await Request().get(Api.seeYouLater);
+  static Future<LoadingState<Map>> seeYouLater({
+    required int page,
+    int viewed = 0,
+    String keyword = '',
+    bool asc = false,
+  }) async {
+    var res = await Request().get(
+      Api.seeYouLater,
+      queryParameters: await WbiSign.makSign({
+        'pn': page,
+        'ps': 20,
+        'viewed': viewed,
+        'key': keyword,
+        'asc': asc,
+        'need_split': true,
+        'web_location': 333.881,
+      }),
+    );
     if (res.data['code'] == 0) {
       if (res.data['data']['count'] == 0) {
-        return LoadingState.success({
-          'list': [],
-          'count': 0,
-        });
+        return LoadingState.success({'count': 0});
       }
-      List<HotVideoItemModel> list = [];
+      List<HotVideoItemModel> list = <HotVideoItemModel>[];
       if (res.data['data']?['list'] != null) {
         for (var i in res.data['data']['list']) {
           list.add(HotVideoItemModel.fromJson(i));
@@ -258,7 +296,7 @@ class UserHttp {
     if (res.data['code'] == 0) {
       return {'status': true, 'data': res.data['data']};
     } else {
-      return {'status': false, 'data': [], 'msg': res.data['message']};
+      return {'status': false, 'msg': res.data['message']};
     }
   }
 
@@ -294,13 +332,10 @@ class UserHttp {
   }
 
   // 移除已观看
-  static Future toViewDel({
-    List? aids,
-  }) async {
+  static Future toViewDel({required List<int?> aids}) async {
     final Map<String, dynamic> params = {
-      'jsonp': 'jsonp',
       'csrf': await Request.getCsrf(),
-      if (aids != null) 'aid': aids.join(',') else 'viewed': true
+      'resources': aids.join(',')
     };
     dynamic res = await Request().post(
       Api.toViewDel,
@@ -333,12 +368,12 @@ class UserHttp {
     }
   }
 
-  // 清空稍后再看
-  static Future toViewClear() async {
+  // 清空稍后再看 // clean_type: null->all, 1->invalid, 2->viewed
+  static Future toViewClear([int? cleanType]) async {
     var res = await Request().post(
       Api.toViewClear,
       queryParameters: {
-        'jsonp': 'jsonp',
+        if (cleanType != null) 'clean_type': cleanType,
         'csrf': await Request.getCsrf(),
       },
     );
@@ -350,7 +385,7 @@ class UserHttp {
   }
 
   // 删除历史记录
-  static Future delHistory(List kidList) async {
+  static Future delHistory(List<String> kidList) async {
     var res = await Request().post(
       Api.delHistory,
       data: {
@@ -604,41 +639,6 @@ class UserHttp {
     }
   }
 
-  // 稍后再看播放全部
-  // static Future toViewPlayAll({required int oid, required String bvid}) async {
-  //   var res = await Request().get(
-  //     Api.watchLaterHtml,
-  //     data: {
-  //       'oid': oid,
-  //       'bvid': bvid,
-  //     },
-  //   );
-  //   String scriptContent =
-  //       extractScriptContents(parse(res.data).body!.outerHtml)[0];
-  //   int startIndex = scriptContent.indexOf('{');
-  //   int endIndex = scriptContent.lastIndexOf('};');
-  //   String jsonContent = scriptContent.substring(startIndex, endIndex + 1);
-  //   // 解析JSON字符串为Map
-  //   Map<String, dynamic> jsonData = json.decode(jsonContent);
-  //   // 输出解析后的数据
-  //   return {
-  //     'status': true,
-  //     'data': jsonData['resourceList']
-  //         .map((e) => MediaVideoItemModel.fromJson(e))
-  //         .toList()
-  //   };
-  // }
-  static List<String> extractScriptContents(String htmlContent) {
-    RegExp scriptRegExp = RegExp(r'<script>([\s\S]*?)<\/script>');
-    Iterable<Match> matches = scriptRegExp.allMatches(htmlContent);
-    List<String> scriptContents = [];
-    for (Match match in matches) {
-      String scriptContent = match.group(1)!;
-      scriptContents.add(scriptContent);
-    }
-    return scriptContents;
-  }
-
   // 稍后再看列表
   static Future getMediaList({
     required dynamic type,
@@ -675,38 +675,19 @@ class UserHttp {
                 .map<MediaVideoItemModel>(
                     (e) => MediaVideoItemModel.fromJson(e))
                 .toList()
-            : []
+            : <MediaVideoItemModel>[]
       };
     } else {
       return {'status': false, 'msg': res.data['message']};
     }
   }
 
-  // 解析收藏夹视频
-  // static Future parseFavVideo({
-  //   required int mediaId,
-  //   required int oid,
-  //   required String bvid,
-  // }) async {
-  //   var res = await Request().get(
-  //     'https://www.bilibili.com/list/ml$mediaId',
-  //     queryParameters: {
-  //       'oid': mediaId,
-  //       'bvid': bvid,
-  //     },
-  //   );
-  //   String scriptContent =
-  //       extractScriptContents(parse(res.data).body!.outerHtml)[0];
-  //   int startIndex = scriptContent.indexOf('{');
-  //   int endIndex = scriptContent.lastIndexOf('};');
-  //   String jsonContent = scriptContent.substring(startIndex, endIndex + 1);
-  //   // 解析JSON字符串为Map
-  //   Map<String, dynamic> jsonData = json.decode(jsonContent);
-  //   return {
-  //     'status': true,
-  //     'data': jsonData['resourceList']
-  //         .map<MediaVideoItemModel>((e) => MediaVideoItemModel.fromJson(e))
-  //         .toList()
-  //   };
-  // }
+  static Future getCoin() async {
+    final res = await Request().get(Api.getCoin);
+    if (res.data['code'] == 0) {
+      return {'status': true, 'data': res.data['data']?['money']};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
+    }
+  }
 }
