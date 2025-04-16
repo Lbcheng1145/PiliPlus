@@ -22,7 +22,7 @@ import 'package:PiliPlus/models/video/play/subtitle.dart';
 import 'package:PiliPlus/pages/home/controller.dart';
 import 'package:PiliPlus/pages/hot/controller.dart';
 import 'package:PiliPlus/pages/main/controller.dart';
-import 'package:PiliPlus/pages/member/new/controller.dart';
+import 'package:PiliPlus/pages/member/controller.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/pages/rcmd/controller.dart';
 import 'package:PiliPlus/pages/setting/pages/color_select.dart';
@@ -178,6 +178,33 @@ List<SettingsModel> get styleSettings => [
         },
       ),
       SettingsModel(
+        settingsType: SettingsType.normal,
+        title: '页面过渡动画',
+        leading: const Icon(Icons.animation),
+        getSubtitle: () => '当前：${GStorage.pageTransition.name}',
+        onTap: (setState) async {
+          Transition? result = await showDialog(
+            context: Get.context!,
+            builder: (context) {
+              return SelectDialog<Transition>(
+                title: '页面过渡动画',
+                value: GStorage.pageTransition,
+                values: Transition.values.map((e) {
+                  return (e, e.name);
+                }).toList(),
+              );
+            },
+          );
+          if (result != null) {
+            GStorage.pageTransition = result;
+            await GStorage.setting
+                .put(SettingBoxKey.pageTransition, result.index);
+            SmartDialog.showToast('重启生效');
+            setState();
+          }
+        },
+      ),
+      SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: 'MD3样式底栏',
         subtitle: 'Material You设计规范底栏，关闭可变窄',
@@ -193,7 +220,7 @@ List<SettingsModel> get styleSettings => [
               context: Get.context!,
               builder: (context) {
                 return SlideDialog(
-                  title: '小卡最大列宽度（默认240dp）',
+                  title: '列表最大列宽度（默认240dp）',
                   value: GStorage.smallCardWidth,
                   min: 150.0,
                   max: 500.0,
@@ -208,35 +235,9 @@ List<SettingsModel> get styleSettings => [
           }
         },
         leading: const Icon(Icons.calendar_view_week_outlined),
-        title: '小卡列表宽度（dp）限制',
+        title: '列表宽度（dp）限制',
         getSubtitle: () =>
             '当前:${GStorage.smallCardWidth.toInt()}dp，屏幕宽度:${MediaQuery.of(Get.context!).size.width.toPrecision(2)}dp。宽度越小列数越多。',
-      ),
-      SettingsModel(
-        settingsType: SettingsType.normal,
-        onTap: (setState) async {
-          double? result = await showDialog(
-              context: Get.context!,
-              builder: (context) {
-                return SlideDialog(
-                  title: '中卡最大列宽度（默认280dp）',
-                  value: GStorage.mediumCardWidth,
-                  min: 150.0,
-                  max: 500.0,
-                  divisions: 35,
-                  suffix: 'dp',
-                );
-              });
-          if (result != null) {
-            await GStorage.setting.put(SettingBoxKey.mediumCardWidth, result);
-            SmartDialog.showToast('重启生效');
-            setState();
-          }
-        },
-        leading: const Icon(Icons.calendar_view_week_outlined),
-        title: '中卡列表宽度（dp）限制',
-        getSubtitle: () =>
-            '当前:${GStorage.mediumCardWidth.toInt()}dp，屏幕宽度:${MediaQuery.of(Get.context!).size.width.toPrecision(2)}dp。宽度越小列数越多。',
       ),
       SettingsModel(
         settingsType: SettingsType.sw1tch,
@@ -537,7 +538,7 @@ List<SettingsModel> get styleSettings => [
           if (result != null) {
             GStorage.setting.put(SettingBoxKey.themeMode, result.index);
             Get.put(ColorSelectController()).themeType.value = result;
-            Get.forceAppUpdate();
+            Get.changeThemeMode(result.toThemeMode);
           }
         },
         leading: const Icon(Icons.flashlight_on_outlined),
@@ -2183,6 +2184,14 @@ List<SettingsModel> get extraSettings => [
         subtitle: '是否展示「大家都在搜」',
         leading: const Icon(Icons.data_thresholding_outlined),
         setKey: SettingBoxKey.enableHotKey,
+        defaultVal: true,
+      ),
+      SettingsModel(
+        settingsType: SettingsType.sw1tch,
+        title: '搜索发现',
+        subtitle: '是否展示「搜索发现」',
+        leading: const Icon(Icons.search_outlined),
+        setKey: SettingBoxKey.enableSearchRcmd,
         defaultVal: true,
       ),
       SettingsModel(

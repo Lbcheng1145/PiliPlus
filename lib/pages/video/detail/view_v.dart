@@ -1808,6 +1808,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                       top: 0,
                       left: 0,
                       right: 0,
+                      bottom: 0,
                       child: GestureDetector(
                         onTap: handlePlay,
                         child: Obx(

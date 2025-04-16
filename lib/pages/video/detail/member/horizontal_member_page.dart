@@ -1,4 +1,3 @@
-import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/custom_sliver_persistent_header_delegate.dart';
 import 'package:PiliPlus/common/widgets/icon_button.dart';
 import 'package:PiliPlus/common/widgets/interactiveviewer_gallery/interactiveviewer_gallery.dart'
@@ -191,11 +190,7 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
                   bottom: MediaQuery.of(context).padding.bottom + 80,
                 ),
                 sliver: SliverGrid(
-                  gridDelegate: SliverGridDelegateWithExtentAndRatio(
-                    mainAxisSpacing: 2,
-                    maxCrossAxisExtent: Grid.mediumCardWidth * 2,
-                    childAspectRatio: StyleString.aspectRatio * 2.2,
-                  ),
+                  gridDelegate: Grid.videoCardHDelegate(context),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       if (index == loadingState.response.length - 1 &&
@@ -274,7 +269,7 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
               ),
               const SizedBox(width: 8),
               Image.asset(
-                'assets/images/lv/lv${memberInfoModel.level}.png',
+                'assets/images/lv/lv${memberInfoModel.isSeniorMember == 1 ? '6_s' : memberInfoModel.level}.png',
                 height: 11,
               ),
             ],

@@ -17,7 +17,7 @@ import 'package:PiliPlus/models/user/danmaku_rule_adapter.dart';
 import 'package:PiliPlus/models/video/play/CDN.dart';
 import 'package:PiliPlus/models/video/play/quality.dart';
 import 'package:PiliPlus/models/video/play/subtitle.dart';
-import 'package:PiliPlus/pages/member/new/controller.dart' show MemberTabType;
+import 'package:PiliPlus/pages/member/controller.dart' show MemberTabType;
 import 'package:PiliPlus/pages/mine/index.dart';
 import 'package:PiliPlus/plugin/pl_player/models/bottom_progress_behavior.dart';
 import 'package:PiliPlus/plugin/pl_player/models/fullscreen_mode.dart';
@@ -29,10 +29,10 @@ import 'package:PiliPlus/utils/login.dart';
 import 'package:PiliPlus/utils/set_int_adapter.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get_navigation/src/routes/transitions_type.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:PiliPlus/models/model_owner.dart';
-import 'package:PiliPlus/models/search/hot.dart';
 import 'package:PiliPlus/models/user/info.dart';
 import 'global_data.dart';
 import 'package:uuid/uuid.dart';
@@ -122,9 +122,6 @@ class GStorage {
 
   static int get previewQ =>
       setting.get(SettingBoxKey.previewQuality, defaultValue: 100);
-
-  static double get mediumCardWidth =>
-      setting.get(SettingBoxKey.mediumCardWidth, defaultValue: 280.0);
 
   static double get smallCardWidth =>
       setting.get(SettingBoxKey.smallCardWidth, defaultValue: 240.0);
@@ -471,6 +468,10 @@ class GStorage {
   static bool get showPgcTimeline =>
       GStorage.setting.get(SettingBoxKey.showPgcTimeline, defaultValue: true);
 
+  static Transition pageTransition = Transition.values[GStorage.setting.get(
+      SettingBoxKey.pageTransition,
+      defaultValue: Transition.native.index)];
+
   static List<double> get dynamicDetailRatio => List<double>.from(setting
       .get(SettingBoxKey.dynamicDetailRatio, defaultValue: [60.0, 40.0]));
 
@@ -583,8 +584,6 @@ class GStorage {
     Hive.registerAdapter(OwnerAdapter());
     Hive.registerAdapter(UserInfoDataAdapter());
     Hive.registerAdapter(LevelInfoAdapter());
-    Hive.registerAdapter(HotSearchModelAdapter());
-    Hive.registerAdapter(HotSearchItemAdapter());
     Hive.registerAdapter(BiliCookieJarAdapter());
     Hive.registerAdapter(LoginAccountAdapter());
     Hive.registerAdapter(AccountTypeAdapter());
@@ -680,6 +679,7 @@ class SettingBoxKey {
       replySortType = 'replySortType',
       defaultDynamicType = 'defaultDynamicType',
       enableHotKey = 'enableHotKey',
+      enableSearchRcmd = 'enableSearchRcmd',
       enableQuickFav = 'enableQuickFav',
       enableWordRe = 'enableWordRe',
       enableSearchWord = 'enableSearchWord',
@@ -759,6 +759,7 @@ class SettingBoxKey {
       recordSearchHistory = 'recordSearchHistory',
       navSearchStreamDebounce = 'navSearchStreamDebounce',
       showPgcTimeline = 'showPgcTimeline',
+      pageTransition = 'pageTransition',
 
       // WebDAV
       webdavUri = 'webdavUri',
@@ -803,7 +804,6 @@ class SettingBoxKey {
       customColor = 'customColor', // 自定义主题色
       enableSingleRow = 'enableSingleRow', // 首页单列
       displayMode = 'displayMode',
-      mediumCardWidth = 'mediumCardWidth', // 首页列最大宽度（dp）
       smallCardWidth = 'smallCardWidth',
       videoPlayerRemoveSafeArea = 'videoPlayerRemoveSafeArea', // 视频播放器移除安全边距
       // videoPlayerShowStatusBarBackgroundColor =

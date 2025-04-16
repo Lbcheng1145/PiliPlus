@@ -1,37 +1,17 @@
 import 'dart:convert';
+import 'package:PiliPlus/models/search/search_trending/trending_data.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import '../models/bangumi/info.dart';
 import '../models/common/search_type.dart';
-import '../models/search/hot.dart';
 import '../models/search/result.dart';
 import '../models/search/suggest.dart';
 import '../utils/storage.dart';
 import 'index.dart';
 
 class SearchHttp {
-  static Future hotSearchList() async {
-    var res = await Request().get(Api.hotSearchList);
-    if (res.data is String) {
-      Map<String, dynamic> resultMap = json.decode(res.data);
-      if (resultMap['code'] == 0) {
-        return {
-          'status': true,
-          'data': HotSearchModel.fromJson(resultMap),
-        };
-      }
-    } else if (res.data is Map<String, dynamic> && res.data['code'] == 0) {
-      return {
-        'status': true,
-        'data': HotSearchModel.fromJson(res.data),
-      };
-    }
-
-    return {'status': false, 'msg': '请求错误'};
-  }
-
   // 获取搜索建议
   static Future searchSuggest({required term}) async {
     var res = await Request().get(Api.searchSuggest,
@@ -206,5 +186,33 @@ class SearchHttp {
     } else {
       return {'status': false, 'msg': res.data['message']};
     }
+  }
+
+  static Future<LoadingState<TrendingData>> searchTrending(
+      {int limit = 30}) async {
+    final res = await Request().get(
+      Api.searchTrending,
+      queryParameters: {
+        'limit': limit,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return LoadingState.success(TrendingData.fromJson(res.data['data']));
+    } else {
+      return LoadingState.error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<SearchKeywordData>> searchRecommend() async {
+    final res = await Request().get(Api.searchRecommend, queryParameters: {
+      'build': '8350200',
+      'c_locale': 'zh_CN',
+      'mobi_app': 'android',
+      'platform': 'android',
+      's_locale': 'zh_CN',
+    });
+    return res.data['code'] == 0
+        ? LoadingState.success(SearchKeywordData.fromJson(res.data['data']))
+        : LoadingState.error(res.data['message']);
   }
 }

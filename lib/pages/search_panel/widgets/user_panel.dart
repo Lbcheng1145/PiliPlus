@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:PiliPlus/common/widgets/custom_sliver_persistent_header_delegate.dart';
 import 'package:PiliPlus/common/widgets/http_error.dart';
-import 'package:PiliPlus/common/widgets/loading_widget.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/pages/search/widgets/search_text.dart';
 import 'package:PiliPlus/pages/search_panel/controller.dart';
@@ -25,6 +24,7 @@ Widget searchUserPanel(
 
   return CustomScrollView(
     controller: searchPanelCtr.scrollController,
+    physics: const AlwaysScrollableScrollPhysics(),
     slivers: [
       SliverPersistentHeader(
         pinned: false,
@@ -79,7 +79,6 @@ Widget searchUserPanel(
         ),
       ),
       switch (loadingState) {
-        Loading() => errorWidget(),
         Success() => loadingState.response?.isNotEmpty == true
             ? SliverPadding(
                 padding: EdgeInsets.only(
@@ -88,7 +87,7 @@ Widget searchUserPanel(
                 sliver: SliverGrid(
                   gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: Grid.smallCardWidth * 2,
-                    mainAxisExtent: 56,
+                    mainAxisExtent: 66,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (BuildContext context, int index) {
@@ -151,7 +150,7 @@ Widget searchUserPanel(
                                     ),
                                     const SizedBox(width: 6),
                                     Image.asset(
-                                      'assets/images/lv/lv${i!.level}.png',
+                                      'assets/images/lv/lv${i.isSeniorMember == 1 ? '6_s' : i!.level}.png',
                                       height: 11,
                                       semanticLabel: '等级${i.level}',
                                     ),

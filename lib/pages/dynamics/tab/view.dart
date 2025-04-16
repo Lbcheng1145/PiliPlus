@@ -60,9 +60,11 @@ class _DynamicsTabPageState
     super.initState();
     if (widget.dynamicsType == 'up') {
       _listener = dynamicsController.mid.listen((mid) {
-        controller.mid = mid;
-        controller.scrollController.jumpTo(0);
-        controller.onReload();
+        if (mid != -1) {
+          controller
+            ..mid = mid
+            ..onReload();
+        }
       });
     }
     dynamicsWaterfallFlow = GStorage.setting
@@ -168,6 +170,7 @@ class _DynamicsTabPageState
                             DynamicPanel(
                               item: i,
                               onRemove: controller.onRemove,
+                              // onSetTop: controller.onSetTop,
                             ),
                         ] else ...[
                           for (var i in loadingState.response!)
@@ -176,6 +179,7 @@ class _DynamicsTabPageState
                               DynamicPanel(
                                 item: i,
                                 onRemove: controller.onRemove,
+                                // onSetTop: controller.onSetTop,
                               ),
                         ]
                       ],
@@ -201,6 +205,7 @@ class _DynamicsTabPageState
                                   return DynamicPanel(
                                     item: item,
                                     onRemove: controller.onRemove,
+                                    // onSetTop: controller.onSetTop,
                                   );
                                 }
                                 return const SizedBox.shrink();
