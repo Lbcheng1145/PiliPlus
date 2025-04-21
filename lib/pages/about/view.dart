@@ -147,7 +147,7 @@ Commit Hash: ${BuildConfig.commitHash}''',
             ),
             leading: const Icon(Icons.info_outline),
             onTap: () => PageUtils.launchURL(
-                'https://github.com/bggRGjQaUbCoE/PiliPlus/commit/${BuildConfig.commitHash}'),
+                'https://github.com/Lbcheng1145/PiliPlus/commit/${BuildConfig.commitHash}'),
             onLongPress: () => Utils.copyText(BuildConfig.commitHash),
           ),
           Divider(
