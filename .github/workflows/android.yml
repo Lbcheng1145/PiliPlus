@@ -63,7 +63,7 @@ jobs:
             echo keyAlias='${{ secrets.KEY_ALIAS }}' >> android/key.properties
             echo keyPassword='${{ secrets.KEY_PASSWORD }}' >> android/key.properties
           fi
-
+          
       - name: flutter build apk
         run: |
           chmod +x lib/scripts/build.sh
