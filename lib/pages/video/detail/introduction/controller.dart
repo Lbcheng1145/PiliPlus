@@ -50,8 +50,7 @@ class VideoIntroController extends GetxController {
   Rx<VideoDetailData> videoDetail = VideoDetailData().obs;
 
   // up主粉丝数
-  Rx<Map<String, dynamic>> userStat =
-      Rx<Map<String, dynamic>>({'follower': '-'});
+  RxMap<String, dynamic> userStat = RxMap<String, dynamic>({'follower': '-'});
 
   dynamic videoTags;
 
@@ -82,8 +81,8 @@ class VideoIntroController extends GetxController {
   Timer? timer;
   String heroTag = '';
   late ModelResult modelResult;
-  Rx<Map<String, dynamic>> queryVideoIntroData =
-      Rx<Map<String, dynamic>>({"status": true});
+  RxMap<String, dynamic> queryVideoIntroData =
+      RxMap<String, dynamic>({"status": true});
 
   ExpandableController? expandableCtr;
 
@@ -181,7 +180,7 @@ class VideoIntroController extends GetxController {
       SmartDialog.showToast(
           "${result['code']} ${result['msg']} ${result['data']}");
     }
-    queryVideoIntroData.value = result;
+    queryVideoIntroData.addAll(result);
     if (isLogin) {
       queryAllStatus();
       queryFollowStatus();
@@ -207,10 +206,10 @@ class VideoIntroController extends GetxController {
         },
       ).then((res) {
         if (res.data['code'] == 0) {
-          staffRelations.value = {
+          staffRelations.addAll({
             'status': true,
             if (res.data['data'] != null) ...res.data['data'],
-          };
+          });
         }
       });
     } else {
@@ -220,7 +219,7 @@ class VideoIntroController extends GetxController {
       var result =
           await MemberHttp.memberCardInfo(mid: videoDetail.value.owner!.mid!);
       if (result['status']) {
-        userStat.value = result['data'];
+        userStat.addAll(result['data']);
       }
     }
   }
@@ -349,7 +348,7 @@ class VideoIntroController extends GetxController {
     }
 
     int copyright =
-        (queryVideoIntroData.value['data'] as VideoDetailData?)?.copyright ?? 1;
+        (queryVideoIntroData['data'] as VideoDetailData?)?.copyright ?? 1;
     if ((copyright != 1 && _coinNum.value >= 1) || _coinNum.value >= 2) {
       SmartDialog.showToast('达到投币上限啦~');
       return;
@@ -445,6 +444,7 @@ class VideoIntroController extends GetxController {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
+                  dense: true,
                   title: const Text(
                     '复制链接',
                     style: TextStyle(fontSize: 14),
@@ -455,6 +455,7 @@ class VideoIntroController extends GetxController {
                   },
                 ),
                 ListTile(
+                  dense: true,
                   title: const Text(
                     '其它app打开',
                     style: TextStyle(fontSize: 14),
@@ -465,6 +466,7 @@ class VideoIntroController extends GetxController {
                   },
                 ),
                 ListTile(
+                  dense: true,
                   title: const Text(
                     '分享视频',
                     style: TextStyle(fontSize: 14),
@@ -477,6 +479,7 @@ class VideoIntroController extends GetxController {
                   },
                 ),
                 ListTile(
+                  dense: true,
                   title: const Text(
                     '分享至动态',
                     style: TextStyle(fontSize: 14),
@@ -495,6 +498,31 @@ class VideoIntroController extends GetxController {
                         uname: videoDetail.value.owner?.name,
                       ),
                     );
+                  },
+                ),
+                ListTile(
+                  dense: true,
+                  title: const Text(
+                    '分享至消息',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  onTap: () {
+                    Get.back();
+                    try {
+                      PageUtils.pmShare(
+                        content: {
+                          "id": videoDetail.value.aid!.toString(),
+                          "title": videoDetail.value.title!,
+                          "headline": videoDetail.value.title!,
+                          "source": 5,
+                          "thumb": videoDetail.value.pic!,
+                          "author": videoDetail.value.owner!.name!,
+                          "author_id": videoDetail.value.owner!.mid!.toString(),
+                        },
+                      );
+                    } catch (e) {
+                      SmartDialog.showToast(e.toString());
+                    }
                   },
                 ),
               ],

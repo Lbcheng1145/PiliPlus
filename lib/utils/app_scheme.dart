@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/models/common/reply_type.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
@@ -133,16 +132,20 @@ class PiliScheme {
                         ),
                       ],
                     ),
-                    body: VideoReplyReplyPanel(
-                      oid: int.parse(oid),
-                      rpid: rpid,
-                      source: 'routePush',
-                      replyType: ReplyType.video,
-                      firstFloor: null,
-                      id: queryParameters['comment_secondary_id'] != null
-                          ? int.tryParse(
-                              queryParameters['comment_secondary_id']!)
-                          : null,
+                    body: SafeArea(
+                      top: false,
+                      bottom: false,
+                      child: VideoReplyReplyPanel(
+                        oid: int.parse(oid),
+                        rpid: rpid,
+                        source: 'routePush',
+                        replyType: ReplyType.video,
+                        firstFloor: null,
+                        id: queryParameters['comment_secondary_id'] != null
+                            ? int.tryParse(
+                                queryParameters['comment_secondary_id']!)
+                            : null,
+                      ),
                     ),
                   ),
                 );
@@ -201,22 +204,6 @@ class PiliScheme {
             }
             return false;
           case 'opus':
-            // bilibili://opus/detail/12345678?h5awaken=random
-            // String? id = uriDigitRegExp.firstMatch(path)?.group(1);
-            // if (id != null) {
-            //   PageUtils.toDupNamed(
-            //     '/htmlRender',
-            //     parameters: {
-            //       'url': 'https://www.bilibili.com/opus/$id',
-            //       'title': '',
-            //       'id': id,
-            //       'dynamicType': 'opus'
-            //     },
-            //     off: off,
-            //   );
-            //   return true;
-            // }
-            // return false;
             bool hasMatch = await _onPushDynDetail(path, off);
             return hasMatch;
           case 'search':
@@ -231,12 +218,10 @@ class PiliScheme {
             String? id = uriDigitRegExp.firstMatch(path)?.group(1);
             if (id != null) {
               PageUtils.toDupNamed(
-                '/htmlRender',
+                '/articlePage',
                 parameters: {
-                  'url': 'www.bilibili.com/read/cv$id',
-                  'title': '',
-                  'id': 'cv$id',
-                  'dynamicType': 'read'
+                  'id': id,
+                  'type': 'read',
                 },
                 off: off,
               );
@@ -285,13 +270,17 @@ class PiliScheme {
                       ),
                     ],
                   ),
-                  body: VideoReplyReplyPanel(
-                    oid: oid,
-                    rpid: rootId,
-                    id: rpId,
-                    source: 'routePush',
-                    replyType: ReplyType.values[type],
-                    firstFloor: null,
+                  body: SafeArea(
+                    top: false,
+                    bottom: false,
+                    child: VideoReplyReplyPanel(
+                      oid: oid,
+                      rpid: rootId,
+                      id: rpId,
+                      source: 'routePush',
+                      replyType: ReplyType.values[type],
+                      firstFloor: null,
+                    ),
                   ),
                 ),
               );
@@ -331,12 +320,16 @@ class PiliScheme {
                       ),
                     ],
                   ),
-                  body: VideoReplyReplyPanel(
-                    oid: oid,
-                    rpid: rpId,
-                    source: 'routePush',
-                    replyType: ReplyType.values[type],
-                    firstFloor: null,
+                  body: SafeArea(
+                    top: false,
+                    bottom: false,
+                    child: VideoReplyReplyPanel(
+                      oid: oid,
+                      rpid: rpId,
+                      source: 'routePush',
+                      replyType: ReplyType.values[type],
+                      firstFloor: null,
+                    ),
                   ),
                 ),
               );
@@ -353,12 +346,10 @@ class PiliScheme {
                 ?.group(1);
             if (cvid != null) {
               PageUtils.toDupNamed(
-                '/htmlRender',
+                '/articlePage',
                 parameters: {
-                  'url': 'https://www.bilibili.com/read/cv$cvid',
-                  'title': '',
-                  'id': 'cv$cvid',
-                  'dynamicType': 'read'
+                  'id': cvid,
+                  'type': 'read',
                 },
                 off: off,
               );
@@ -393,18 +384,22 @@ class PiliScheme {
                           ),
                         ],
                       ),
-                      body: VideoReplyReplyPanel(
-                        oid: oid ?? int.parse(dynId),
-                        rpid: rpid,
-                        source: 'routePush',
-                        replyType: businessId != null
-                            ? ReplyType.values[businessId]
-                            : ReplyType.dynamics,
-                        firstFloor: null,
-                        id: queryParameters['comment_secondary_id'] != null
-                            ? int.tryParse(
-                                queryParameters['comment_secondary_id']!)
-                            : null,
+                      body: SafeArea(
+                        top: false,
+                        bottom: false,
+                        child: VideoReplyReplyPanel(
+                          oid: oid ?? int.parse(dynId),
+                          rpid: rpid,
+                          source: 'routePush',
+                          replyType: businessId != null
+                              ? ReplyType.values[businessId]
+                              : ReplyType.dynamics,
+                          firstFloor: null,
+                          id: queryParameters['comment_secondary_id'] != null
+                              ? int.tryParse(
+                                  queryParameters['comment_secondary_id']!)
+                              : null,
+                        ),
                       ),
                     ),
                   );
@@ -421,22 +416,7 @@ class PiliScheme {
           case 'album':
             String? rid = uriDigitRegExp.firstMatch(path)?.group(1);
             if (rid != null) {
-              SmartDialog.showLoading();
-              dynamic res = await DynamicsHttp.dynamicDetail(rid: rid, type: 2);
-              SmartDialog.dismiss();
-              if (res['status']) {
-                PageUtils.toDupNamed(
-                  '/dynamicDetail',
-                  arguments: {
-                    'item': res['data'],
-                    'floor': 1,
-                    'action': 'detail'
-                  },
-                  off: off,
-                );
-              } else {
-                SmartDialog.showToast(res['msg']);
-              }
+              PageUtils.pushDynFromId(rid: rid, off: off);
               return true;
             }
             return false;
@@ -581,12 +561,10 @@ class PiliScheme {
               ?.group(1);
           if (id != null) {
             PageUtils.toDupNamed(
-              '/htmlRender',
+              '/articlePage',
               parameters: {
-                'url': 'https://www.bilibili.com/read/cv$id',
-                'title': '',
-                'id': 'cv$id',
-                'dynamicType': 'read'
+                'id': id,
+                'type': 'read',
               },
               off: off,
             );
@@ -649,12 +627,10 @@ class PiliScheme {
             RegExp(r'cv(\d+)', caseSensitive: false).firstMatch(path)?.group(1);
         if (id != null) {
           PageUtils.toDupNamed(
-            '/htmlRender',
+            '/articlePage',
             parameters: {
-              'url': 'https://www.bilibili.com/read/cv$id',
-              'title': '',
-              'id': 'cv$id',
-              'dynamicType': 'read'
+              'id': id,
+              'type': 'read',
             },
             off: off,
           );
@@ -692,7 +668,7 @@ class PiliScheme {
   static Future<bool> _onPushDynDetail(path, off) async {
     String? id = uriDigitRegExp.firstMatch(path)?.group(1);
     if (id != null) {
-      PageUtils.pushDynFromId(id, off: off);
+      PageUtils.pushDynFromId(id: id, off: off);
       return true;
     }
     return false;

@@ -54,11 +54,13 @@ class _SysMsgPageState extends State<SysMsgPage> {
 
   Widget _buildBody(LoadingState<List<SystemNotifyList>?> loadingState) {
     return switch (loadingState) {
-      Loading() => SliverList.builder(
-          itemCount: 12,
-          itemBuilder: (context, index) {
-            return const MsgFeedSysMsgSkeleton();
-          },
+      Loading() => SliverSafeArea(
+          sliver: SliverList.builder(
+            itemCount: 12,
+            itemBuilder: (context, index) {
+              return const MsgFeedSysMsgSkeleton();
+            },
+          ),
         ),
       Success() => loadingState.response?.isNotEmpty == true
           ? SliverList.separated(
@@ -136,10 +138,10 @@ class _SysMsgPageState extends State<SysMsgPage> {
                 );
               },
             )
-          : HttpError(callback: _sysMsgController.onReload),
+          : HttpError(onReload: _sysMsgController.onReload),
       Error() => HttpError(
           errMsg: loadingState.errMsg,
-          callback: _sysMsgController.onReload,
+          onReload: _sysMsgController.onReload,
         ),
       LoadingState() => throw UnimplementedError(),
     };
@@ -209,7 +211,7 @@ class _SysMsgPageState extends State<SysMsgPage> {
                 recognizer: TapGestureRecognizer()
                   ..onTap = () {
                     try {
-                      PageUtils.pushDynFromId(match[4]);
+                      PageUtils.pushDynFromId(id: match[4]);
                     } catch (err) {
                       SmartDialog.showToast(err.toString());
                     }

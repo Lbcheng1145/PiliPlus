@@ -147,17 +147,17 @@ class _BangumiPageState extends CommonPageState<BangumiPage, BangumiController>
                         ],
                       ),
                       Expanded(
-                        child: TabBarView(
-                            physics: const NeverScrollableScrollPhysics(),
-                            children: loadingState.response!.map((item) {
-                              if (item.episodes!.isNullOrEmpty) {
-                                return const SizedBox.shrink();
-                              }
-                              return MediaQuery.removePadding(
-                                context: context,
-                                removeLeft: context.orientation ==
-                                    Orientation.landscape,
-                                child: ListView.builder(
+                        child: MediaQuery.removePadding(
+                          context: context,
+                          removeLeft:
+                              context.orientation == Orientation.landscape,
+                          child: TabBarView(
+                              physics: const NeverScrollableScrollPhysics(),
+                              children: loadingState.response!.map((item) {
+                                if (item.episodes!.isNullOrEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                return ListView.builder(
                                   physics:
                                       const AlwaysScrollableScrollPhysics(),
                                   scrollDirection: Axis.horizontal,
@@ -177,9 +177,9 @@ class _BangumiPageState extends CommonPageState<BangumiPage, BangumiController>
                                       ),
                                     );
                                   },
-                                ),
-                              );
-                            }).toList()),
+                                );
+                              }).toList()),
+                        ),
                       ),
                     ],
                   ),
@@ -324,11 +324,11 @@ class _BangumiPageState extends CommonPageState<BangumiPage, BangumiController>
               ),
             )
           : HttpError(
-              callback: controller.onReload,
+              onReload: controller.onReload,
             ),
       Error() => HttpError(
           errMsg: loadingState.errMsg,
-          callback: controller.onReload,
+          onReload: controller.onReload,
         ),
       LoadingState() => throw UnimplementedError(),
     };

@@ -489,14 +489,14 @@ class UserHttp {
       'page': page,
     });
     if (res.data['code'] == 0) {
-      return LoadingState.success(res.data['data']?['items']);
+      return LoadingState.success(res.data['data']);
     } else {
       return LoadingState.error(res.data['message']);
     }
   }
 
   static Future addFavArticle({
-    required int id,
+    required dynamic id,
   }) async {
     var res = await Request().post(
       Api.addFavArticle,
@@ -516,7 +516,7 @@ class UserHttp {
   }
 
   static Future delFavArticle({
-    required int id,
+    required dynamic id,
   }) async {
     var res = await Request().post(
       Api.delFavArticle,
@@ -665,5 +665,29 @@ class UserHttp {
     } else {
       return {'status': false, 'msg': res.data['message']};
     }
+  }
+
+  static Future<Map> dynamicReport({
+    required dynamic mid,
+    required dynamic dynId,
+    required int reasonType,
+    String? reasonDesc,
+  }) async {
+    final res = await Request().post(
+      Api.dynamicReport,
+      queryParameters: {
+        'csrf': Accounts.main.csrf,
+      },
+      data: {
+        "accused_uid": mid,
+        "dynamic_id": dynId,
+        "reason_type": reasonType,
+        "reason_desc": reasonType == 0 ? reasonDesc : null,
+      },
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+      ),
+    );
+    return res.data as Map;
   }
 }

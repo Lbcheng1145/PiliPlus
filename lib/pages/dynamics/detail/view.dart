@@ -109,8 +109,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
       duration: const Duration(milliseconds: 300),
     );
     _fabAnimationCtr?.forward();
-    // 滚动事件监听
-    scrollListener();
+    _dynamicDetailController.scrollController.addListener(listener);
   }
 
   // 页面初始化
@@ -139,7 +138,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
               DynamicDetailController(oid, replyType),
               tag: Utils.makeHeroTag(opusId),
             );
-            await _dynamicDetailController.reqHtmlByOpusId(opusId!);
+            await _dynamicDetailController.getCommentParams(opusId!);
             setState(() {});
           }
         } else {
@@ -170,14 +169,18 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
               titleSpacing: automaticallyImplyLeading ? null : 12,
               automaticallyImplyLeading: automaticallyImplyLeading,
             ),
-            body: VideoReplyReplyPanel(
-              id: id,
-              oid: oid,
-              rpid: rpid,
-              source: 'dynamic',
-              replyType: ReplyType.values[replyType],
-              firstFloor: replyItem,
-              onDispose: onDispose,
+            body: SafeArea(
+              top: false,
+              bottom: false,
+              child: VideoReplyReplyPanel(
+                id: id,
+                oid: oid,
+                rpid: rpid,
+                source: 'dynamic',
+                replyType: ReplyType.values[replyType],
+                firstFloor: replyItem,
+                onDispose: onDispose,
+              ),
             ),
           );
       if (this.context.orientation == Orientation.portrait) {
@@ -223,17 +226,22 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
     });
   }
 
-  // 滑动事件监听
-  void scrollListener() {
-    _dynamicDetailController.scrollController.addListener(listener);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_dynamicDetailController.scrollController.hasClients) {
+        _visibleTitle.value =
+            _dynamicDetailController.scrollController.positions.first.pixels >
+                55;
+      }
+    });
   }
 
   void listener() {
     // 标题
-    if (_dynamicDetailController.scrollController.positions.length == 1) {
-      _visibleTitle.value =
-          _dynamicDetailController.scrollController.offset > 55;
-    }
+    _visibleTitle.value =
+        _dynamicDetailController.scrollController.positions.first.pixels > 55;
 
     // fab按钮
     final ScrollDirection direction1 = _dynamicDetailController
@@ -776,76 +784,72 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
 
   Widget replyList(LoadingState<List<ReplyInfo>?> loadingState) {
     return switch (loadingState) {
-      Loading() => SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              return const VideoReplySkeleton();
-            },
-            childCount: 8,
-          ),
+      Loading() => SliverList.builder(
+          itemBuilder: (context, index) {
+            return const VideoReplySkeleton();
+          },
+          itemCount: 8,
         ),
       Success() => loadingState.response?.isNotEmpty == true
-          ? SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  if (index == loadingState.response!.length) {
-                    _dynamicDetailController.onLoadMore();
-                    return Container(
-                      alignment: Alignment.center,
-                      padding: EdgeInsets.only(
-                          bottom: MediaQuery.of(context).padding.bottom),
-                      height: MediaQuery.of(context).padding.bottom + 100,
-                      child: Text(
-                        _dynamicDetailController.isEnd.not
-                            ? '加载中...'
-                            : loadingState.response!.isEmpty
-                                ? '还没有评论'
-                                : '没有更多了',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
+          ? SliverList.builder(
+              itemBuilder: (context, index) {
+                if (index == loadingState.response!.length) {
+                  _dynamicDetailController.onLoadMore();
+                  return Container(
+                    alignment: Alignment.center,
+                    margin: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).padding.bottom),
+                    height: 125,
+                    child: Text(
+                      _dynamicDetailController.isEnd.not
+                          ? '加载中...'
+                          : loadingState.response!.isEmpty
+                              ? '还没有评论'
+                              : '没有更多了',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.outline,
                       ),
-                    );
-                  } else {
-                    return ReplyItemGrpc(
-                      replyItem: loadingState.response![index],
-                      replyLevel: '1',
-                      replyReply: (replyItem, id) =>
-                          replyReply(context, replyItem, id),
-                      onReply: () {
-                        _dynamicDetailController.onReply(
-                          context,
-                          replyItem: loadingState.response![index],
-                          index: index,
-                        );
-                      },
-                      onDelete: (subIndex) =>
-                          _dynamicDetailController.onRemove(index, subIndex),
-                      upMid: _dynamicDetailController.upMid,
-                      callback: _getImageCallback,
-                      onCheckReply: (item) =>
-                          _dynamicDetailController.onCheckReply(context, item),
-                      onToggleTop: (isUpTop, rpid) =>
-                          _dynamicDetailController.onToggleTop(
-                        index,
-                        _dynamicDetailController.oid,
-                        _dynamicDetailController.type,
-                        isUpTop,
-                        rpid,
-                      ),
-                    );
-                  }
-                },
-                childCount: loadingState.response!.length + 1,
-              ),
+                    ),
+                  );
+                } else {
+                  return ReplyItemGrpc(
+                    replyItem: loadingState.response![index],
+                    replyLevel: '1',
+                    replyReply: (replyItem, id) =>
+                        replyReply(context, replyItem, id),
+                    onReply: () {
+                      _dynamicDetailController.onReply(
+                        context,
+                        replyItem: loadingState.response![index],
+                        index: index,
+                      );
+                    },
+                    onDelete: (subIndex) =>
+                        _dynamicDetailController.onRemove(index, subIndex),
+                    upMid: _dynamicDetailController.upMid,
+                    callback: _getImageCallback,
+                    onCheckReply: (item) =>
+                        _dynamicDetailController.onCheckReply(context, item),
+                    onToggleTop: (isUpTop, rpid) =>
+                        _dynamicDetailController.onToggleTop(
+                      index,
+                      _dynamicDetailController.oid,
+                      _dynamicDetailController.type,
+                      isUpTop,
+                      rpid,
+                    ),
+                  );
+                }
+              },
+              itemCount: loadingState.response!.length + 1,
             )
           : HttpError(
-              callback: _dynamicDetailController.onReload,
+              onReload: _dynamicDetailController.onReload,
             ),
       Error() => HttpError(
           errMsg: loadingState.errMsg,
-          callback: _dynamicDetailController.onReload,
+          onReload: _dynamicDetailController.onReload,
         ),
       LoadingState() => throw UnimplementedError(),
     };

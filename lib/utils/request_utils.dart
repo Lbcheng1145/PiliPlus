@@ -3,11 +3,12 @@ import 'dart:math';
 
 import 'package:PiliPlus/common/widgets/radio_widget.dart';
 import 'package:PiliPlus/grpc/app/main/community/reply/v1/reply.pb.dart';
-import 'package:PiliPlus/http/constants.dart';
+import 'package:PiliPlus/grpc/grpc_repo.dart';
+import 'package:PiliPlus/grpc/im/type/im.pbenum.dart';
 import 'package:PiliPlus/http/dynamics.dart';
-import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/member.dart';
+import 'package:PiliPlus/http/msg.dart';
 import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
@@ -16,18 +17,70 @@ import 'package:PiliPlus/pages/common/multi_select_controller.dart';
 import 'package:PiliPlus/pages/dynamics/tab/controller.dart';
 import 'package:PiliPlus/pages/later/controller.dart';
 import 'package:PiliPlus/pages/video/detail/introduction/widgets/group_panel.dart';
-import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/storage.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:html/dom.dart' as dom;
-import 'package:html/parser.dart' as html_parser;
 
 class RequestUtils {
+  // 1：小视频（已弃用）
+  // 2：相簿
+  // 3：纯文字
+  // 4：直播（此类型不常用，见分享其他内容消息）
+  // 5：视频
+  // 6：专栏
+  // 7：番剧（id 为 season_id）
+  // 8：音乐
+  // 9：国产动画（id 为 AV 号）
+  // 10：图片
+  // 11：动态
+  // 16：番剧（id 为 epid）
+  // 17：番剧
+  // https://github.com/SocialSisterYi/bilibili-API-collect/tree/master/docs/message/private_msg_content.md
+  static Future pmShare({
+    required int receiverId,
+    required Map content,
+    String? message,
+    ValueChanged<bool>? callback,
+  }) async {
+    SmartDialog.showLoading();
+
+    final ownerMid = Accounts.main.mid;
+    final videoRes = await GrpcRepo.sendMsg(
+      senderUid: ownerMid,
+      receiverId: receiverId,
+      content: jsonEncode(content),
+      msgType: content['source'] is String
+          ? MsgType.EN_MSG_TYPE_COMMON_SHARE_CARD
+          : MsgType.EN_MSG_TYPE_SHARE_V2,
+    );
+
+    if (videoRes['status']) {
+      if (message?.isNotEmpty == true) {
+        var textRes = await MsgHttp.sendMsg(
+          senderUid: ownerMid,
+          receiverId: receiverId,
+          content: jsonEncode({"content": message}),
+          msgType: 1,
+        );
+        Get.back();
+        if (textRes['status']) {
+          SmartDialog.showToast('分享成功');
+        } else {
+          SmartDialog.showToast('视频分享成功，但消息分享失败: ${textRes['msg']}');
+        }
+      } else {
+        Get.back();
+        SmartDialog.showToast('分享成功');
+      }
+    } else {
+      SmartDialog.showToast('分享失败: ${videoRes['msg']}');
+    }
+    SmartDialog.dismiss();
+  }
+
   static Future actionRelationMod({
     required BuildContext context,
     required dynamic mid,
@@ -81,7 +134,7 @@ class RequestUtils {
                       );
                       if (res['status']) {
                         SmartDialog.showToast('$text成功');
-                        callback?.call(-10);
+                        callback?.call(isSpecialFollowed ? 2 : -10);
                       } else {
                         SmartDialog.showToast(res['msg']);
                       }
@@ -99,7 +152,6 @@ class RequestUtils {
                         context: context,
                         useSafeArea: true,
                         isScrollControlled: true,
-                        backgroundColor: Theme.of(context).colorScheme.surface,
                         sheetAnimationStyle: AnimationStyle(curve: Curves.ease),
                         constraints: BoxConstraints(
                           maxWidth: min(640, min(Get.width, Get.height)),
@@ -125,7 +177,7 @@ class RequestUtils {
                       );
                       followStatus!['tag'] = result;
                       if (result != null) {
-                        callback?.call(2);
+                        callback?.call(result.contains(-10) ? -10 : 2);
                       }
                     },
                     title: const Text(
@@ -183,24 +235,24 @@ class RequestUtils {
       );
   }
 
-  static Future<dynamic> getWwebid(mid) async {
-    try {
-      dynamic response = await Request().get(
-        '${HttpString.spaceBaseUrl}/$mid/dynamic',
-        options: Options(
-          extra: {'account': AnonymousAccount()},
-        ),
-      );
-      dom.Document document = html_parser.parse(response.data);
-      dom.Element? scriptElement =
-          document.querySelector('script#__RENDER_DATA__');
-      return jsonDecode(
-          Uri.decodeComponent(scriptElement?.text ?? ''))['access_id'];
-    } catch (e) {
-      debugPrint('failed to get wwebid: $e');
-      return null;
-    }
-  }
+  // static Future<dynamic> getWwebid(mid) async {
+  //   try {
+  //     dynamic response = await Request().get(
+  //       '${HttpString.spaceBaseUrl}/$mid/dynamic',
+  //       options: Options(
+  //         extra: {'account': AnonymousAccount()},
+  //       ),
+  //     );
+  //     dom.Document document = html_parser.parse(response.data);
+  //     dom.Element? scriptElement =
+  //         document.querySelector('script#__RENDER_DATA__');
+  //     return jsonDecode(
+  //         Uri.decodeComponent(scriptElement?.text ?? ''))['access_id'];
+  //   } catch (e) {
+  //     debugPrint('failed to get wwebid: $e');
+  //     return null;
+  //   }
+  // }
 
   static Future insertCreatedDyn(result) async {
     try {

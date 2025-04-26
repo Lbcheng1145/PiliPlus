@@ -70,15 +70,19 @@ class _SeasonSeriesPageState extends State<SeasonSeriesPage>
                                 appBar: AppBar(
                                   title: Text(item['meta']['name']),
                                 ),
-                                body: MemberVideo(
-                                  type: isSeason
-                                      ? ContributeType.season
-                                      : ContributeType.series,
-                                  heroTag: widget.heroTag,
-                                  mid: widget.mid,
-                                  seasonId: isSeason ? id : null,
-                                  seriesId: isSeason ? null : id,
-                                  title: item['meta']['name'],
+                                body: SafeArea(
+                                  top: false,
+                                  bottom: false,
+                                  child: MemberVideo(
+                                    type: isSeason
+                                        ? ContributeType.season
+                                        : ContributeType.series,
+                                    heroTag: widget.heroTag,
+                                    mid: widget.mid,
+                                    seasonId: isSeason ? id : null,
+                                    seriesId: isSeason ? null : id,
+                                    title: item['meta']['name'],
+                                  ),
                                 ),
                               ),
                             );
@@ -92,13 +96,13 @@ class _SeasonSeriesPageState extends State<SeasonSeriesPage>
               ],
             )
           : scrollErrorWidget(
-              callback: () {
+              onReload: () {
                 _controller.onReload();
               },
             ),
       Error() => scrollErrorWidget(
           errMsg: loadingState.errMsg,
-          callback: () {
+          onReload: () {
             _controller.onReload();
           },
         ),

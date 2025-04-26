@@ -286,10 +286,6 @@ class Api {
   // order_type 排序规则 最近访问传空，最常访问传 attention
   static const String followings = '/x/relation/followings';
 
-  // 指定分类的关注
-  // https://api.bilibili.com/x/relation/tag?mid=17340771&tagid=-10&pn=1&ps=20
-  static const String tagFollowings = '/x/relation/tag';
-
   // 搜索follow
   static const followSearch = '/x/relation/followings/search';
 
@@ -468,6 +464,12 @@ class Api {
 
   // 获取指定分组下的up
   static const String followUpGroup = '/x/relation/tag';
+
+  static const String createFollowTag = '/x/relation/tag/create';
+
+  static const String updateFollowTag = '/x/relation/tag/update';
+
+  static const String delFollowTag = '/x/relation/tag/del';
 
   // 获取未读私信数
   // https://api.vc.bilibili.com/session_svr/v1/session_svr/single_unread
@@ -689,6 +691,10 @@ class Api {
   /// 排行榜
   static const String getRankApi = "/x/web-interface/ranking/v2";
 
+  static const String pgcRank = "/pgc/web/rank/list";
+
+  static const String pgcSeasonRank = "/pgc/season/rank/web/list";
+
   /// 取消订阅-合集
   static const String unfavSeason = '/x/v3/fav/season/unfav';
 
@@ -771,4 +777,13 @@ class Api {
 
   static const String searchRecommend =
       '${HttpString.appBaseUrl}/x/v2/search/recommend';
+
+  static const String articleInfo = '/x/article/viewinfo';
+
+  static const String dynamicReport = '/x/dynamic/feed/dynamic_report/add';
+
+  // https://github.com/SocialSisterYi/bilibili-API-collect/pull/1242
+  static const String articleView = '/x/article/view';
+
+  static const String opusDetail = '/x/polymer/web-dynamic/v1/opus/detail';
 }

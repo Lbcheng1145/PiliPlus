@@ -1,7 +1,11 @@
 import 'package:PiliPlus/common/skeleton/msg_feed_top.dart';
+import 'package:PiliPlus/common/widgets/dialog.dart';
+import 'package:PiliPlus/common/widgets/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/fans/result.dart';
+import 'package:PiliPlus/pages/video/detail/share/view.dart' show UserModel;
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -9,34 +13,46 @@ import 'package:PiliPlus/common/widgets/http_error.dart';
 
 import '../../utils/grid.dart';
 import 'controller.dart';
-import 'widgets/fan_item.dart';
 
 class FansPage extends StatefulWidget {
-  const FansPage({super.key});
+  const FansPage({
+    super.key,
+    this.mid,
+    this.onSelect,
+  });
+
+  final int? mid;
+  final ValueChanged<UserModel>? onSelect;
 
   @override
   State<FansPage> createState() => _FansPageState();
 }
 
 class _FansPageState extends State<FansPage> {
-  late String mid;
+  late int mid;
+  String? name;
+  late bool isOwner;
   late FansController _fansController;
 
   @override
   void initState() {
     super.initState();
-    mid = Get.parameters['mid']!;
-    _fansController = Get.put(FansController(), tag: Utils.makeHeroTag(mid));
+    final userInfo = GStorage.userInfo.get('userInfoCache');
+    mid = widget.mid ??
+        (Get.parameters['mid'] != null
+            ? int.parse(Get.parameters['mid']!)
+            : userInfo?.mid);
+    isOwner = mid == userInfo?.mid;
+    name = Get.parameters['name'] ?? userInfo?.uname;
+    _fansController = Get.put(FansController(mid), tag: Utils.makeHeroTag(mid));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _fansController.isOwner.value ? '我的粉丝' : '${_fansController.name}的粉丝',
-        ),
-      ),
+      appBar: widget.onSelect != null
+          ? null
+          : AppBar(title: Text(isOwner ? '我的粉丝' : '$name的粉丝')),
       body: SafeArea(
         bottom: false,
         child: refreshIndicator(
@@ -81,18 +97,69 @@ class _FansPageState extends State<FansPage> {
                     if (index == loadingState.response!.length - 1) {
                       _fansController.onLoadMore();
                     }
-                    return fanItem(item: loadingState.response![index]);
+                    final item = loadingState.response![index];
+                    String heroTag = Utils.makeHeroTag(item.mid);
+                    return ListTile(
+                      onTap: () {
+                        if (widget.onSelect != null) {
+                          widget.onSelect!(UserModel(
+                            mid: item.mid!,
+                            name: item.uname!,
+                            avatar: item.face!,
+                          ));
+                          return;
+                        }
+                        Get.toNamed(
+                          '/member?mid=${item.mid}',
+                          arguments: {'face': item.face, 'heroTag': heroTag},
+                        );
+                      },
+                      onLongPress: widget.onSelect != null
+                          ? null
+                          : isOwner
+                              ? () {
+                                  showConfirmDialog(
+                                    context: context,
+                                    title: '确定移除 ${item.uname} ？',
+                                    onConfirm: () {
+                                      _fansController.onRemoveFan(
+                                          index, item.mid!);
+                                    },
+                                  );
+                                }
+                              : null,
+                      leading: Hero(
+                        tag: heroTag,
+                        child: NetworkImgLayer(
+                          width: 45,
+                          height: 45,
+                          type: 'avatar',
+                          src: item.face,
+                        ),
+                      ),
+                      title: Text(
+                        item.uname!,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      subtitle: Text(
+                        item.sign ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      dense: true,
+                      trailing: const SizedBox(width: 6),
+                    );
                   },
                   childCount: loadingState.response!.length,
                 ),
               ),
             )
           : HttpError(
-              callback: _fansController.onReload,
+              onReload: _fansController.onReload,
             ),
       Error() => HttpError(
           errMsg: loadingState.errMsg,
-          callback: _fansController.onReload,
+          onReload: _fansController.onReload,
         ),
       LoadingState() => throw UnimplementedError(),
     };

@@ -30,25 +30,21 @@ class _SearchDynamicState extends State<SearchDynamic>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return SafeArea(
-      top: false,
-      bottom: false,
-      child: refreshIndicator(
-        onRefresh: () async {
-          await widget.ctr.refreshDynamic();
-        },
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverPadding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.paddingOf(context).bottom + 80,
-              ),
-              sliver:
-                  Obx(() => _buildBody(context, widget.ctr.dynamicState.value)),
-            )
-          ],
-        ),
+    return refreshIndicator(
+      onRefresh: () async {
+        await widget.ctr.refreshDynamic();
+      },
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.paddingOf(context).bottom + 80,
+            ),
+            sliver:
+                Obx(() => _buildBody(context, widget.ctr.dynamicState.value)),
+          )
+        ],
       ),
     );
   }
@@ -63,13 +59,11 @@ class _SearchDynamicState extends State<SearchDynamic>
           const SliverFillRemaining(),
           SliverConstrainedCrossAxis(
             maxExtent: Grid.smallCardWidth * 2,
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  return const DynamicCardSkeleton();
-                },
-                childCount: 10,
-              ),
+            sliver: SliverList.builder(
+              itemBuilder: (context, index) {
+                return const DynamicCardSkeleton();
+              },
+              itemCount: 10,
             ),
           ),
           const SliverFillRemaining()
@@ -115,7 +109,7 @@ class _SearchDynamicState extends State<SearchDynamic>
                         ? LastChildLayoutType.foot
                         : LastChildLayoutType.none;
                   },
-                  children: (loadingState.response as List)
+                  children: loadingState.response!
                       .map((item) => DynamicPanel(item: item))
                       .toList(),
                 )
@@ -124,35 +118,33 @@ class _SearchDynamicState extends State<SearchDynamic>
                     const SliverFillRemaining(),
                     SliverConstrainedCrossAxis(
                       maxExtent: Grid.smallCardWidth * 2,
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            if (index == loadingState.response!.length - 1) {
-                              EasyThrottle.throttle('member_dynamics',
-                                  const Duration(milliseconds: 1000), () {
-                                widget.ctr.searchDynamic(false);
-                              });
-                            }
-                            return DynamicPanel(
-                              item: loadingState.response![index],
-                            );
-                          },
-                          childCount: loadingState.response!.length,
-                        ),
+                      sliver: SliverList.builder(
+                        itemBuilder: (context, index) {
+                          if (index == loadingState.response!.length - 1) {
+                            EasyThrottle.throttle('member_dynamics',
+                                const Duration(milliseconds: 1000), () {
+                              widget.ctr.searchDynamic(false);
+                            });
+                          }
+                          return DynamicPanel(
+                            item: loadingState.response![index],
+                          );
+                        },
+                        itemCount: loadingState.response!.length,
                       ),
                     ),
                     const SliverFillRemaining(),
                   ],
                 )
           : HttpError(
-              callback: () {
+              onReload: () {
                 widget.ctr.dynamicState.value = LoadingState.loading();
                 widget.ctr.refreshDynamic();
               },
             ),
       Error() => HttpError(
           errMsg: loadingState.errMsg,
-          callback: () {
+          onReload: () {
             widget.ctr.dynamicState.value = LoadingState.loading();
             widget.ctr.refreshDynamic();
           },

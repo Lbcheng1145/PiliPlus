@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:PiliPlus/grpc/app/card/v1/card.pb.dart' as card;
 import 'package:PiliPlus/grpc/grpc_repo.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/bangumi/pgc_rank/pgc_rank_item_model.dart';
 import 'package:PiliPlus/models/member/article.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:dio/dio.dart';
@@ -68,7 +69,7 @@ class VideoHttp {
   // 添加额外的loginState变量模拟未登录状态
   static Future<LoadingState> rcmdVideoListApp({required int freshIdx}) async {
     Map<String, String> data = {
-      'build': '1462100',
+      'build': '2001100',
       'c_locale': 'zh_CN',
       'channel': 'yingyongbao',
       'column': '4',
@@ -125,11 +126,11 @@ class VideoHttp {
             i['ad_info'] == null &&
             (!enableRcmdDynamic ? i['card_goto'] != 'picture' : true) &&
             (i['args'] != null && !blackMids.contains(i['args']['up_id']))) {
-          // if (zoneRegExp.pattern.isNotEmpty &&
-          //     i['args']?['rname'] != null &&
-          //     zoneRegExp.hasMatch(i['args']['rname'])) {
-          //   continue;
-          // }
+          if (zoneRegExp.pattern.isNotEmpty &&
+              i['args']?['tname'] != null &&
+              zoneRegExp.hasMatch(i['args']['tname'])) {
+            continue;
+          }
           RecVideoItemAppModel videoItem = RecVideoItemAppModel.fromJson(i);
           if (!RecommendFilter.filter(videoItem)) {
             list.add(videoItem);
@@ -207,9 +208,11 @@ class VideoHttp {
       // 获取所有格式的视频
       'fnval': 4048,
       'fourk': 1,
+      'fnver': 0,
       'voice_balance': 1,
       'gaia_source': 'pre-load',
-      'web_location': 1550101,
+      'isGaiaAvoided': true,
+      'web_location': 1315873,
     };
 
     // 免登录查看1080p
@@ -717,17 +720,22 @@ class VideoHttp {
       {required int mid, required int act, required int reSrc}) async {
     var res = await Request().post(
       Api.relationMod,
+      queryParameters: {
+        'statistics': '{"appId":100,"platform":5}',
+        'x-bili-device-req-json':
+            '{"platform":"web","device":"pc","spmid":"333.1387"}',
+      },
       data: {
         'fid': mid,
         'act': act,
         're_src': reSrc,
         'gaia_source': 'web_main',
-        'spmid': '333.999.0.0',
-        'extend_content': {
+        'spmid': '333.1387',
+        'extend_content': jsonEncode({
           "entity": "user",
           "entity_id": mid,
           'fp': Request.headerUa(type: 'pc'),
-        },
+        }),
         'csrf': Accounts.main.csrf,
       },
       options: Options(
@@ -961,8 +969,13 @@ class VideoHttp {
   // 视频排行
   static Future<LoadingState<List<HotVideoItemModel>>> getRankVideoList(
       int rid) async {
-    var rankApi = "${Api.getRankApi}?rid=$rid&type=all";
-    var res = await Request().get(rankApi);
+    var res = await Request().get(
+      Api.getRankApi,
+      queryParameters: await WbiSign.makSign({
+        'rid': rid,
+        'type': 'all',
+      }),
+    );
     if (res.data['code'] == 0) {
       List<HotVideoItemModel> list = <HotVideoItemModel>[];
       Set<int> blackMids = GStorage.blackMids;
@@ -980,6 +993,44 @@ class VideoHttp {
         }
       }
       return LoadingState.success(list);
+    } else {
+      return LoadingState.error(res.data['message']);
+    }
+  }
+
+  // pgc 排行
+  static Future<LoadingState> pgcRankList(
+      {int day = 3, required int seasonType}) async {
+    var res = await Request().get(
+      Api.pgcRank,
+      queryParameters: await WbiSign.makSign({
+        'day': day,
+        'season_type': seasonType,
+      }),
+    );
+    if (res.data['code'] == 0) {
+      return LoadingState.success((res.data['result']?['list'] as List?)
+          ?.map((e) => PgcRankItemModel.fromJson(e))
+          .toList());
+    } else {
+      return LoadingState.error(res.data['message']);
+    }
+  }
+
+  // pgc season 排行
+  static Future<LoadingState> pgcSeasonRankList(
+      {int day = 3, required int seasonType}) async {
+    var res = await Request().get(
+      Api.pgcSeasonRank,
+      queryParameters: await WbiSign.makSign({
+        'day': day,
+        'season_type': seasonType,
+      }),
+    );
+    if (res.data['code'] == 0) {
+      return LoadingState.success((res.data['data']?['list'] as List?)
+          ?.map((e) => PgcRankItemModel.fromJson(e))
+          .toList());
     } else {
       return LoadingState.error(res.data['message']);
     }

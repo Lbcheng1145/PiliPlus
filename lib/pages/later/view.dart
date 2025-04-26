@@ -84,14 +84,14 @@ class _LaterPageState extends State<LaterPage>
                     label: const Text('播放全部'),
                     icon: const Icon(Icons.playlist_play),
                   )
-                : const SizedBox(),
+                : const SizedBox.shrink(),
           ),
-          body: Column(
-            children: [
-              SafeArea(
-                top: false,
-                bottom: false,
-                child: TabBar(
+          body: SafeArea(
+            top: false,
+            bottom: false,
+            child: Column(
+              children: [
+                TabBar(
                   isScrollable: true,
                   controller: _tabController,
                   tabAlignment: TabAlignment.start,
@@ -110,23 +110,18 @@ class _LaterPageState extends State<LaterPage>
                     }
                   },
                 ),
-              ),
-              Expanded(
-                child: TabBarView(
-                  physics: _baseCtr.enableMultiSelect.value
-                      ? const NeverScrollableScrollPhysics()
-                      : const CustomTabBarViewScrollPhysics(),
-                  controller: _tabController,
-                  children: LaterViewType.values
-                      .map((item) => SafeArea(
-                            top: false,
-                            bottom: false,
-                            child: item.page,
-                          ))
-                      .toList(),
+                Expanded(
+                  child: TabBarView(
+                    physics: _baseCtr.enableMultiSelect.value
+                        ? const NeverScrollableScrollPhysics()
+                        : const CustomTabBarViewScrollPhysics(),
+                    controller: _tabController,
+                    children:
+                        LaterViewType.values.map((item) => item.page).toList(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

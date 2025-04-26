@@ -1,14 +1,17 @@
 import 'dart:math';
 
 import 'package:PiliPlus/common/widgets/interactiveviewer_gallery/interactiveviewer_gallery.dart';
+import 'package:PiliPlus/grpc/grpc_repo.dart';
 import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/models/bangumi/info.dart';
 import 'package:PiliPlus/models/common/search_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/models/live/item.dart';
+import 'package:PiliPlus/pages/video/detail/contact/view.dart';
 import 'package:PiliPlus/pages/video/detail/introduction/widgets/fav_panel.dart';
 import 'package:PiliPlus/pages/video/detail/introduction/widgets/menu_row.dart';
+import 'package:PiliPlus/pages/video/detail/share/view.dart';
 import 'package:PiliPlus/services/shutdown_timer_service.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/extension.dart';
@@ -25,6 +28,44 @@ import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PageUtils {
+  static void pmShare({required Map content}) async {
+    // debugPrint(content.toString());
+
+    List<UserModel> userList = <UserModel>[];
+
+    final shareListRes = await GrpcRepo.shareList(size: 3);
+    if (shareListRes['status'] && shareListRes['data'].sessionList.isNotEmpty) {
+      userList.addAll(shareListRes['data']
+          .sessionList
+          .map<UserModel>((item) => UserModel(
+                mid: item.talkerId.toInt(),
+                name: item.talkerUname,
+                avatar: item.talkerIcon,
+              ))
+          .toList());
+    } else {
+      UserModel? userModel = await Get.dialog(
+        const ContactPage(),
+        useSafeArea: false,
+        transitionDuration: const Duration(milliseconds: 120),
+      );
+      if (userModel != null) {
+        userList.add(userModel);
+      }
+    }
+
+    showModalBottomSheet(
+      context: Get.context!,
+      builder: (context) => SharePanel(
+        content: content,
+        userList: userList,
+      ),
+      useSafeArea: true,
+      enableDrag: false,
+      isScrollControlled: true,
+    );
+  }
+
   static void scheduleExit(BuildContext context, isFullScreen,
       [bool isLive = false]) {
     if (!context.mounted) {
@@ -214,20 +255,25 @@ class PageUtils {
     );
   }
 
-  static Future pushDynFromId(id, {bool off = false}) async {
+  static Future pushDynFromId({id, rid, bool off = false}) async {
     SmartDialog.showLoading();
-    dynamic res = await DynamicsHttp.dynamicDetail(id: id);
+    dynamic res = await DynamicsHttp.dynamicDetail(
+      id: id,
+      rid: rid,
+      type: rid != null ? 2 : null,
+    );
     SmartDialog.dismiss();
     if (res['status']) {
       DynamicItemModel data = res['data'];
       if (data.basic?['comment_type'] == 12) {
         toDupNamed(
-          '/htmlRender',
+          '/articlePage',
           parameters: {
-            'url': 'www.bilibili.com/opus/$id',
-            'title': '',
             'id': id,
-            'dynamicType': 'opus'
+            'type': 'opus',
+          },
+          arguments: {
+            'item': data,
           },
           off: off,
         );
@@ -255,7 +301,6 @@ class PageUtils {
       context: context,
       useSafeArea: true,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
       sheetAnimationStyle: AnimationStyle(curve: Curves.ease),
       constraints: BoxConstraints(
         maxWidth: min(640, min(Get.width, Get.height)),
@@ -354,20 +399,17 @@ class PageUtils {
       case 'DYNAMIC_TYPE_ARTICLE':
         String? url = item?.modules?.moduleDynamic?.major?.opus?.jumpUrl;
         if (url != null) {
-          String? title = item?.modules?.moduleDynamic?.major?.opus?.title;
           if (url.contains('opus') || url.contains('read')) {
             RegExp digitRegExp = RegExp(r'\d+');
             Iterable<Match> matches = digitRegExp.allMatches(url);
             String number = matches.first.group(0)!;
-            if (url.contains('read')) {
-              number = 'cv$number';
-            }
-            toDupNamed('/htmlRender', parameters: {
-              'url': url.startsWith('//') ? url.split('//').last : url,
-              'title': title ?? '',
-              'id': number,
-              'dynamicType': url.split('//').last.split('/')[1]
-            });
+            toDupNamed(
+              '/articlePage',
+              parameters: {
+                'id': number,
+                'type': url.split('//').last.split('/')[1],
+              },
+            );
           } else {
             handleWebview('https:$url');
           }

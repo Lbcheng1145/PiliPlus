@@ -1,8 +1,7 @@
 import 'package:PiliPlus/common/widgets/image_save.dart';
+import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
-import 'package:PiliPlus/utils/utils.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'action_panel.dart';
@@ -11,7 +10,7 @@ import 'content_panel.dart';
 import 'forward_panel.dart';
 
 class DynamicPanel extends StatelessWidget {
-  final dynamic item;
+  final DynamicItemModel item;
   final String? source;
   final Function? onRemove;
   final Function(List<String>, int)? callback;
@@ -30,6 +29,13 @@ class DynamicPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authorWidget = AuthorPanel(
+      item: item,
+      source: source,
+      onRemove: onRemove,
+      isSave: isSave,
+      onSetTop: onSetTop,
+    );
     return Container(
       decoration: isSave ||
               (source == 'detail' &&
@@ -48,7 +54,7 @@ class DynamicPanel extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: source == 'detail' &&
-                  [
+                  const {
                     'DYNAMIC_TYPE_AV',
                     'DYNAMIC_TYPE_UGC_SEASON',
                     'DYNAMIC_TYPE_PGC_UNION',
@@ -56,91 +62,68 @@ class DynamicPanel extends StatelessWidget {
                     'DYNAMIC_TYPE_LIVE',
                     'DYNAMIC_TYPE_LIVE_RCMD',
                     'DYNAMIC_TYPE_MEDIALIST',
-                  ].contains(item.type).not
+                  }.contains(item.type).not
               ? null
               : () => PageUtils.pushDynDetail(item, 1),
-          onLongPress: () {
-            if (item.type == 'DYNAMIC_TYPE_AV') {
-              imageSaveDialog(
-                context: context,
-                title: item.modules.moduleDynamic.major.archive.title,
-                cover: item.modules.moduleDynamic.major.archive.cover,
-              );
-            } else if (item.type == 'DYNAMIC_TYPE_UGC_SEASON') {
-              imageSaveDialog(
-                context: context,
-                title: item.modules.moduleDynamic.major.ugcSeason.title,
-                cover: item.modules.moduleDynamic.major.ugcSeason.cover,
-              );
-            } else if (item.type == 'DYNAMIC_TYPE_PGC' ||
-                item.type == 'DYNAMIC_TYPE_PGC_UNION') {
-              imageSaveDialog(
-                context: context,
-                title: item.modules.moduleDynamic.major.pgc.title,
-                cover: item.modules.moduleDynamic.major.pgc.cover,
-              );
-            } else if (item.type == 'DYNAMIC_TYPE_LIVE_RCMD') {
-              imageSaveDialog(
-                context: context,
-                title: item.modules.moduleDynamic.major.liveRcmd.title,
-                cover: item.modules.moduleDynamic.major.liveRcmd.cover,
-              );
-            } else if (item.type == 'DYNAMIC_TYPE_LIVE') {
-              imageSaveDialog(
-                context: context,
-                title: item.modules.moduleDynamic.major.live.title,
-                cover: item.modules.moduleDynamic.major.live.cover,
-              );
-            }
-          },
-          child: (item.modules.moduleAuthor?.pendant?['image'] as String?)
-                      ?.isNotEmpty ==
-                  true
-              ? Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    _buildContent(context, item, source, callback),
-                    Positioned(
-                      left: 2,
-                      top: 2,
-                      child: IgnorePointer(
-                        child: CachedNetworkImage(
-                          width: 60,
-                          height: 60,
-                          imageUrl: Utils.thumbnailImgUrl(
-                              item.modules.moduleAuthor.pendant['image']),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : _buildContent(context, item, source, callback),
+          onLongPress: () => _imageSaveDialog(context, authorWidget.morePanel),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+                child: authorWidget,
+              ),
+              if (item.modules!.moduleDynamic!.desc != null ||
+                  item.modules!.moduleDynamic!.major != null)
+                content(isSave, context, item, source, callback),
+              forWard(isSave, item, context, source, callback),
+              const SizedBox(height: 2),
+              if (source == null) ActionPanel(item: item),
+              if (source == 'detail' && !isSave) const SizedBox(height: 12),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildContent(context, item, source, callback) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
-            child: AuthorPanel(
-              item: item,
-              source: source,
-              onRemove: onRemove,
-              isSave: isSave,
-              onSetTop: onSetTop,
-            ),
-          ),
-          if (item!.modules!.moduleDynamic!.desc != null ||
-              item!.modules!.moduleDynamic!.major != null)
-            content(isSave, context, item, source, callback),
-          forWard(isSave, item, context, source, callback),
-          const SizedBox(height: 2),
-          if (source == null) ActionPanel(item: item),
-          if (source == 'detail' && !isSave) const SizedBox(height: 12),
-        ],
-      );
+  void _imageSaveDialog(
+    BuildContext context,
+    Function(BuildContext) morePanel,
+  ) {
+    late String? title;
+    late String? cover;
+    late final major = item.modules?.moduleDynamic?.major;
+    switch (item.type) {
+      case 'DYNAMIC_TYPE_AV':
+        title = major?.archive?.title;
+        cover = major?.archive?.cover;
+        break;
+      case 'DYNAMIC_TYPE_UGC_SEASON':
+        title = major?.ugcSeason?.title;
+        cover = major?.ugcSeason?.cover;
+        break;
+      case 'DYNAMIC_TYPE_PGC' || 'DYNAMIC_TYPE_PGC_UNION':
+        title = major?.pgc?.title;
+        cover = major?.pgc?.cover;
+        break;
+      case 'DYNAMIC_TYPE_LIVE_RCMD':
+        title = major?.liveRcmd?.title;
+        cover = major?.liveRcmd?.cover;
+        break;
+      case 'DYNAMIC_TYPE_LIVE':
+        title = major?.live?.title;
+        cover = major?.live?.cover;
+        break;
+      default:
+        morePanel(context);
+        return;
+    }
+    imageSaveDialog(
+      context: context,
+      title: title,
+      cover: cover,
+    );
+  }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:PiliPlus/common/widgets/avatar.dart';
 import 'package:PiliPlus/common/widgets/self_sized_horizontal_list.dart';
 import 'package:PiliPlus/pages/search/widgets/search_text.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
@@ -296,54 +297,22 @@ class _VideoInfoState extends State<VideoInfo> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Obx(
-                                      () => Stack(
-                                        clipBehavior: Clip.none,
-                                        children: [
-                                          NetworkImgLayer(
-                                            type: 'avatar',
-                                            src: videoIntroController.userStat
-                                                    .value['card']?['face'] ??
-                                                '',
-                                            width: 35,
-                                            height: 35,
-                                            fadeInDuration: Duration.zero,
-                                            fadeOutDuration: Duration.zero,
-                                          ),
-                                          if ((videoIntroController.userStat
-                                                              .value['card']
-                                                          ?['official_verify']
-                                                      ?['type'] ??
-                                                  -1) !=
-                                              -1)
-                                            Positioned(
-                                              right: -2,
-                                              bottom: -2,
-                                              child: Container(
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .surface,
-                                                ),
-                                                child: Icon(
-                                                  Icons.offline_bolt,
-                                                  color: videoIntroController
-                                                                      .userStat
-                                                                      .value['card']
-                                                                  ?[
-                                                                  'official_verify']
-                                                              ?['type'] ==
-                                                          0
-                                                      ? const Color(0xFFFFCC00)
-                                                      : Colors.lightBlueAccent,
-                                                  size: 14,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
+                                    Obx(() => Avatar(
+                                          avatar: videoIntroController
+                                                  .userStat['card']?['face'] ??
+                                              '',
+                                          size: 35,
+                                          badgeSize: 14,
+                                          isVip: (videoIntroController
+                                                          .userStat['card']
+                                                      ?['vip']?['status'] ??
+                                                  -1) >
+                                              0,
+                                          officialType: videoIntroController
+                                                  .userStat['card']
+                                              ?['official_verify']?['type'],
+                                          // garbPendantImage: videoIntroController.userStat.value['card']?['pendant']?['image'],
+                                        )),
                                     const SizedBox(width: 10),
                                     Column(
                                       crossAxisAlignment:
@@ -351,23 +320,23 @@ class _VideoInfoState extends State<VideoInfo> {
                                       children: [
                                         Obx(
                                           () => Text(
-                                            videoIntroController.userStat
-                                                    .value['card']?['name'] ??
+                                            videoIntroController
+                                                        .userStat['card']
+                                                    ?['name'] ??
                                                 "",
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
                                               fontSize: 13,
-                                              color: (videoIntroController.userStat
-                                                                          .value[
-                                                                      'card']?['vip']
+                                              color: (videoIntroController.userStat[
+                                                                          'card']
+                                                                      ?['vip']
                                                                   ?['status'] ??
                                                               -1) >
                                                           0 &&
                                                       videoIntroController
-                                                                  .userStat
-                                                                  .value['card']
-                                                              ?[
+                                                                      .userStat[
+                                                                  'card']?[
                                                               'vip']?['type'] ==
                                                           2
                                                   ? context.vipColor
@@ -378,7 +347,7 @@ class _VideoInfoState extends State<VideoInfo> {
                                         const SizedBox(height: 0),
                                         Obx(
                                           () => Text(
-                                            '${Utils.numFormat(videoIntroController.userStat.value['follower'])}粉丝    ${videoIntroController.userStat.value['archive_count'] != null ? '${Utils.numFormat(videoIntroController.userStat.value['archive_count'])}视频' : ''}',
+                                            '${Utils.numFormat(videoIntroController.userStat['follower'])}粉丝    ${videoIntroController.userStat['archive_count'] != null ? '${Utils.numFormat(videoIntroController.userStat['archive_count'])}视频' : ''}',
                                             style: TextStyle(
                                               fontSize: 12,
                                               color:
@@ -772,24 +741,23 @@ class _VideoInfoState extends State<VideoInfo> {
                     ),
                   ),
                   Obx(
-                    () =>
-                        videoIntroController.queryVideoIntroData.value["status"]
-                            ? const SizedBox.shrink()
-                            : Center(
-                                child: TextButton.icon(
-                                  icon: const Icon(Icons.refresh),
-                                  onPressed: () {
-                                    videoIntroController.queryVideoIntroData
-                                        .value["status"] = true;
-                                    videoIntroController.queryVideoIntro();
-                                    if (videoDetailCtr.videoUrl.isNullOrEmpty &&
-                                        videoDetailCtr.isQuerying.not) {
-                                      videoDetailCtr.queryVideoUrl();
-                                    }
-                                  },
-                                  label: const Text("点此重新加载"),
-                                ),
-                              ),
+                    () => videoIntroController.queryVideoIntroData["status"]
+                        ? const SizedBox.shrink()
+                        : Center(
+                            child: TextButton.icon(
+                              icon: const Icon(Icons.refresh),
+                              onPressed: () {
+                                videoIntroController
+                                    .queryVideoIntroData["status"] = true;
+                                videoIntroController.queryVideoIntro();
+                                if (videoDetailCtr.videoUrl.isNullOrEmpty &&
+                                    videoDetailCtr.isQuerying.not) {
+                                  videoDetailCtr.queryVideoUrl();
+                                }
+                              },
+                              label: const Text("点此重新加载"),
+                            ),
+                          ),
                   ),
                   // 点赞收藏转发 布局样式2
                   if (!isHorizontal) ...[

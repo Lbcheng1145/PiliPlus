@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:PiliPlus/common/widgets/avatar.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart'
     show kDragContainerExtentPercentage, displacement;
 import 'package:PiliPlus/http/reply.dart';
@@ -14,7 +15,6 @@ import 'package:PiliPlus/models/common/reply_sort_type.dart';
 import 'package:PiliPlus/models/common/super_resolution_type.dart';
 import 'package:PiliPlus/models/common/theme_type.dart';
 import 'package:PiliPlus/models/common/up_panel_position.dart';
-import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/models/live/quality.dart';
 import 'package:PiliPlus/models/video/play/CDN.dart';
 import 'package:PiliPlus/models/video/play/quality.dart';
@@ -202,6 +202,14 @@ List<SettingsModel> get styleSettings => [
             setState();
           }
         },
+      ),
+      SettingsModel(
+        settingsType: SettingsType.sw1tch,
+        title: '优化平板导航栏',
+        leading: Icon(MdiIcons.soundbar),
+        setKey: SettingBoxKey.optTabletNav,
+        defaultVal: true,
+        needReboot: true,
       ),
       SettingsModel(
         settingsType: SettingsType.sw1tch,
@@ -1397,7 +1405,7 @@ List<SettingsModel> get recommendSettings => [
       ),
       _getBanwordModel(
         context: Get.context!,
-        title: '热门/分区: 视频分区关键词过滤',
+        title: 'App推荐/热门/排行榜: 视频分区关键词过滤',
         key: SettingBoxKey.banWordForZone,
         callback: (value) {
           VideoHttp.zoneRegExp = value;
@@ -1470,13 +1478,15 @@ List<SettingsModel> get privacySettings => [
             builder: (context) {
               return AlertDialog(
                 title: const Text('查看详情'),
-                content: Text(AccountManager.apiTypeSet[AccountType.heartbeat]!
-                    .join('\n')),
+                content: SingleChildScrollView(
+                  child: Text(
+                    AccountManager.apiTypeSet[AccountType.heartbeat]!
+                        .join('\n'),
+                  ),
+                ),
                 actions: [
                   TextButton(
-                    onPressed: () async {
-                      Get.back();
-                    },
+                    onPressed: Get.back,
                     child: const Text('确认'),
                   )
                 ],
@@ -2023,7 +2033,7 @@ List<SettingsModel> get extraSettings => [
         leading: Icon(MdiIcons.stickerCircleOutline),
         setKey: SettingBoxKey.showDynDecorate,
         defaultVal: true,
-        onChanged: (value) => ModuleAuthorModel.showDynDecorate = value,
+        onChanged: (value) => Avatar.showDynDecorate = value,
       ),
       SettingsModel(
         settingsType: SettingsType.sw1tch,

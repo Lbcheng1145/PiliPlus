@@ -28,12 +28,10 @@ class SearchArticleController
     if (cvid != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Get.toNamed(
-          '/htmlRender',
+          '/articlePage',
           parameters: {
-            'url': 'https://www.bilibili.com/read/cv$cvid',
-            'title': '',
-            'id': 'cv$cvid',
-            'dynamicType': 'read'
+            'id': cvid,
+            'type': 'read',
           },
         );
       });
@@ -68,7 +66,6 @@ class SearchArticleController
       useSafeArea: true,
       isScrollControlled: true,
       clipBehavior: Clip.hardEdge,
-      backgroundColor: Theme.of(context).colorScheme.surface,
       constraints: BoxConstraints(
         maxWidth: min(640, min(Get.width, Get.height)),
       ),

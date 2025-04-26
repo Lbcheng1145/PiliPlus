@@ -75,13 +75,11 @@ class _MemberDynamicsPageState extends State<MemberDynamicsPage>
           const SliverFillRemaining(),
           SliverConstrainedCrossAxis(
             maxExtent: Grid.smallCardWidth * 2,
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  return const DynamicCardSkeleton();
-                },
-                childCount: 10,
-              ),
+            sliver: SliverList.builder(
+              itemBuilder: (context, index) {
+                return const DynamicCardSkeleton();
+              },
+              itemCount: 10,
             ),
           ),
           const SliverFillRemaining()
@@ -125,14 +123,11 @@ class _MemberDynamicsPageState extends State<MemberDynamicsPage>
                             ? LastChildLayoutType.foot
                             : LastChildLayoutType.none;
                       },
-                      children: (loadingState.response as List)
-                          .map(
-                            (item) => DynamicPanel(
+                      children: loadingState.response!
+                          .map((item) => DynamicPanel(
                               item: item,
                               onRemove: _memberDynamicController.onRemove,
-                              onSetTop: _memberDynamicController.onSetTop,
-                            ),
-                          )
+                              onSetTop: _memberDynamicController.onSetTop))
                           .toList(),
                     )
                   : SliverCrossAxisGroup(
@@ -140,21 +135,18 @@ class _MemberDynamicsPageState extends State<MemberDynamicsPage>
                         const SliverFillRemaining(),
                         SliverConstrainedCrossAxis(
                           maxExtent: Grid.smallCardWidth * 2,
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                if (index ==
-                                    loadingState.response!.length - 1) {
-                                  _memberDynamicController.onLoadMore();
-                                }
-                                return DynamicPanel(
-                                  item: loadingState.response![index],
-                                  onRemove: _memberDynamicController.onRemove,
-                                  onSetTop: _memberDynamicController.onSetTop,
-                                );
-                              },
-                              childCount: loadingState.response!.length,
-                            ),
+                          sliver: SliverList.builder(
+                            itemBuilder: (context, index) {
+                              if (index == loadingState.response!.length - 1) {
+                                _memberDynamicController.onLoadMore();
+                              }
+                              return DynamicPanel(
+                                item: loadingState.response![index],
+                                onRemove: _memberDynamicController.onRemove,
+                                onSetTop: _memberDynamicController.onSetTop,
+                              );
+                            },
+                            itemCount: loadingState.response!.length,
                           ),
                         ),
                         const SliverFillRemaining(),
@@ -162,11 +154,11 @@ class _MemberDynamicsPageState extends State<MemberDynamicsPage>
                     ),
             )
           : HttpError(
-              callback: _memberDynamicController.onReload,
+              onReload: _memberDynamicController.onReload,
             ),
       Error() => HttpError(
           errMsg: loadingState.errMsg,
-          callback: _memberDynamicController.onReload,
+          onReload: _memberDynamicController.onReload,
         ),
       LoadingState() => throw UnimplementedError(),
     };

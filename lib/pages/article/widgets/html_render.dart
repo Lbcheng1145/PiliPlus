@@ -5,20 +5,21 @@ import 'package:PiliPlus/utils/utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
-import 'network_img_layer.dart';
+import '../../../common/widgets/network_img_layer.dart';
+import 'package:html/dom.dart' as dom;
 
 Widget htmlRender({
   required BuildContext context,
-  String? htmlContent,
+  required dom.Element element,
   int? imgCount,
   List<String>? imgList,
-  required double constrainedWidth,
+  required double maxWidth,
   Function(List<String>, int)? callback,
 }) {
   debugPrint('htmlRender');
   return SelectionArea(
-      child: Html(
-    data: htmlContent,
+      child: Html.fromElement(
+    documentElement: element,
     onLinkTap: (String? url, Map<String, String> buildContext, attributes) {},
     extensions: [
       TagExtension(
@@ -43,7 +44,7 @@ Widget htmlRender({
                 ?.group(1);
             if (clazz?.contains('cut-off') == true || height != null) {
               return CachedNetworkImage(
-                width: constrainedWidth,
+                width: maxWidth,
                 height: height != null ? double.parse(height) : null,
                 imageUrl: Utils.thumbnailImgUrl(imgUrl),
                 fit: BoxFit.contain,
@@ -62,15 +63,14 @@ Widget htmlRender({
                   }
                 },
                 child: NetworkImgLayer(
-                  width: isEmote ? 22 : constrainedWidth,
-                  height: isEmote ? 22 : 200,
+                  width: isEmote ? 22 : maxWidth,
+                  height: isEmote ? 22 : null,
                   src: imgUrl,
-                  ignoreHeight: !isEmote,
                 ),
               ),
             );
           } catch (err) {
-            return const SizedBox();
+            return const SizedBox.shrink();
           }
         },
       ),

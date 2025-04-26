@@ -279,7 +279,6 @@ class MemberHttp {
   static Future memberInfo({
     int? mid,
     String token = '',
-    dynamic wwebid,
   }) async {
     String dmImgStr = Utils.base64EncodeRandomString(16, 64);
     String dmCoverImgStr = Utils.base64EncodeRandomString(32, 128);
@@ -288,7 +287,6 @@ class MemberHttp {
       'token': token,
       'platform': 'web',
       'web_location': 1550101,
-      'w_webid': wwebid,
       'dm_img_list': '[]',
       'dm_img_str': dmImgStr,
       'dm_cover_img_str': dmCoverImgStr,
@@ -347,7 +345,6 @@ class MemberHttp {
     String? keyword,
     String order = 'pubdate',
     bool orderAvoided = true,
-    String? wwebid,
   }) async {
     String dmImgStr = Utils.base64EncodeRandomString(16, 64);
     String dmCoverImgStr = Utils.base64EncodeRandomString(32, 128);
@@ -356,7 +353,7 @@ class MemberHttp {
       'ps': ps,
       'tid': tid,
       'pn': pn,
-      'keyword': keyword ?? '',
+      if (keyword != null) 'keyword': keyword,
       'order': order,
       'platform': 'web',
       'web_location': '333.1387',
@@ -365,14 +362,13 @@ class MemberHttp {
       'dm_img_str': dmImgStr,
       'dm_cover_img_str': dmCoverImgStr,
       'dm_img_inter': '{"ds":[],"wh":[0,0,0],"of":[0,0,0]}',
-      'w_webid': wwebid,
     });
     var res = await Request().get(
       Api.memberArchive,
       queryParameters: params,
       options: Options(headers: {
         HttpHeaders.userAgentHeader: Request.headerUa(type: 'pc'),
-        HttpHeaders.refererHeader: HttpString.spaceBaseUrl,
+        HttpHeaders.refererHeader: '${HttpString.spaceBaseUrl}/$mid',
         'origin': HttpString.spaceBaseUrl,
       }),
     );
@@ -470,8 +466,8 @@ class MemberHttp {
     if (res.data['code'] == 0) {
       return {
         'status': true,
-        'data': (res.data['data'] as List?)
-            ?.map<MemberTagItemModel>((e) => MemberTagItemModel.fromJson(e))
+        'data': res.data['data']
+            .map<MemberTagItemModel>((e) => MemberTagItemModel.fromJson(e))
             .toList()
       };
     } else {
@@ -504,12 +500,16 @@ class MemberHttp {
   }
 
   // 设置分组
-  static Future addUsers(int? fids, String? tagids) async {
+  static Future addUsers(List<int?> fids, List<int?> tagids) async {
     var res = await Request().post(
       Api.addUsers,
+      queryParameters: {
+        'x-bili-device-req-json':
+            '{"platform":"web","device":"pc","spmid":"333.1387"}'
+      },
       data: {
-        'fids': fids,
-        'tagids': tagids ?? '0',
+        'fids': fids.join(','),
+        'tagids': tagids.join(','),
         'csrf': Accounts.main.csrf,
         // 'cross_domain': true
       },
@@ -525,7 +525,7 @@ class MemberHttp {
   }
 
   // 获取某分组下的up
-  static Future<LoadingState<List<FollowItemModel>?>> followUpGroup(
+  static Future<LoadingState<FollowDataModel>> followUpGroup(
     int? mid,
     int? tagid,
     int? pn,
@@ -541,11 +541,79 @@ class MemberHttp {
       },
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success((res.data['data'] as List?)
-          ?.map<FollowItemModel>((e) => FollowItemModel.fromJson(e))
-          .toList());
+      return LoadingState.success(FollowDataModel(
+          list: (res.data['data'] as List?)
+              ?.map<FollowItemModel>((e) => FollowItemModel.fromJson(e))
+              .toList()));
     } else {
       return LoadingState.error(res.data['message']);
+    }
+  }
+
+  static Future createFollowTag(tagName) async {
+    var res = await Request().post(
+      Api.createFollowTag,
+      queryParameters: {
+        'x-bili-device-req-json':
+            '{"platform":"web","device":"pc","spmid":"333.1387"}',
+      },
+      data: {
+        'tag': tagName,
+        'csrf': Accounts.main.csrf,
+      },
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+      ),
+    );
+    if (res.data['code'] == 0) {
+      return {'status': true};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
+    }
+  }
+
+  static Future updateFollowTag(tagid, name) async {
+    var res = await Request().post(
+      Api.updateFollowTag,
+      queryParameters: {
+        'x-bili-device-req-json':
+            '{"platform":"web","device":"pc","spmid":"333.1387"}',
+      },
+      data: {
+        'tagid': tagid,
+        'name': name,
+        'csrf': Accounts.main.csrf,
+      },
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+      ),
+    );
+    if (res.data['code'] == 0) {
+      return {'status': true};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
+    }
+  }
+
+  static Future delFollowTag(tagid) async {
+    var res = await Request().post(
+      Api.delFollowTag,
+      queryParameters: {
+        'x-bili-device-req-json':
+            '{"platform":"web","device":"pc","spmid":"333.1387"}',
+      },
+      data: {
+        'tagid': tagid,
+        'csrf': Accounts.main.csrf,
+      },
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+      ),
+    );
+    if (res.data['code'] == 0) {
+      return {'status': true};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
     }
   }
 

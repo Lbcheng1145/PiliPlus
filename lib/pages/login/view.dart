@@ -80,7 +80,7 @@ class _LoginPageState extends State<LoginPage> {
         RepaintBoundary(
           key: globalKey,
           child: Obx(() {
-            if (_loginPageCtr.codeInfo.value['data']?['url'] == null) {
+            if (_loginPageCtr.codeInfo['data']?['url'] == null) {
               return Container(
                 height: 200,
                 width: 200,
@@ -96,7 +96,7 @@ class _LoginPageState extends State<LoginPage> {
               color: Colors.white,
               padding: const EdgeInsets.all(8),
               child: PrettyQrView.data(
-                data: _loginPageCtr.codeInfo.value['data']!['url']!,
+                data: _loginPageCtr.codeInfo['data']!['url']!,
                 decoration: PrettyQrDecoration(
                   shape: PrettyQrRoundedSymbol(
                     color: Colors.black87,
@@ -116,14 +116,13 @@ class _LoginPageState extends State<LoginPage> {
         Obx(() => GestureDetector(
               onTap: () {
                 // 复制到剪贴板
-                Utils.copyText(
-                    _loginPageCtr.codeInfo.value['data']?['url'] ?? '',
+                Utils.copyText(_loginPageCtr.codeInfo['data']?['url'] ?? '',
                     toastText: '已复制到剪贴板，可粘贴至已登录的app私信处发送，然后点击已发送的链接打开');
               },
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                child: Text(_loginPageCtr.codeInfo.value['data']?['url'] ?? "",
+                child: Text(_loginPageCtr.codeInfo['data']?['url'] ?? "",
                     style: Theme.of(context).textTheme.labelSmall!.copyWith(
                         color: Theme.of(context)
                             .colorScheme
@@ -471,46 +470,54 @@ class _LoginPageState extends State<LoginPage> {
       return Scaffold(
         appBar: AppBar(
           leading: IconButton(
-              tooltip: '关闭',
-              icon: const Icon(Icons.close_outlined),
-              onPressed: Get.back),
-          title: Row(children: [
-            const Text('登录'),
-            if (orientation == Orientation.landscape) ...[
-              const Spacer(),
-              Flexible(
+            tooltip: '关闭',
+            icon: const Icon(Icons.close_outlined),
+            onPressed: Get.back,
+          ),
+          title: Row(
+            children: [
+              const Text('登录'),
+              if (orientation == Orientation.landscape) ...[
+                const Spacer(flex: 3),
+                Flexible(
+                  flex: 5,
                   child: TabBar(
-                dividerHeight: 0,
-                tabs: const [
-                  Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [Icon(Icons.password), Text(' 密码')],
-                    ),
+                    dividerHeight: 0,
+                    tabs: const [
+                      Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [Icon(Icons.password), Text(' 密码')],
+                        ),
+                      ),
+                      Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [Icon(Icons.sms_outlined), Text(' 短信')],
+                        ),
+                      ),
+                      Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [Icon(Icons.qr_code), Text(' 扫码')],
+                        ),
+                      ),
+                      Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.cookie_outlined),
+                            Text(' Cookie')
+                          ],
+                        ),
+                      ),
+                    ],
+                    controller: _loginPageCtr.tabController,
                   ),
-                  Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [Icon(Icons.sms_outlined), Text(' 短信')],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [Icon(Icons.qr_code), Text(' 扫码')],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [Icon(Icons.cookie_outlined), Text(' Cookie')],
-                    ),
-                  ),
-                ],
-                controller: _loginPageCtr.tabController,
-              ))
-            ]
-          ]),
+                )
+              ],
+            ],
+          ),
           bottom: orientation == Orientation.portrait
               ? TabBar(
                   tabs: const [
@@ -548,12 +555,13 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget tabViewOuter(child) {
     return SingleChildScrollView(
-        child: Align(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              height: 500,
-              width: 600,
-              child: child,
-            )));
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 600),
+          child: child,
+        ),
+      ),
+    );
   }
 }

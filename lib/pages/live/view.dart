@@ -111,10 +111,10 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
                 childCount: loadingState.response!.length,
               ),
             )
-          : scrollErrorWidget(callback: controller.onReload),
+          : scrollErrorWidget(onReload: controller.onReload),
       Error() => HttpError(
           errMsg: loadingState.errMsg,
-          callback: controller.onReload,
+          onReload: controller.onReload,
         ),
       _ => throw UnimplementedError(),
     };
@@ -277,12 +277,14 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
             () => Text('${controller.liveCount.value}人正在直播'),
           ),
         ),
-        body: CustomScrollView(
-          slivers: [
-            Obx(
-              () => _buildFollowListBody(controller.followListState.value),
-            ),
-          ],
+        body: SafeArea(
+          top: false,
+          bottom: false,
+          child: CustomScrollView(
+            slivers: [
+              Obx(() => _buildFollowListBody(controller.followListState.value)),
+            ],
+          ),
         ),
       );
 
@@ -321,7 +323,7 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
         ),
       Error() => HttpError(
           errMsg: loadingState.errMsg,
-          callback: () {
+          onReload: () {
             controller
               ..followListState.value = LoadingState.loading()
               ..fetchLiveFollowing();

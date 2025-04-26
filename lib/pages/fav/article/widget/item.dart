@@ -2,8 +2,8 @@ import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/icon_button.dart';
 import 'package:PiliPlus/common/widgets/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/stat/stat.dart';
-import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class FavArticleItem extends StatelessWidget {
   const FavArticleItem({
@@ -24,7 +24,13 @@ class FavArticleItem extends StatelessWidget {
         children: [
           InkWell(
             onTap: () {
-              PiliScheme.routePushFromUrl(item['jump_url']);
+              Get.toNamed(
+                '/articlePage',
+                parameters: {
+                  'id': item['opus_id'],
+                  'type': 'opus',
+                },
+              );
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(
@@ -73,15 +79,13 @@ class FavArticleItem extends StatelessWidget {
                         ),
                         Row(
                           children: [
-                            StatView(
-                              context: context,
-                              value: item['stat']['view'] == ''
-                                  ? 0
-                                  : item['stat']['view'],
-                              goto: 'picture',
-                              textColor: Theme.of(context).colorScheme.outline,
-                            ),
-                            const SizedBox(width: 16),
+                            // StatView(
+                            //   context: context,
+                            //   value: item['stat']['view'],
+                            //   goto: 'picture',
+                            //   textColor: Theme.of(context).colorScheme.outline,
+                            // ),
+                            // const SizedBox(width: 16),
                             StatView(
                               context: context,
                               goto: 'like',

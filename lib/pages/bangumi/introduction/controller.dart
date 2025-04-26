@@ -265,6 +265,7 @@ class BangumiIntroController
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
+                  dense: true,
                   title: const Text(
                     '复制链接',
                     style: TextStyle(fontSize: 14),
@@ -275,6 +276,7 @@ class BangumiIntroController
                   },
                 ),
                 ListTile(
+                  dense: true,
                   title: const Text(
                     '其它app打开',
                     style: TextStyle(fontSize: 14),
@@ -285,6 +287,7 @@ class BangumiIntroController
                   },
                 ),
                 ListTile(
+                  dense: true,
                   title: const Text(
                     '分享视频',
                     style: TextStyle(fontSize: 14),
@@ -295,6 +298,7 @@ class BangumiIntroController
                   },
                 ),
                 ListTile(
+                  dense: true,
                   title: const Text(
                     '分享至动态',
                     style: TextStyle(fontSize: 14),
@@ -332,6 +336,44 @@ class BangumiIntroController
                         uname: '',
                       ),
                     );
+                  },
+                ),
+                ListTile(
+                  dense: true,
+                  title: const Text(
+                    '分享至消息',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  onTap: () {
+                    Get.back();
+                    try {
+                      EpisodeItem item = bangumiItem!.episodes!
+                          .firstWhere((item) => item.epId == epId);
+                      final title = '${bangumiItem!.title!} ${item.showTitle}';
+                      PageUtils.pmShare(
+                        content: {
+                          "id": epId!.toString(),
+                          "title": title,
+                          "url": item.shareUrl,
+                          "headline": title,
+                          "source": 16,
+                          "extra": {},
+                          "thumb": item.cover,
+                          "source_desc": switch (bangumiItem!.type) {
+                            1 => '番剧',
+                            2 => '电影',
+                            3 => '纪录片',
+                            4 => '国创',
+                            5 => '电视剧',
+                            6 => '漫画',
+                            7 => '综艺',
+                            _ => null,
+                          }
+                        },
+                      );
+                    } catch (e) {
+                      SmartDialog.showToast(e.toString());
+                    }
                   },
                 ),
               ],

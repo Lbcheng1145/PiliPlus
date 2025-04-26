@@ -391,13 +391,11 @@ class _VideoReplyReplyPanelState
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             slivers: [
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    return const VideoReplySkeleton();
-                  },
-                  childCount: 8,
-                ),
+              SliverList.builder(
+                itemBuilder: (context, index) {
+                  return const VideoReplySkeleton();
+                },
+                itemCount: 8,
               )
             ],
           ),
@@ -407,9 +405,9 @@ class _VideoReplyReplyPanelState
             _videoReplyReplyController.onLoadMore();
             return Container(
               alignment: Alignment.center,
-              padding: EdgeInsets.only(
+              margin: EdgeInsets.only(
                   bottom: MediaQuery.of(context).padding.bottom),
-              height: MediaQuery.of(context).padding.bottom + 100,
+              height: 125,
               child: Text(
                 _videoReplyReplyController.isEnd.not
                     ? '加载中...'
@@ -445,7 +443,7 @@ class _VideoReplyReplyPanelState
         }(),
       Error() => errorWidget(
           errMsg: loadingState.errMsg,
-          callback: _videoReplyReplyController.onReload,
+          onReload: _videoReplyReplyController.onReload,
         ),
       LoadingState() => throw UnimplementedError(),
     };

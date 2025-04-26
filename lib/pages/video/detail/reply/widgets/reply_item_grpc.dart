@@ -1,13 +1,13 @@
 import 'dart:math';
 
 import 'package:PiliPlus/common/constants.dart';
+import 'package:PiliPlus/common/widgets/avatar.dart';
 import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/image_view.dart';
 import 'package:PiliPlus/common/widgets/report.dart';
 import 'package:PiliPlus/grpc/app/main/community/reply/v1/reply.pb.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/video.dart';
-import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/common/widgets/save_panel.dart';
 import 'package:PiliPlus/pages/video/detail/reply/widgets/zan_grpc.dart';
 import 'package:PiliPlus/utils/extension.dart';
@@ -103,8 +103,7 @@ class ReplyItemGrpc extends StatelessWidget {
   Widget _buildContent(context) {
     return Column(
       children: [
-        if (ModuleAuthorModel.showDynDecorate &&
-            replyItem.member.hasGarbCardImage())
+        if (Avatar.showDynDecorate && replyItem.member.hasGarbCardImage())
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -156,93 +155,16 @@ class ReplyItemGrpc extends StatelessWidget {
     );
   }
 
-  Widget lfAvtar(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        if (ModuleAuthorModel.showDynDecorate &&
-            replyItem.member.hasGarbPendantImage()) ...[
-          Padding(
-            padding: const EdgeInsets.all(2),
-            child: NetworkImgLayer(
-              src: replyItem.member.face,
-              width: 30,
-              height: 30,
-              type: 'avatar',
-            ),
-          ),
-          Positioned(
-            left: -9,
-            top: -9,
-            child: IgnorePointer(
-              child: CachedNetworkImage(
-                width: 52,
-                height: 52,
-                imageUrl:
-                    Utils.thumbnailImgUrl(replyItem.member.garbPendantImage),
-              ),
-            ),
-          ),
-        ] else
-          NetworkImgLayer(
-            src: replyItem.member.face,
-            width: 34,
-            height: 34,
-            type: 'avatar',
-          ),
-        if (replyItem.member.vipStatus > 0)
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.surface,
-              ),
-              child: Image.asset(
-                'assets/images/big-vip.png',
-                height: 14,
-                semanticLabel: "大会员",
-              ),
-            ),
-          ),
-        if (replyItem.member.officialVerifyType == 0)
-          Positioned(
-            left: 0,
-            bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.surface,
-              ),
-              child: const Icon(
-                Icons.offline_bolt,
-                color: Color(0xFFFFCC00),
-                size: 14,
-                semanticLabel: "认证个人",
-              ),
-            ),
-          )
-        else if (replyItem.member.officialVerifyType == 1)
-          Positioned(
-            left: 0,
-            bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.surface,
-              ),
-              child: const Icon(
-                Icons.offline_bolt,
-                color: Colors.lightBlueAccent,
-                size: 14,
-                semanticLabel: "认证机构",
-              ),
-            ),
-          ),
-      ],
-    );
-  }
+  Widget lfAvtar() => Avatar(
+        avatar: replyItem.member.face,
+        size: 34,
+        badgeSize: 14,
+        isVip: replyItem.member.vipStatus > 0,
+        officialType: replyItem.member.officialVerifyType.toInt(),
+        garbPendantImage: replyItem.member.hasGarbPendantImage()
+            ? replyItem.member.garbPendantImage
+            : null,
+      );
 
   Widget content(BuildContext context) {
     return Column(
@@ -259,7 +181,7 @@ class ReplyItemGrpc extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              lfAvtar(context),
+              lfAvtar(),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -871,12 +793,13 @@ class ReplyItemGrpc extends StatelessWidget {
                               firstMatch?.group(2) ??
                               firstMatch?.group(3);
                           if (cvid != null) {
-                            Get.toNamed('/htmlRender', parameters: {
-                              'url': 'https://www.bilibili.com/read/cv$cvid',
-                              'title': title,
-                              'id': 'cv$cvid',
-                              'dynamicType': 'read'
-                            });
+                            Get.toNamed(
+                              '/articlePage',
+                              parameters: {
+                                'id': cvid,
+                                'type': 'read',
+                              },
+                            );
                             return;
                           }
                           PageUtils.handleWebview(matchStr);
@@ -980,12 +903,13 @@ class ReplyItemGrpc extends StatelessWidget {
                         .firstMatch(patternStr)
                         ?.group(1);
                     if (cvid != null) {
-                      Get.toNamed('/htmlRender', parameters: {
-                        'url': 'https://www.bilibili.com/read/cv$cvid',
-                        'title': '',
-                        'id': 'cv$cvid',
-                        'dynamicType': 'read'
-                      });
+                      Get.toNamed(
+                        '/articlePage',
+                        parameters: {
+                          'id': cvid,
+                          'type': 'read',
+                        },
+                      );
                       return;
                     }
 

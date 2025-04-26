@@ -1226,7 +1226,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
   Widget get childWhenEnabled => Obx(
         () => !videoDetailController.autoPlay.value
-            ? const SizedBox()
+            ? const SizedBox.shrink()
             : PLVideoPlayer(
                 key: Key(heroTag),
                 plPlayerController: plPlayerController!,
@@ -2288,7 +2288,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   void onShowMemberPage(mid) {
     videoDetailController.childKey.currentState?.showBottomSheet(
       shape: const RoundedRectangleBorder(),
-      backgroundColor: themeData.colorScheme.surface,
       (context) {
         return HorizontalMemberPage(
           mid: mid,
