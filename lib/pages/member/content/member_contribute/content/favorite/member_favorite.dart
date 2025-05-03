@@ -39,6 +39,7 @@ class _MemberFavoriteState extends State<MemberFavorite>
   }
 
   _buildBody(LoadingState loadingState) {
+    final theme = Theme.of(context);
     return switch (loadingState) {
       Loading() => loadingWidget,
       Success() => (loadingState.response as List?)?.isNotEmpty == true
@@ -50,12 +51,12 @@ class _MemberFavoriteState extends State<MemberFavorite>
                 slivers: [
                   SliverToBoxAdapter(
                     child: Obx(
-                      () => _buildItem(_controller.first.value, true),
+                      () => _buildItem(theme, _controller.first.value, true),
                     ),
                   ),
                   SliverToBoxAdapter(
                     child: Obx(
-                      () => _buildItem(_controller.second.value, false),
+                      () => _buildItem(theme, _controller.second.value, false),
                     ),
                   ),
                   SliverToBoxAdapter(
@@ -73,13 +74,12 @@ class _MemberFavoriteState extends State<MemberFavorite>
           errMsg: loadingState.errMsg,
           onReload: _controller.onReload,
         ),
-      LoadingState() => throw UnimplementedError(),
     };
   }
 
-  _buildItem(Datum data, bool isFirst) {
+  _buildItem(ThemeData theme, Datum data, bool isFirst) {
     return Theme(
-      data: Theme.of(context).copyWith(
+      data: theme.copyWith(
         dividerColor: Colors.transparent,
       ),
       child: ExpansionTile(
@@ -96,7 +96,7 @@ class _MemberFavoriteState extends State<MemberFavorite>
                 text: ' ${data.mediaListResponse?.count}',
                 style: TextStyle(
                   fontSize: 13,
-                  color: Theme.of(context).colorScheme.outline,
+                  color: theme.colorScheme.outline,
                 ),
               ),
             ],
@@ -128,14 +128,14 @@ class _MemberFavoriteState extends State<MemberFavorite>
                     ? _controller.firstEnd.value
                     : _controller.secondEnd.value)
                 ? const SizedBox.shrink()
-                : _buildLoadMoreItem(isFirst),
+                : _buildLoadMoreItem(theme, isFirst),
           ),
         ],
       ),
     );
   }
 
-  _buildLoadMoreItem(bool isFirst) {
+  _buildLoadMoreItem(ThemeData theme, bool isFirst) {
     return ListTile(
       dense: true,
       onTap: () {
@@ -149,7 +149,7 @@ class _MemberFavoriteState extends State<MemberFavorite>
         '查看更多内容',
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: Theme.of(context).colorScheme.primary,
+          color: theme.colorScheme.primary,
         ),
       ),
     );

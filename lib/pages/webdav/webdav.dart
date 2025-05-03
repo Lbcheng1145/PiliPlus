@@ -3,10 +3,12 @@ import 'package:PiliPlus/common/widgets/pair.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:get/get.dart';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 
 class WebDav {
   late String _webdavDirectory;
+  String? _fileName;
 
   webdav.Client? _client;
 
@@ -45,6 +47,12 @@ class WebDav {
     }
   }
 
+  String _getFileName() {
+    return Get.context!.isTablet
+        ? 'piliplus_settings_pad.json'
+        : 'piliplus_settings_phone.json';
+  }
+
   Future backup() async {
     if (_client == null) {
       final res = await init();
@@ -55,7 +63,8 @@ class WebDav {
     }
     try {
       String data = await GStorage.exportAllSettings();
-      final path = '$_webdavDirectory/piliplus_settings.json';
+      _fileName ??= _getFileName();
+      final path = '$_webdavDirectory/$_fileName';
       try {
         await _client!.remove(path);
       } catch (_) {}
@@ -75,7 +84,8 @@ class WebDav {
       }
     }
     try {
-      final path = '$_webdavDirectory/piliplus_settings.json';
+      _fileName ??= _getFileName();
+      final path = '$_webdavDirectory/$_fileName';
       final data = await _client!.read(path);
       await GStorage.importAllSettings(utf8.decode(data));
       SmartDialog.showToast('恢复成功');

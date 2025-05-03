@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:PiliPlus/common/widgets/network_img_layer.dart';
+import 'package:PiliPlus/models/dynamics/result.dart' show DynamicStat;
 import 'package:PiliPlus/pages/article/widgets/opus_content.dart';
 import 'package:PiliPlus/pages/article/widgets/html_render.dart';
 import 'package:PiliPlus/common/widgets/http_error.dart';
@@ -12,7 +13,6 @@ import 'package:PiliPlus/pages/dynamics/repost_dyn_panel.dart';
 import 'package:PiliPlus/pages/video/detail/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
-import 'package:PiliPlus/utils/request_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -227,10 +227,12 @@ class _ArticlePageState extends State<ArticlePage>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: _buildAppBar,
       body: Stack(
+        clipBehavior: Clip.none,
         children: [
           SafeArea(
             top: false,
@@ -249,18 +251,16 @@ class _ArticlePageState extends State<ArticlePage>
                         controller: _articleCtr.scrollController,
                         physics: const AlwaysScrollableScrollPhysics(),
                         slivers: [
-                          _buildContent(maxWidth),
+                          _buildContent(theme, maxWidth),
                           SliverToBoxAdapter(
                             child: Divider(
                               thickness: 8,
-                              color: Theme.of(context)
-                                  .dividerColor
-                                  .withOpacity(0.05),
+                              color: theme.dividerColor.withOpacity(0.05),
                             ),
                           ),
                           _buildReplyHeader,
-                          Obx(() =>
-                              _buildReplyList(_articleCtr.loadingState.value)),
+                          Obx(() => _buildReplyList(
+                              theme, _articleCtr.loadingState.value)),
                         ],
                       ),
                     );
@@ -286,7 +286,7 @@ class _ArticlePageState extends State<ArticlePage>
                                         MediaQuery.paddingOf(context).bottom +
                                             80,
                                   ),
-                                  sliver: _buildContent(maxWidth),
+                                  sliver: _buildContent(theme, maxWidth),
                                 ),
                               ],
                             );
@@ -295,7 +295,7 @@ class _ArticlePageState extends State<ArticlePage>
                       ),
                       VerticalDivider(
                         thickness: 8,
-                        color: Theme.of(context).dividerColor.withOpacity(0.05),
+                        color: theme.dividerColor.withOpacity(0.05),
                       ),
                       Expanded(
                         flex: _ratio[1].toInt(),
@@ -314,7 +314,7 @@ class _ArticlePageState extends State<ArticlePage>
                                 slivers: [
                                   _buildReplyHeader,
                                   Obx(() => _buildReplyList(
-                                      _articleCtr.loadingState.value)),
+                                      theme, _articleCtr.loadingState.value)),
                                 ],
                               ),
                             ),
@@ -327,105 +327,123 @@ class _ArticlePageState extends State<ArticlePage>
               },
             ),
           ),
-          _buildBottom,
+          _buildBottom(theme),
         ],
       ),
     );
   }
 
-  Widget _buildContent(double maxWidth) => SliverPadding(
+  Widget _buildContent(ThemeData theme, double maxWidth) => SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         sliver: Obx(
           () {
             if (_articleCtr.isLoaded.value) {
-              if (_articleCtr.type == 'read') {
-                var res = parser.parse(_articleCtr.articleData.content);
-                return SliverMainAxisGroup(
-                  slivers: [
-                    if (_articleCtr.articleData.title != null)
-                      SliverToBoxAdapter(
-                        child: Text(
-                          _articleCtr.articleData.title!,
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: GestureDetector(
-                          onTap: () {
-                            Get.toNamed(
-                                '/member?mid=${_articleCtr.articleData.author?.mid}');
-                          },
-                          child: Row(
-                            children: [
-                              NetworkImgLayer(
-                                width: 40,
-                                height: 40,
-                                type: 'avatar',
-                                src: _articleCtr.articleData.author?.face,
-                              ),
-                              const SizedBox(width: 10),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _articleCtr.articleData.author?.name ?? "",
-                                    style: TextStyle(
-                                      fontSize: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall!
-                                          .fontSize,
-                                    ),
-                                  ),
-                                  if (_articleCtr.articleData.publishTime !=
-                                      null)
-                                    Text(
-                                      Utils.dateFormat(
-                                          _articleCtr.articleData.publishTime),
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .outline,
-                                        fontSize: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall!
-                                            .fontSize,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    SliverList.separated(
-                      itemCount: res.body!.children.length,
-                      itemBuilder: (context, index) {
-                        return htmlRender(
-                          context: context,
-                          element: res.body!.children[index],
-                          maxWidth: maxWidth,
-                          callback: _getImageCallback,
-                        );
-                      },
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 10),
-                    ),
-                  ],
-                );
-              } else {
-                return opusContent(
-                  context: context,
-                  modules: _articleCtr.opusData.item?.modules,
+              late Widget content;
+              if (_articleCtr.opus != null) {
+                debugPrint('json page');
+                content = OpusContent(
+                  opus: _articleCtr.opus!,
                   callback: _getImageCallback,
                   maxWidth: maxWidth,
                 );
+              } else if (_articleCtr.opusData?.modules.moduleBlocked != null) {
+                debugPrint('moduleBlocked');
+                final moduleBlocked =
+                    _articleCtr.opusData!.modules.moduleBlocked!;
+                content = SliverToBoxAdapter(
+                  child: moduleBlockedItem(theme, moduleBlocked, maxWidth),
+                );
+              } else if (_articleCtr.articleData?.content != null) {
+                debugPrint('html page');
+                final res = parser.parse(_articleCtr.articleData!.content!);
+                if (res.body!.children.isEmpty) {
+                  content = SliverToBoxAdapter(
+                    child: htmlRender(
+                      context: context,
+                      html: _articleCtr.articleData!.content!,
+                      maxWidth: maxWidth,
+                      callback: _getImageCallback,
+                    ),
+                  );
+                } else {
+                  content = SliverList.separated(
+                    itemCount: res.body!.children.length,
+                    itemBuilder: (context, index) {
+                      return htmlRender(
+                        context: context,
+                        element: res.body!.children[index],
+                        maxWidth: maxWidth,
+                        callback: _getImageCallback,
+                      );
+                    },
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 10),
+                  );
+                }
+              } else {
+                content = SliverToBoxAdapter(child: Text('NULL'));
               }
+
+              int? pubTime =
+                  _articleCtr.opusData?.modules.moduleAuthor?.pubTs ??
+                      _articleCtr.articleData?.publishTime;
+              return SliverMainAxisGroup(
+                slivers: [
+                  if (_articleCtr.summary.title != null)
+                    SliverToBoxAdapter(
+                      child: Text(
+                        _articleCtr.summary.title!,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: GestureDetector(
+                        onTap: () => Get.toNamed(
+                            '/member?mid=${_articleCtr.summary.author?.mid}'),
+                        child: Row(
+                          children: [
+                            NetworkImgLayer(
+                              // TODO Avatar
+                              width: 40,
+                              height: 40,
+                              type: 'avatar',
+                              src: _articleCtr.summary.author?.face,
+                            ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _articleCtr.summary.author?.name ?? '',
+                                  style: TextStyle(
+                                    fontSize:
+                                        theme.textTheme.titleSmall!.fontSize,
+                                  ),
+                                ),
+                                if (pubTime != null)
+                                  Text(
+                                    Utils.dateFormat(pubTime),
+                                    style: TextStyle(
+                                      color: theme.colorScheme.outline,
+                                      fontSize:
+                                          theme.textTheme.labelSmall!.fontSize,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  content,
+                ],
+              );
             }
 
             return const SliverToBoxAdapter();
@@ -433,10 +451,11 @@ class _ArticlePageState extends State<ArticlePage>
         ),
       );
 
-  Widget _buildReplyList(LoadingState<List<ReplyInfo>?> loadingState) {
+  Widget _buildReplyList(
+      ThemeData theme, LoadingState<List<ReplyInfo>?> loadingState) {
     return switch (loadingState) {
       Loading() => SliverList.builder(
-          itemCount: 5,
+          itemCount: 12,
           itemBuilder: (context, index) {
             return const VideoReplySkeleton();
           },
@@ -460,7 +479,7 @@ class _ArticlePageState extends State<ArticlePage>
                               : '没有更多了',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).colorScheme.outline,
+                        color: theme.colorScheme.outline,
                       ),
                     ),
                   );
@@ -501,7 +520,6 @@ class _ArticlePageState extends State<ArticlePage>
           errMsg: loadingState.errMsg,
           onReload: _articleCtr.onReload,
         ),
-      LoadingState() => throw UnimplementedError(),
     };
   }
 
@@ -536,11 +554,7 @@ class _ArticlePageState extends State<ArticlePage>
   PreferredSizeWidget get _buildAppBar => AppBar(
         title: Obx(() {
           if (_articleCtr.isLoaded.value && _articleCtr.showTitle.value) {
-            return Text(_articleCtr.type == 'read'
-                ? _articleCtr.articleData.title ?? ''
-                : _articleCtr.opusData.item?.modules?.firstOrNull?.moduleTitle
-                        ?.text ??
-                    '');
+            return Text(_articleCtr.summary.title ?? '');
           }
           return const SizedBox.shrink();
         }),
@@ -600,17 +614,6 @@ class _ArticlePageState extends State<ArticlePage>
             icon: const Icon(Icons.more_vert, size: 19),
             itemBuilder: (BuildContext context) => <PopupMenuEntry>[
               PopupMenuItem(
-                onTap: () => Utils.copyText(_articleCtr.url),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.copy_rounded, size: 19),
-                    SizedBox(width: 10),
-                    Text('复制链接'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
                 onTap: () => Utils.shareText(_articleCtr.url),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
@@ -621,25 +624,43 @@ class _ArticlePageState extends State<ArticlePage>
                   ],
                 ),
               ),
-              if (_articleCtr.type == 'read' && _articleCtr.favStat['status'])
+              PopupMenuItem(
+                onTap: () => Utils.copyText(_articleCtr.url),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.copy_rounded, size: 19),
+                    SizedBox(width: 10),
+                    Text('复制链接'),
+                  ],
+                ),
+              ),
+              if (_articleCtr.commentType == 12 &&
+                  _articleCtr.stats.value != null &&
+                  _articleCtr.opusData?.modules.moduleBlocked == null)
                 PopupMenuItem(
-                  onTap: () {
+                  onTap: () async {
                     try {
-                      PageUtils.pmShare(
-                        content: {
-                          "id": _articleCtr.id,
-                          "title": "- 哔哩哔哩专栏",
-                          "headline": _articleCtr.favStat['data']['title'],
-                          "source": 6,
-                          "thumb": (_articleCtr.favStat['data']
-                                      ['origin_image_urls'] as List?)
-                                  ?.firstOrNull ??
-                              '',
-                          "author": _articleCtr.favStat['data']['author_name'],
-                          "author_id":
-                              _articleCtr.favStat['data']['mid'].toString(),
-                        },
-                      );
+                      if (_articleCtr.summary.cover == null) {
+                        if (!await _articleCtr.getArticleInfo(true)) {
+                          return;
+                        }
+                      }
+                      if (mounted) {
+                        PageUtils.pmShare(
+                          this.context,
+                          content: {
+                            "id": _articleCtr.commentId,
+                            "title": "- 哔哩哔哩专栏",
+                            "headline": _articleCtr.summary.title!, // throw
+                            "source": 6,
+                            "thumb": _articleCtr.summary.cover!,
+                            "author": _articleCtr.summary.author!.name,
+                            "author_id":
+                                _articleCtr.summary.author!.mid.toString(),
+                          },
+                        );
+                      }
                     } catch (e) {
                       SmartDialog.showToast(e.toString());
                     }
@@ -649,7 +670,7 @@ class _ArticlePageState extends State<ArticlePage>
                     children: [
                       Icon(Icons.forward_to_inbox, size: 19),
                       SizedBox(width: 10),
-                      Text('分享至动态'),
+                      Text('分享至消息'),
                     ],
                   ),
                 ),
@@ -659,7 +680,7 @@ class _ArticlePageState extends State<ArticlePage>
         ],
       );
 
-  Widget get _buildBottom => Positioned(
+  Widget _buildBottom(ThemeData theme) => Positioned(
         left: 0,
         bottom: 0,
         right: 0,
@@ -697,8 +718,37 @@ class _ArticlePageState extends State<ArticlePage>
                         child: button(),
                       ),
                     )
-                  : Obx(
-                      () => Column(
+                  : Obx(() {
+                      Widget textIconButton({
+                        required IconData icon,
+                        required String text,
+                        required DynamicStat? stat,
+                        required VoidCallback callback,
+                        IconData? activitedIcon,
+                      }) {
+                        final show = stat?.status == true;
+                        final color = show
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outline;
+                        return TextButton.icon(
+                          onPressed: callback,
+                          icon: Icon(
+                            stat?.status == true ? activitedIcon : icon,
+                            size: 16,
+                            color: color,
+                            semanticLabel: text,
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            foregroundColor: theme.colorScheme.outline,
+                          ),
+                          label: Text(stat?.count != null
+                              ? Utils.numFormat(stat!.count)
+                              : text),
+                        );
+                      }
+
+                      return Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
@@ -706,22 +756,19 @@ class _ArticlePageState extends State<ArticlePage>
                             padding: EdgeInsets.only(
                               right: 14,
                               bottom: 14 +
-                                  (_articleCtr.favStat['status']
+                                  (_articleCtr.stats.value != null
                                       ? 0
                                       : MediaQuery.of(context).padding.bottom),
                             ),
                             child: button(),
                           ),
-                          _articleCtr.favStat['status']
+                          _articleCtr.stats.value != null
                               ? Container(
                                   decoration: BoxDecoration(
-                                    color:
-                                        Theme.of(context).colorScheme.surface,
+                                    color: theme.colorScheme.surface,
                                     border: Border(
                                       top: BorderSide(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .outline
+                                        color: theme.colorScheme.outline
                                             .withOpacity(0.08),
                                       ),
                                     ),
@@ -736,34 +783,49 @@ class _ArticlePageState extends State<ArticlePage>
                                       Expanded(
                                         child: Builder(
                                           builder: (btnContext) =>
-                                              TextButton.icon(
-                                            onPressed: () {
+                                              textIconButton(
+                                            text: '转发',
+                                            icon: FontAwesomeIcons
+                                                .shareFromSquare,
+                                            stat: _articleCtr
+                                                .stats.value?.forward,
+                                            callback: () {
+                                              if (_articleCtr.opusData ==
+                                                      null &&
+                                                  _articleCtr.articleData
+                                                          ?.dynIdStr ==
+                                                      null) {
+                                                SmartDialog.showToast(
+                                                    'err: ${_articleCtr.id}');
+                                                return;
+                                              }
                                               showModalBottomSheet(
                                                 context: context,
                                                 isScrollControlled: true,
                                                 useSafeArea: true,
                                                 builder: (context) =>
                                                     RepostPanel(
-                                                  item: _articleCtr.item.value,
+                                                  item: _articleCtr.opusData,
+                                                  dynIdStr: _articleCtr
+                                                      .articleData?.dynIdStr,
+                                                  pic:
+                                                      _articleCtr.summary.cover,
+                                                  title:
+                                                      _articleCtr.summary.title,
+                                                  uname: _articleCtr
+                                                      .summary.author?.name,
                                                   callback: () {
-                                                    int count = int.tryParse(
-                                                            _articleCtr
-                                                                    .item
-                                                                    .value
-                                                                    .modules
-                                                                    ?.moduleStat
-                                                                    ?.forward
-                                                                    ?.count ??
-                                                                '0') ??
+                                                    int count = _articleCtr
+                                                            .stats
+                                                            .value
+                                                            ?.forward
+                                                            ?.count ??
                                                         0;
                                                     _articleCtr
-                                                            .item
-                                                            .value
-                                                            .modules
-                                                            ?.moduleStat
-                                                            ?.forward!
-                                                            .count =
-                                                        (count + 1).toString();
+                                                        .stats
+                                                        .value
+                                                        ?.forward
+                                                        ?.count = count + 1;
                                                     if (btnContext.mounted) {
                                                       (btnContext as Element?)
                                                           ?.markNeedsBuild();
@@ -772,147 +834,48 @@ class _ArticlePageState extends State<ArticlePage>
                                                 ),
                                               );
                                             },
-                                            icon: Icon(
-                                              FontAwesomeIcons.shareFromSquare,
-                                              size: 16,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .outline,
-                                              semanticLabel: "转发",
-                                            ),
-                                            style: TextButton.styleFrom(
-                                              padding:
-                                                  const EdgeInsets.fromLTRB(
-                                                      15, 0, 15, 0),
-                                              foregroundColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .outline,
-                                            ),
-                                            label: Text(
-                                              _articleCtr
-                                                          .item
-                                                          .value
-                                                          .modules
-                                                          ?.moduleStat
-                                                          ?.forward!
-                                                          .count !=
-                                                      null
-                                                  ? Utils.numFormat(_articleCtr
-                                                      .item
-                                                      .value
-                                                      .modules
-                                                      ?.moduleStat
-                                                      ?.forward!
-                                                      .count)
-                                                  : '转发',
-                                            ),
                                           ),
                                         ),
                                       ),
                                       Expanded(
-                                        child: TextButton.icon(
-                                          onPressed: () {
-                                            Utils.shareText(_articleCtr.url);
-                                          },
-                                          icon: Icon(
-                                            FontAwesomeIcons.shareNodes,
-                                            size: 16,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .outline,
-                                            semanticLabel: "分享",
-                                          ),
-                                          style: TextButton.styleFrom(
-                                            padding: const EdgeInsets.fromLTRB(
-                                                15, 0, 15, 0),
-                                            foregroundColor: Theme.of(context)
-                                                .colorScheme
-                                                .outline,
-                                          ),
-                                          label: const Text('分享'),
-                                        ),
-                                      ),
-                                      if (_articleCtr.favStat['status'])
+                                          child: textIconButton(
+                                        text: '分享',
+                                        icon: FontAwesomeIcons.shareNodes,
+                                        stat: null,
+                                        callback: () =>
+                                            Utils.shareText(_articleCtr.url),
+                                      )),
+                                      if (_articleCtr.stats.value != null)
                                         Expanded(
-                                          child: TextButton.icon(
-                                            onPressed: () {
-                                              _articleCtr.onFav();
-                                            },
-                                            icon: Icon(
-                                              _articleCtr.favStat['isFav'] ==
-                                                      true
-                                                  ? FontAwesomeIcons.solidStar
-                                                  : FontAwesomeIcons.star,
-                                              size: 16,
-                                              color: _articleCtr
-                                                          .favStat['isFav'] ==
-                                                      true
-                                                  ? Theme.of(context)
-                                                      .colorScheme
-                                                      .primary
-                                                  : Theme.of(context)
-                                                      .colorScheme
-                                                      .outline,
-                                              semanticLabel: "收藏",
-                                            ),
-                                            style: TextButton.styleFrom(
-                                              padding:
-                                                  const EdgeInsets.fromLTRB(
-                                                      15, 0, 15, 0),
-                                              foregroundColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .outline,
-                                            ),
-                                            label: Text(_articleCtr
-                                                .favStat['favNum']
-                                                .toString()),
-                                          ),
-                                        ),
+                                            child: textIconButton(
+                                          icon: FontAwesomeIcons.star,
+                                          activitedIcon:
+                                              FontAwesomeIcons.solidStar,
+                                          text: '收藏',
+                                          stat:
+                                              _articleCtr.stats.value!.favorite,
+                                          callback: _articleCtr.onFav,
+                                        )),
                                       Expanded(
                                         child: Builder(
                                           builder: (context) => TextButton.icon(
-                                            onPressed: () =>
-                                                RequestUtils.onLikeDynamic(
-                                              _articleCtr.item.value,
-                                              () {
-                                                if (context.mounted) {
-                                                  (context as Element?)
-                                                      ?.markNeedsBuild();
-                                                }
-                                              },
-                                            ),
+                                            onPressed: _articleCtr.onLike,
                                             icon: Icon(
-                                              _articleCtr
-                                                          .item
-                                                          .value
-                                                          .modules
-                                                          ?.moduleStat
-                                                          ?.like
+                                              _articleCtr.stats.value?.like
                                                           ?.status ==
                                                       true
                                                   ? FontAwesomeIcons
                                                       .solidThumbsUp
                                                   : FontAwesomeIcons.thumbsUp,
                                               size: 16,
-                                              color: _articleCtr
-                                                          .item
-                                                          .value
-                                                          .modules
-                                                          ?.moduleStat
-                                                          ?.like
-                                                          ?.status ==
+                                              color: _articleCtr.stats.value
+                                                          ?.like?.status ==
                                                       true
-                                                  ? Theme.of(context)
-                                                      .colorScheme
-                                                      .primary
-                                                  : Theme.of(context)
-                                                      .colorScheme
-                                                      .outline,
+                                                  ? theme.colorScheme.primary
+                                                  : theme.colorScheme.outline,
                                               semanticLabel: _articleCtr
-                                                          .item
+                                                          .stats
                                                           .value
-                                                          .modules
-                                                          ?.moduleStat
                                                           ?.like
                                                           ?.status ==
                                                       true
@@ -921,11 +884,10 @@ class _ArticlePageState extends State<ArticlePage>
                                             ),
                                             style: TextButton.styleFrom(
                                               padding:
-                                                  const EdgeInsets.fromLTRB(
-                                                      15, 0, 15, 0),
-                                              foregroundColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .outline,
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 15),
+                                              foregroundColor:
+                                                  theme.colorScheme.outline,
                                             ),
                                             label: AnimatedSwitcher(
                                               duration: const Duration(
@@ -937,38 +899,21 @@ class _ArticlePageState extends State<ArticlePage>
                                                     child: child);
                                               },
                                               child: Text(
-                                                _articleCtr
-                                                            .item
-                                                            .value
-                                                            .modules
-                                                            ?.moduleStat
-                                                            ?.like
+                                                _articleCtr.stats.value?.like
                                                             ?.count !=
                                                         null
                                                     ? Utils.numFormat(
-                                                        _articleCtr
-                                                            .item
-                                                            .value
-                                                            .modules!
-                                                            .moduleStat!
-                                                            .like!
-                                                            .count)
+                                                        _articleCtr.stats.value!
+                                                            .like!.count)
                                                     : '点赞',
                                                 style: TextStyle(
-                                                  color: _articleCtr
-                                                              .item
-                                                              .value
-                                                              .modules
-                                                              ?.moduleStat
-                                                              ?.like
-                                                              ?.status ==
+                                                  color: _articleCtr.stats.value
+                                                              ?.like?.status ==
                                                           true
-                                                      ? Theme.of(context)
-                                                          .colorScheme
-                                                          .primary
-                                                      : Theme.of(context)
-                                                          .colorScheme
-                                                          .outline,
+                                                      ? theme
+                                                          .colorScheme.primary
+                                                      : theme
+                                                          .colorScheme.outline,
                                                 ),
                                               ),
                                             ),
@@ -980,8 +925,8 @@ class _ArticlePageState extends State<ArticlePage>
                                 )
                               : const SizedBox.shrink(),
                         ],
-                      ),
-                    );
+                      );
+                    });
             },
           ),
         ),

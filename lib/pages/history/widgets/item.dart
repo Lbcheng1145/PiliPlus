@@ -36,6 +36,7 @@ class HistoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     int aid = videoItem.history.oid!;
     String bvid = videoItem.history.bvid ?? IdUtils.av2bv(aid);
     return InkWell(
@@ -112,12 +113,12 @@ class HistoryItem extends StatelessWidget {
           return;
         }
         imageSaveDialog(
-          context: context,
           title: videoItem.title,
           cover: videoItem.cover,
         );
       },
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(
@@ -128,122 +129,114 @@ class HistoryItem extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    AspectRatio(
-                      aspectRatio: StyleString.aspectRatio,
-                      child: LayoutBuilder(
-                        builder: (context, boxConstraints) {
-                          double maxWidth = boxConstraints.maxWidth;
-                          double maxHeight = boxConstraints.maxHeight;
-                          return Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              NetworkImgLayer(
-                                src: (videoItem.cover.isNullOrEmpty
-                                    ? videoItem.covers?.firstOrNull ?? ''
-                                    : videoItem.cover),
-                                width: maxWidth,
-                                height: maxHeight,
-                              ),
-                              if (!BusinessType
-                                  .hiddenDurationType.hiddenDurationType
-                                  .contains(videoItem.history.business))
-                                PBadge(
-                                  text: videoItem.progress == -1
-                                      ? '已看完'
-                                      : '${Utils.timeFormat(videoItem.progress)}/${Utils.timeFormat(videoItem.duration!)}',
-                                  right: 6.0,
-                                  bottom: 8.0,
-                                  type: 'gray',
-                                ),
-                              // 右上角
-                              if (BusinessType.showBadge.showBadge
-                                      .contains(videoItem.history.business) ||
-                                  videoItem.history.business ==
-                                      BusinessType.live.type)
-                                PBadge(
-                                  text: videoItem.badge,
-                                  top: 6.0,
-                                  right: 6.0,
-                                  bottom: null,
-                                  left: null,
-                                ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                    Positioned.fill(
-                      child: AnimatedOpacity(
-                        opacity: videoItem.checked == true ? 1 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.black.withOpacity(0.6),
+                AspectRatio(
+                  aspectRatio: StyleString.aspectRatio,
+                  child: LayoutBuilder(
+                    builder: (context, boxConstraints) {
+                      double maxWidth = boxConstraints.maxWidth;
+                      double maxHeight = boxConstraints.maxHeight;
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          NetworkImgLayer(
+                            src: (videoItem.cover.isNullOrEmpty
+                                ? videoItem.covers?.firstOrNull ?? ''
+                                : videoItem.cover),
+                            width: maxWidth,
+                            height: maxHeight,
                           ),
-                          child: SizedBox(
-                            width: 34,
-                            height: 34,
-                            child: AnimatedScale(
-                              scale: videoItem.checked == true ? 1 : 0,
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeInOut,
-                              child: IconButton(
-                                tooltip: '取消选择',
-                                style: ButtonStyle(
-                                  padding:
-                                      WidgetStateProperty.all(EdgeInsets.zero),
-                                  backgroundColor:
-                                      WidgetStateProperty.resolveWith(
-                                    (states) {
-                                      return Theme.of(context)
-                                          .colorScheme
-                                          .surface
-                                          .withOpacity(0.8);
-                                    },
+                          if (!BusinessType
+                              .hiddenDurationType.hiddenDurationType
+                              .contains(videoItem.history.business))
+                            PBadge(
+                              text: videoItem.progress == -1
+                                  ? '已看完'
+                                  : '${Utils.timeFormat(videoItem.progress)}/${Utils.timeFormat(videoItem.duration!)}',
+                              right: 6.0,
+                              bottom: 8.0,
+                              type: 'gray',
+                            ),
+                          // 右上角
+                          if (BusinessType.showBadge.showBadge
+                                  .contains(videoItem.history.business) ||
+                              videoItem.history.business ==
+                                  BusinessType.live.type)
+                            PBadge(
+                              text: videoItem.badge,
+                              top: 6.0,
+                              right: 6.0,
+                              bottom: null,
+                              left: null,
+                            ),
+                          if (videoItem.duration != null &&
+                              videoItem.duration != 0 &&
+                              videoItem.progress != null &&
+                              videoItem.progress != 0)
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: videoProgressIndicator(
+                                videoItem.progress == -1
+                                    ? 1
+                                    : videoItem.progress! / videoItem.duration!,
+                              ),
+                            ),
+                          Positioned.fill(
+                            child: AnimatedOpacity(
+                              opacity: videoItem.checked == true ? 1 : 0,
+                              duration: const Duration(milliseconds: 200),
+                              child: Container(
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: StyleString.mdRadius,
+                                  color: Colors.black.withOpacity(0.6),
+                                ),
+                                child: SizedBox(
+                                  width: 34,
+                                  height: 34,
+                                  child: AnimatedScale(
+                                    scale: videoItem.checked == true ? 1 : 0,
+                                    duration: const Duration(milliseconds: 250),
+                                    curve: Curves.easeInOut,
+                                    child: IconButton(
+                                      tooltip: '取消选择',
+                                      style: ButtonStyle(
+                                        padding: WidgetStateProperty.all(
+                                            EdgeInsets.zero),
+                                        backgroundColor:
+                                            WidgetStateProperty.resolveWith(
+                                          (states) {
+                                            return theme.colorScheme.surface
+                                                .withOpacity(0.8);
+                                          },
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        feedBack();
+                                        onChoose?.call();
+                                      },
+                                      icon: Icon(Icons.done_all_outlined,
+                                          color: theme.colorScheme.primary),
+                                    ),
                                   ),
                                 ),
-                                onPressed: () {
-                                  feedBack();
-                                  onChoose?.call();
-                                },
-                                icon: Icon(Icons.done_all_outlined,
-                                    color:
-                                        Theme.of(context).colorScheme.primary),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-                    if (videoItem.duration != null &&
-                        videoItem.duration != 0 &&
-                        videoItem.progress != null &&
-                        videoItem.progress != 0)
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: videoProgressIndicator(
-                          videoItem.progress == -1
-                              ? 1
-                              : videoItem.progress! / videoItem.duration!,
-                        ),
-                      ),
-                  ],
+                        ],
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(width: 10),
-                videoContent(context),
+                videoContent(theme),
               ],
             ),
           ),
           Positioned(
             right: 12,
-            bottom: 12,
+            bottom: 0,
             child: SizedBox(
               width: 29,
               height: 29,
@@ -252,7 +245,7 @@ class HistoryItem extends StatelessWidget {
                 tooltip: '功能菜单',
                 icon: Icon(
                   Icons.more_vert_outlined,
-                  color: Theme.of(context).colorScheme.outline,
+                  color: theme.colorScheme.outline,
                   size: 18,
                 ),
                 position: PopupMenuPosition.under,
@@ -321,7 +314,7 @@ class HistoryItem extends StatelessWidget {
     );
   }
 
-  Widget videoContent(context) {
+  Widget videoContent(ThemeData theme) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,7 +324,7 @@ class HistoryItem extends StatelessWidget {
               videoItem.title,
               textAlign: TextAlign.start,
               style: TextStyle(
-                fontSize: Theme.of(context).textTheme.bodyMedium!.fontSize,
+                fontSize: theme.textTheme.bodyMedium!.fontSize,
                 height: 1.42,
                 letterSpacing: 0.3,
               ),
@@ -342,17 +335,19 @@ class HistoryItem extends StatelessWidget {
           if (videoItem.authorName != '')
             Text(
               videoItem.authorName!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: Theme.of(context).textTheme.labelMedium!.fontSize,
-                color: Theme.of(context).colorScheme.outline,
+                fontSize: theme.textTheme.labelMedium!.fontSize,
+                color: theme.colorScheme.outline,
               ),
             ),
           const SizedBox(height: 2),
           Text(
             Utils.dateFormat(videoItem.viewAt!),
             style: TextStyle(
-              fontSize: Theme.of(context).textTheme.labelMedium!.fontSize,
-              color: Theme.of(context).colorScheme.outline,
+              fontSize: theme.textTheme.labelMedium!.fontSize,
+              color: theme.colorScheme.outline,
             ),
           ),
         ],

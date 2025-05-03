@@ -75,7 +75,6 @@ class FavVideoCardH extends StatelessWidget {
                 onLongPress!();
               } else {
                 imageSaveDialog(
-                  context: context,
                   title: videoItem.title,
                   cover: videoItem.pic,
                 );
@@ -97,6 +96,7 @@ class FavVideoCardH extends StatelessWidget {
                   double maxWidth = boxConstraints.maxWidth;
                   double maxHeight = boxConstraints.maxHeight;
                   return Stack(
+                    clipBehavior: Clip.none,
                     children: [
                       NetworkImgLayer(
                         src: videoItem.pic,
@@ -130,8 +130,10 @@ class FavVideoCardH extends StatelessWidget {
   }
 
   Widget videoContent(context) {
+    final theme = Theme.of(context);
     return Expanded(
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +156,7 @@ class FavVideoCardH extends StatelessWidget {
                 style: TextStyle(
                   height: 1,
                   fontSize: 12,
-                  color: Theme.of(context).colorScheme.outline,
+                  color: theme.colorScheme.outline,
                 ),
               ),
               const SizedBox(height: 3),
@@ -179,12 +181,12 @@ class FavVideoCardH extends StatelessWidget {
           if (onDelFav != null)
             Positioned(
               right: 0,
-              bottom: 0,
+              bottom: -8,
               child: iconButton(
                 context: context,
                 icon: Icons.clear,
                 tooltip: '取消收藏',
-                iconColor: Theme.of(context).colorScheme.outline,
+                iconColor: theme.colorScheme.outline,
                 bgColor: Colors.transparent,
                 onPressed: () {
                   showDialog(
@@ -198,8 +200,8 @@ class FavVideoCardH extends StatelessWidget {
                             onPressed: Get.back,
                             child: Text(
                               '取消',
-                              style: TextStyle(
-                                  color: Theme.of(context).colorScheme.outline),
+                              style:
+                                  TextStyle(color: theme.colorScheme.outline),
                             ),
                           ),
                           TextButton(

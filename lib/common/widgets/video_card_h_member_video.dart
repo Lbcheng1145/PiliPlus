@@ -28,10 +28,10 @@ class VideoCardHMemberVideo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
+      clipBehavior: Clip.none,
       children: [
         InkWell(
           onLongPress: () => imageSaveDialog(
-            context: context,
             title: videoItem.title,
             cover: videoItem.cover,
           ),
@@ -78,6 +78,7 @@ class VideoCardHMemberVideo extends StatelessWidget {
                           final double maxWidth = boxConstraints.maxWidth;
                           final double maxHeight = boxConstraints.maxHeight;
                           return Stack(
+                            clipBehavior: Clip.none,
                             children: [
                               NetworkImgLayer(
                                 src: videoItem.cover,
@@ -88,7 +89,7 @@ class VideoCardHMemberVideo extends StatelessWidget {
                                 Positioned.fill(
                                   child: DecoratedBox(
                                     decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: StyleString.mdRadius,
                                       color: Colors.black54,
                                     ),
                                     child: Center(
@@ -185,6 +186,7 @@ class VideoCardHMemberVideo extends StatelessWidget {
   }
 
   Widget videoContent(context) {
+    final theme = Theme.of(context);
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,11 +199,11 @@ class VideoCardHMemberVideo extends StatelessWidget {
                 fontWeight: videoItem.bvid != null && videoItem.bvid == bvid
                     ? FontWeight.bold
                     : null,
-                fontSize: Theme.of(context).textTheme.bodyMedium!.fontSize,
+                fontSize: theme.textTheme.bodyMedium!.fontSize,
                 height: 1.42,
                 letterSpacing: 0.3,
                 color: videoItem.bvid != null && videoItem.bvid == bvid
-                    ? Theme.of(context).colorScheme.primary
+                    ? theme.colorScheme.primary
                     : null,
               ),
               maxLines: 2,
@@ -216,7 +218,7 @@ class VideoCardHMemberVideo extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               height: 1,
-              color: Theme.of(context).colorScheme.outline,
+              color: theme.colorScheme.outline,
               overflow: TextOverflow.clip,
             ),
           ),

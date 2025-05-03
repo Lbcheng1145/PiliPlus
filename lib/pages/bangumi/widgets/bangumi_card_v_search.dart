@@ -22,7 +22,6 @@ class BangumiCardVSearch extends StatelessWidget {
       margin: EdgeInsets.zero,
       child: InkWell(
         onLongPress: () => imageSaveDialog(
-          context: context,
           title: item.title?.map((e) => e['text']).join(),
           cover: item.cover,
         ),
@@ -40,6 +39,7 @@ class BangumiCardVSearch extends StatelessWidget {
                   final double maxWidth = boxConstraints.maxWidth;
                   final double maxHeight = boxConstraints.maxHeight;
                   return Stack(
+                    clipBehavior: Clip.none,
                     children: [
                       NetworkImgLayer(
                         src: item.cover,

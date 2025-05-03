@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:PiliPlus/common/widgets/radio_widget.dart';
@@ -10,8 +11,10 @@ import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/member.dart';
 import 'package:PiliPlus/http/msg.dart';
 import 'package:PiliPlus/http/user.dart';
+import 'package:PiliPlus/http/validate.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
+import 'package:PiliPlus/models/login/index.dart';
 import 'package:PiliPlus/models/user/fav_folder.dart';
 import 'package:PiliPlus/pages/common/multi_select_controller.dart';
 import 'package:PiliPlus/pages/dynamics/tab/controller.dart';
@@ -23,6 +26,7 @@ import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
+import 'package:gt3_flutter_plugin/gt3_flutter_plugin.dart';
 
 class RequestUtils {
   // 1：小视频（已弃用）
@@ -43,12 +47,11 @@ class RequestUtils {
     required int receiverId,
     required Map content,
     String? message,
-    ValueChanged<bool>? callback,
   }) async {
     SmartDialog.showLoading();
 
     final ownerMid = Accounts.main.mid;
-    final videoRes = await GrpcRepo.sendMsg(
+    final contentRes = await GrpcRepo.sendMsg(
       senderUid: ownerMid,
       receiverId: receiverId,
       content: jsonEncode(content),
@@ -57,26 +60,26 @@ class RequestUtils {
           : MsgType.EN_MSG_TYPE_SHARE_V2,
     );
 
-    if (videoRes['status']) {
+    if (contentRes['status']) {
       if (message?.isNotEmpty == true) {
-        var textRes = await MsgHttp.sendMsg(
+        var msgRes = await MsgHttp.sendMsg(
           senderUid: ownerMid,
           receiverId: receiverId,
           content: jsonEncode({"content": message}),
           msgType: 1,
         );
         Get.back();
-        if (textRes['status']) {
+        if (msgRes['status']) {
           SmartDialog.showToast('分享成功');
         } else {
-          SmartDialog.showToast('视频分享成功，但消息分享失败: ${textRes['msg']}');
+          SmartDialog.showToast('内容分享成功，但消息分享失败: ${msgRes['msg']}');
         }
       } else {
         Get.back();
         SmartDialog.showToast('分享成功');
       }
     } else {
-      SmartDialog.showToast('分享失败: ${videoRes['msg']}');
+      SmartDialog.showToast('分享失败: ${contentRes['msg']}');
     }
     SmartDialog.dismiss();
   }
@@ -304,29 +307,24 @@ class RequestUtils {
   }
 
   // 动态点赞
-  static Future onLikeDynamic(item, VoidCallback callback) async {
+  static Future onLikeDynamic(
+      DynamicItemModel item, VoidCallback callback) async {
     feedBack();
     String dynamicId = item.idStr!;
     // 1 已点赞 2 不喜欢 0 未操作
-    item.modules?.moduleStat ??= ModuleStatModel();
-    item.modules?.moduleStat.like ??= Like();
-    Like like = item.modules.moduleStat.like;
-    int count = like.count == '点赞' ? 0 : int.parse(like.count ?? '0');
-    bool status = like.status ?? false;
+    DynamicStat? like = item.modules.moduleStat?.like;
+    int count = like?.count ?? 0;
+    bool status = like?.status ?? false;
     int up = status ? 2 : 1;
-    var res = await DynamicsHttp.likeDynamic(dynamicId: dynamicId, up: up);
+    var res = await DynamicsHttp.thumbDynamic(dynamicId: dynamicId, up: up);
     if (res['status']) {
       SmartDialog.showToast(!status ? '点赞成功' : '取消赞');
       if (up == 1) {
-        item.modules.moduleStat.like.count = (count + 1).toString();
-        item.modules.moduleStat.like.status = true;
+        like?.count = count + 1;
+        like?.status = true;
       } else {
-        if (count == 1) {
-          item.modules.moduleStat.like.count = '点赞';
-        } else {
-          item.modules.moduleStat.like.count = (count - 1).toString();
-        }
-        item.modules.moduleStat.like.status = false;
+        like?.count = count - 1;
+        like?.status = false;
       }
       callback();
     } else {
@@ -434,5 +432,145 @@ class RequestUtils {
         SmartDialog.showToast('${res['msg']}');
       }
     });
+  }
+
+  static Future validate(
+      String vVoucher, ValueChanged<String> onSuccess) async {
+    final res = await ValidateHttp.gaiaVgateRegister(vVoucher);
+    if (!res['status']) {
+      SmartDialog.showToast("${res['msg']}");
+      return;
+    }
+
+    if (res['data'] == null) {
+      SmartDialog.showToast("null data");
+      return;
+    }
+
+    CaptchaDataModel captchaData = CaptchaDataModel();
+
+    String? geeGt = res['data']?['geetest']?['gt'];
+    String? geeChallenge = res['data']?['geetest']?['challenge'];
+    captchaData.token = res['data']?['token'];
+
+    bool isGeeArgumentValid() {
+      return geeGt?.isNotEmpty == true &&
+          geeChallenge?.isNotEmpty == true &&
+          captchaData.token?.isNotEmpty == true;
+    }
+
+    if (!isGeeArgumentValid()) {
+      SmartDialog.showToast("参数为空");
+      return;
+    }
+
+    var registerData = Gt3RegisterData(
+      challenge: geeChallenge,
+      gt: geeGt,
+      success: true,
+    );
+
+    final Gt3FlutterPlugin captcha = Gt3FlutterPlugin();
+
+    captcha.addEventHandler(
+      onClose: (Map<String, dynamic> message) async {
+        SmartDialog.showToast('关闭验证');
+      },
+      onResult: (Map<String, dynamic> message) async {
+        debugPrint("Captcha result: $message");
+        String code = message["code"];
+        if (code == "1") {
+          // 发送 message["result"] 中的数据向 B 端的业务服务接口进行查询
+          SmartDialog.showToast('验证成功');
+          captchaData.validate = message['result']?['geetest_validate'];
+          captchaData.seccode = message['result']?['geetest_seccode'];
+          String? challenge = message['result']?['geetest_challenge'];
+          final res = await ValidateHttp.gaiaVgateValidate(
+            challenge: challenge,
+            seccode: captchaData.seccode,
+            token: captchaData.token,
+            validate: captchaData.validate,
+          );
+          if (res['status']) {
+            if (res['data']?['is_valid'] == 1) {
+              final griskId = res['data']?['grisk_id'];
+              if (griskId != null) {
+                onSuccess(griskId);
+              }
+            } else {
+              SmartDialog.showToast('invalid');
+            }
+          } else {
+            SmartDialog.showToast(res['msg']);
+          }
+        } else {
+          // 终端用户完成验证失败，自动重试 If the verification fails, it will be automatically retried.
+          debugPrint("Captcha result code : $code");
+        }
+      },
+      onError: (Map<String, dynamic> message) async {
+        SmartDialog.showToast("Captcha onError: $message");
+        String code = message["code"];
+        // 处理验证中返回的错误 Handling errors returned in verification
+        if (Platform.isAndroid) {
+          // Android 平台
+          if (code == "-2") {
+            // Dart 调用异常 Call exception
+          } else if (code == "-1") {
+            // Gt3RegisterData 参数不合法 Parameter is invalid
+          } else if (code == "201") {
+            // 网络无法访问 Network inaccessible
+          } else if (code == "202") {
+            // Json 解析错误 Analysis error
+          } else if (code == "204") {
+            // WebView 加载超时，请检查是否混淆极验 SDK   Load timed out
+          } else if (code == "204_1") {
+            // WebView 加载前端页面错误，请查看日志 Error loading front-end page, please check the log
+          } else if (code == "204_2") {
+            // WebView 加载 SSLError
+          } else if (code == "206") {
+            // gettype 接口错误或返回为 null   API error or return null
+          } else if (code == "207") {
+            // getphp 接口错误或返回为 null    API error or return null
+          } else if (code == "208") {
+            // ajax 接口错误或返回为 null      API error or return null
+          } else {
+            // 更多错误码参考开发文档  More error codes refer to the development document
+            // https://docs.geetest.com/sensebot/apirefer/errorcode/android
+          }
+        }
+
+        if (Platform.isIOS) {
+          // iOS 平台
+          if (code == "-1009") {
+            // 网络无法访问 Network inaccessible
+          } else if (code == "-1004") {
+            // 无法查找到 HOST  Unable to find HOST
+          } else if (code == "-1002") {
+            // 非法的 URL  Illegal URL
+          } else if (code == "-1001") {
+            // 网络超时 Network timeout
+          } else if (code == "-999") {
+            // 请求被意外中断, 一般由用户进行取消操作导致 The interrupted request was usually caused by the user cancelling the operation
+          } else if (code == "-21") {
+            // 使用了重复的 challenge   Duplicate challenges are used
+            // 检查获取 challenge 是否进行了缓存  Check if the fetch challenge is cached
+          } else if (code == "-20") {
+            // 尝试过多, 重新引导用户触发验证即可 Try too many times, lead the user to request verification again
+          } else if (code == "-10") {
+            // 预判断时被封禁, 不会再进行图形验证 Banned during pre-judgment, and no more image captcha verification
+          } else if (code == "-2") {
+            // Dart 调用异常 Call exception
+          } else if (code == "-1") {
+            // Gt3RegisterData 参数不合法  Parameter is invalid
+          } else {
+            // 更多错误码参考开发文档 More error codes refer to the development document
+            // https://docs.geetest.com/sensebot/apirefer/errorcode/ios
+          }
+        }
+      },
+    );
+
+    captcha.startCaptcha(registerData);
   }
 }

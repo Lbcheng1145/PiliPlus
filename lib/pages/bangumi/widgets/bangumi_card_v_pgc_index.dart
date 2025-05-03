@@ -21,7 +21,6 @@ class BangumiCardVPgcIndex extends StatelessWidget {
       margin: EdgeInsets.zero,
       child: InkWell(
         onLongPress: () => imageSaveDialog(
-          context: context,
           title: bangumiItem['title'],
           cover: bangumiItem['cover'],
         ),
@@ -39,6 +38,7 @@ class BangumiCardVPgcIndex extends StatelessWidget {
                   final double maxWidth = boxConstraints.maxWidth;
                   final double maxHeight = boxConstraints.maxHeight;
                   return Stack(
+                    clipBehavior: Clip.none,
                     children: [
                       NetworkImgLayer(
                         src: bangumiItem['cover'],
@@ -73,6 +73,7 @@ class BangumiCardVPgcIndex extends StatelessWidget {
   }
 
   Widget bagumiContent(context) {
+    final theme = Theme.of(context);
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(4, 5, 0, 3),
@@ -94,8 +95,8 @@ class BangumiCardVPgcIndex extends StatelessWidget {
                 bangumiItem['index_show'],
                 maxLines: 1,
                 style: TextStyle(
-                  fontSize: Theme.of(context).textTheme.labelMedium!.fontSize,
-                  color: Theme.of(context).colorScheme.outline,
+                  fontSize: theme.textTheme.labelMedium!.fontSize,
+                  color: theme.colorScheme.outline,
                 ),
               ),
           ],

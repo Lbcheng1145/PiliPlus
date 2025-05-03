@@ -8,10 +8,10 @@ import 'package:PiliPlus/models/bangumi/info.dart';
 import 'package:PiliPlus/models/common/search_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/models/live/item.dart';
-import 'package:PiliPlus/pages/video/detail/contact/view.dart';
+import 'package:PiliPlus/pages/contact/view.dart';
 import 'package:PiliPlus/pages/video/detail/introduction/widgets/fav_panel.dart';
 import 'package:PiliPlus/pages/video/detail/introduction/widgets/menu_row.dart';
-import 'package:PiliPlus/pages/video/detail/share/view.dart';
+import 'package:PiliPlus/pages/share/view.dart';
 import 'package:PiliPlus/services/shutdown_timer_service.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/extension.dart';
@@ -28,7 +28,7 @@ import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PageUtils {
-  static void pmShare({required Map content}) async {
+  static void pmShare(BuildContext context, {required Map content}) async {
     // debugPrint(content.toString());
 
     List<UserModel> userList = <UserModel>[];
@@ -54,16 +54,18 @@ class PageUtils {
       }
     }
 
-    showModalBottomSheet(
-      context: Get.context!,
-      builder: (context) => SharePanel(
-        content: content,
-        userList: userList,
-      ),
-      useSafeArea: true,
-      enableDrag: false,
-      isScrollControlled: true,
-    );
+    if (context.mounted) {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) => SharePanel(
+          content: content,
+          userList: userList,
+        ),
+        useSafeArea: true,
+        enableDrag: false,
+        isScrollControlled: true,
+      );
+    }
   }
 
   static void scheduleExit(BuildContext context, isFullScreen,
@@ -76,19 +78,20 @@ class PageUtils {
     if (isLive) {
       shutdownTimerService.waitForPlayingCompleted = false;
     }
-    PageUtils.showVideoBottomSheet(
+    showVideoBottomSheet(
       context,
       isFullScreen: () => isFullScreen,
       child: StatefulBuilder(
         builder: (_, setState) {
+          final ThemeData theme = Theme.of(context);
           return Theme(
-            data: Theme.of(context),
+            data: theme,
             child: Material(
               color: Colors.transparent,
               child: Container(
                 clipBehavior: Clip.hardEdge,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
+                  color: theme.colorScheme.surface,
                   borderRadius: const BorderRadius.all(Radius.circular(12)),
                 ),
                 margin: const EdgeInsets.all(12),
@@ -138,9 +141,7 @@ class PageUtils {
                                       child: Text(
                                         '取消',
                                         style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .outline),
+                                            color: theme.colorScheme.outline),
                                       ),
                                     ),
                                     TextButton(
@@ -177,7 +178,7 @@ class PageUtils {
                                 choice
                             ? Icon(
                                 Icons.done,
-                                color: Theme.of(context).colorScheme.primary,
+                                color: theme.colorScheme.primary,
                               )
                             : null,
                       ),
@@ -265,15 +266,12 @@ class PageUtils {
     SmartDialog.dismiss();
     if (res['status']) {
       DynamicItemModel data = res['data'];
-      if (data.basic?['comment_type'] == 12) {
+      if (data.basic?.commentType == 12) {
         toDupNamed(
           '/articlePage',
           parameters: {
             'id': id,
             'type': 'opus',
-          },
-          arguments: {
-            'item': data,
           },
           off: off,
         );
@@ -344,7 +342,8 @@ class PageUtils {
     );
   }
 
-  static void pushDynDetail(item, floor, {action = 'all'}) async {
+  static void pushDynDetail(DynamicItemModel item, floor,
+      {action = 'all'}) async {
     feedBack();
 
     /// 点击评论action 直接查看评论
@@ -364,14 +363,14 @@ class PageUtils {
 
     switch (item.type) {
       case 'DYNAMIC_TYPE_AV':
-        if (item.modules.moduleDynamic.major.archive?.type == 2) {
-          if (item.modules.moduleDynamic.major.archive.jumpUrl
+        if (item.modules.moduleDynamic?.major?.archive?.type == 2) {
+          if (item.modules.moduleDynamic!.major!.archive!.jumpUrl!
               .startsWith('//')) {
-            item.modules.moduleDynamic.major.archive.jumpUrl =
-                'https:${item.modules.moduleDynamic.major.archive.jumpUrl}';
+            item.modules.moduleDynamic!.major!.archive!.jumpUrl =
+                'https:${item.modules.moduleDynamic!.major!.archive!.jumpUrl!}';
           }
           String? redirectUrl = await UrlUtils.parseRedirectUrl(
-              item.modules.moduleDynamic.major.archive.jumpUrl, false);
+              item.modules.moduleDynamic!.major!.archive!.jumpUrl!, false);
           if (redirectUrl != null) {
             viewPgcFromUri(redirectUrl);
             return;
@@ -379,8 +378,8 @@ class PageUtils {
         }
 
         try {
-          String bvid = item.modules.moduleDynamic.major.archive.bvid;
-          String cover = item.modules.moduleDynamic.major.archive.cover;
+          String bvid = item.modules.moduleDynamic!.major!.archive!.bvid!;
+          String cover = item.modules.moduleDynamic!.major!.archive!.cover!;
           int cid = await SearchHttp.ab2c(bvid: bvid);
           toVideoPage(
             'bvid=$bvid&cid=$cid',
@@ -397,7 +396,7 @@ class PageUtils {
 
       /// 专栏文章查看
       case 'DYNAMIC_TYPE_ARTICLE':
-        String? url = item?.modules?.moduleDynamic?.major?.opus?.jumpUrl;
+        String? url = item.modules.moduleDynamic?.major?.opus?.jumpUrl;
         if (url != null) {
           if (url.contains('opus') || url.contains('read')) {
             RegExp digitRegExp = RegExp(r'\d+');
@@ -422,8 +421,9 @@ class PageUtils {
         break;
 
       case 'DYNAMIC_TYPE_LIVE_RCMD':
-        DynamicLiveModel liveRcmd = item.modules.moduleDynamic.major.liveRcmd;
-        ModuleAuthorModel author = item.modules.moduleAuthor;
+        DynamicLiveModel liveRcmd =
+            item.modules.moduleDynamic!.major!.liveRcmd!;
+        ModuleAuthorModel author = item.modules.moduleAuthor!;
         LiveItemModel liveItem = LiveItemModel.fromJson({
           'title': liveRcmd.title,
           'uname': author.name,
@@ -439,7 +439,7 @@ class PageUtils {
       /// 合集查看
       case 'DYNAMIC_TYPE_UGC_SEASON':
         DynamicArchiveModel ugcSeason =
-            item.modules.moduleDynamic.major.ugcSeason;
+            item.modules.moduleDynamic!.major!.ugcSeason!;
         int aid = ugcSeason.aid!;
         String bvid = IdUtils.av2bv(aid);
         String cover = ugcSeason.cover!;
@@ -457,23 +457,23 @@ class PageUtils {
       /// 番剧查看
       case 'DYNAMIC_TYPE_PGC_UNION':
         debugPrint('DYNAMIC_TYPE_PGC_UNION 番剧');
-        DynamicArchiveModel pgc = item.modules.moduleDynamic.major.pgc;
+        DynamicArchiveModel pgc = item.modules.moduleDynamic!.major!.pgc!;
         if (pgc.epid != null) {
           viewBangumi(epId: pgc.epid);
         }
         break;
       case 'DYNAMIC_TYPE_MEDIALIST':
-        if (item.modules?.moduleDynamic?.major?.medialist != null) {
+        if (item.modules.moduleDynamic?.major?.medialist != null) {
           final String? url =
-              item.modules.moduleDynamic.major.medialist['jump_url'];
+              item.modules.moduleDynamic!.major!.medialist!['jump_url'];
           if (url?.contains('medialist/detail/ml') == true) {
             Get.toNamed(
               '/favDetail',
               parameters: {
                 'heroTag':
-                    '${item.modules.moduleDynamic.major.medialist['cover']}',
+                    '${item.modules.moduleDynamic!.major!.medialist!['cover']}',
                 'mediaId':
-                    '${item.modules.moduleDynamic.major.medialist['id']}',
+                    '${item.modules.moduleDynamic!.major!.medialist!['id']}',
               },
             );
           } else if (url != null) {

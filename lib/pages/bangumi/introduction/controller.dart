@@ -256,7 +256,7 @@ class BangumiIntroController
   Future actionShareVideo(context) async {
     showDialog(
         context: context,
-        builder: (context) {
+        builder: (_) {
           String videoUrl = '${HttpString.baseUrl}/video/$bvid';
           return AlertDialog(
             clipBehavior: Clip.hardEdge,
@@ -351,13 +351,13 @@ class BangumiIntroController
                           .firstWhere((item) => item.epId == epId);
                       final title = '${bangumiItem!.title!} ${item.showTitle}';
                       PageUtils.pmShare(
+                        context,
                         content: {
                           "id": epId!.toString(),
                           "title": title,
                           "url": item.shareUrl,
                           "headline": title,
                           "source": 16,
-                          "extra": {},
                           "thumb": item.cover,
                           "source_desc": switch (bangumiItem!.type) {
                             1 => '番剧',

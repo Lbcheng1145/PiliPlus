@@ -78,7 +78,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   // 自动退出全屏
   late bool autoExitFullscreen;
   late bool autoPlayEnable;
-  late bool horizontalScreen;
   late bool enableVerticalExpand;
   late bool autoPiP;
   late bool pipNoDanmaku;
@@ -151,8 +150,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     }
     autoExitFullscreen =
         setting.get(SettingBoxKey.enableAutoExit, defaultValue: true);
-    horizontalScreen =
-        setting.get(SettingBoxKey.horizontalScreen, defaultValue: false);
     autoPlayEnable =
         setting.get(SettingBoxKey.autoPlayEnable, defaultValue: false);
     autoPiP = setting.get(SettingBoxKey.autoPiP, defaultValue: false);
@@ -359,7 +356,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     videoIntroController.canelTimer();
     videoIntroController.videoDetail.close();
     videoDetailController.cid.close();
-    if (!horizontalScreen) {
+    if (!videoDetailController.horizontalScreen) {
       AutoOrientation.portraitUpMode();
     }
     shutdownTimerService.handleWaitingFinished();
@@ -555,6 +552,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                               videoDetailController.scrollCtr.offset != 0 &&
                               context.orientation == Orientation.portrait;
                       return Stack(
+                        clipBehavior: Clip.none,
                         children: [
                           AppBar(
                             backgroundColor: Colors.black,
@@ -642,13 +640,14 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                           ? animHeight
                           : videoDetailController.videoHeight,
                   flexibleSpace: Stack(
+                    clipBehavior: Clip.none,
                     children: [
                       Builder(
                         builder: (context) {
                           final double videoWidth = context.width;
                           if (MediaQuery.of(context).orientation ==
                                   Orientation.landscape &&
-                              !horizontalScreen &&
+                              !videoDetailController.horizontalScreen &&
                               !isFullScreen &&
                               isShowing &&
                               mounted) {
@@ -705,6 +704,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                                   child: SizedBox(
                                     height: kToolbarHeight,
                                     child: Stack(
+                                      clipBehavior: Clip.none,
                                       children: [
                                         Align(
                                           alignment: Alignment.centerLeft,
@@ -1185,6 +1185,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
       );
 
   Widget get childWhenDisabledLandscape => Stack(
+        clipBehavior: Clip.none,
         children: [
           Scaffold(
             resizeToAvoidBottomInset: false,
@@ -1264,6 +1265,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
         () => Visibility(
           visible: videoDetailController.isShowCover.value,
           child: Stack(
+            clipBehavior: Clip.none,
             children: [
               Positioned(
                 top: 0,
@@ -1454,7 +1456,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   late ThemeData themeData;
 
   Widget get child {
-    if (!horizontalScreen) {
+    if (!videoDetailController.horizontalScreen) {
       return autoChoose(childWhenDisabled);
     }
 
@@ -1633,10 +1635,11 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   Widget videoPlayer(double videoWidth, double videoHeight) {
     return PopScope(
       canPop: !isFullScreen &&
-          (horizontalScreen ||
+          (videoDetailController.horizontalScreen ||
               MediaQuery.of(context).orientation == Orientation.portrait),
       onPopInvokedWithResult: _onPopInvokedWithResult,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           Positioned.fill(child: ColoredBox(color: Colors.black)),
 
@@ -1863,6 +1866,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
         );
     if (videoDetailController.isPlayAll) {
       return Stack(
+        clipBehavior: Clip.none,
         children: [
           introPanel(),
           Positioned(
@@ -2143,7 +2147,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
             );
           },
         );
-    if (isFullScreen) {
+    if (isFullScreen || videoDetailController.showVideoSheet) {
       PageUtils.showVideoBottomSheet(
         context,
         isFullScreen: () => isFullScreen,
@@ -2241,7 +2245,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   }
 
   void showViewPoints() {
-    if (isFullScreen) {
+    if (isFullScreen || videoDetailController.showVideoSheet) {
       PageUtils.showVideoBottomSheet(
         context,
         isFullScreen: () => isFullScreen,
@@ -2280,7 +2284,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
       plPlayerController!.triggerFullScreen(status: false);
     }
     if (MediaQuery.of(context).orientation == Orientation.landscape &&
-        !horizontalScreen) {
+        !videoDetailController.horizontalScreen) {
       verticalScreenForTwoSeconds();
     }
   }

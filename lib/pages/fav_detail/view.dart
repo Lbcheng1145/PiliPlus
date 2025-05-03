@@ -41,11 +41,8 @@ class _FavDetailPageState extends State<FavDetailPage> {
   }
 
   void listener() {
-    if (_favDetailController.scrollController.offset > 160) {
-      _favDetailController.titleCtr.value = true;
-    } else if (_favDetailController.scrollController.offset <= 160) {
-      _favDetailController.titleCtr.value = false;
-    }
+    _favDetailController.titleCtr.value =
+        _favDetailController.scrollController.offset >= 130;
   }
 
   @override
@@ -56,6 +53,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Obx(
       () => PopScope(
         canPop: _favDetailController.enableMultiSelect.value.not,
@@ -94,7 +92,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                             icon: const Icon(Icons.close_outlined),
                           )
                         : null,
-                    expandedHeight: 200 - MediaQuery.of(context).padding.top,
+                    expandedHeight: kToolbarHeight + 130,
                     pinned: true,
                     title: _favDetailController.enableMultiSelect.value
                         ? Text(
@@ -111,13 +109,11 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                 children: [
                                   Text(
                                     _favDetailController.item.value.title ?? '',
-                                    style:
-                                        Theme.of(context).textTheme.titleMedium,
+                                    style: theme.textTheme.titleMedium,
                                   ),
                                   Text(
                                     '共${_favDetailController.item.value.mediaCount}条视频',
-                                    style:
-                                        Theme.of(context).textTheme.labelMedium,
+                                    style: theme.textTheme.labelMedium,
                                   )
                                 ],
                               ),
@@ -152,9 +148,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                               child: Text(
                                 '复制',
                                 style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
+                                  color: theme.colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ),
@@ -176,9 +170,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                               child: Text(
                                 '移动',
                                 style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
+                                  color: theme.colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ),
@@ -191,8 +183,8 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                   _favDetailController.onDelChecked(context),
                               child: Text(
                                 '删除',
-                                style: TextStyle(
-                                    color: Theme.of(context).colorScheme.error),
+                                style:
+                                    TextStyle(color: theme.colorScheme.error),
                               ),
                             ),
                             const SizedBox(width: 6),
@@ -310,9 +302,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                             child: Text(
                                               '删除',
                                               style: TextStyle(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .error,
+                                                color: theme.colorScheme.error,
                                               ),
                                             ),
                                           ),
@@ -323,13 +313,14 @@ class _FavDetailPageState extends State<FavDetailPage> {
                             const SizedBox(width: 6),
                           ],
                     flexibleSpace: FlexibleSpaceBar(
-                      background: Container(
+                      background: Padding(
                         padding: EdgeInsets.only(
-                          top: kTextTabBarHeight +
+                          top: kToolbarHeight +
                               MediaQuery.of(context).padding.top +
                               10,
                           left: 14,
                           right: 20,
+                          bottom: 10,
                         ),
                         child: SizedBox(
                           height: 110,
@@ -340,7 +331,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                 Hero(
                                   tag: _favDetailController.heroTag,
                                   child: NetworkImgLayer(
-                                    width: 180,
+                                    width: 176,
                                     height: 110,
                                     src: _favDetailController.item.value.cover,
                                   ),
@@ -362,10 +353,8 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                                   .item.value.title ??
                                               '',
                                           style: TextStyle(
-                                              fontSize: Theme.of(context)
-                                                  .textTheme
-                                                  .titleMedium!
-                                                  .fontSize,
+                                              fontSize: theme.textTheme
+                                                  .titleMedium!.fontSize,
                                               fontWeight: FontWeight.bold),
                                         ),
                                         if (_favDetailController
@@ -376,13 +365,10 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                                     .item.value.intro ??
                                                 '',
                                             style: TextStyle(
-                                                fontSize: Theme.of(context)
-                                                    .textTheme
-                                                    .labelSmall!
-                                                    .fontSize,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .outline),
+                                                fontSize: theme.textTheme
+                                                    .labelSmall!.fontSize,
+                                                color:
+                                                    theme.colorScheme.outline),
                                           ),
                                         const SizedBox(height: 4),
                                         Text(
@@ -390,13 +376,9 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                                   .item.value.upper?.name ??
                                               '',
                                           style: TextStyle(
-                                              fontSize: Theme.of(context)
-                                                  .textTheme
-                                                  .labelSmall!
-                                                  .fontSize,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .outline),
+                                              fontSize: theme.textTheme
+                                                  .labelSmall!.fontSize,
+                                              color: theme.colorScheme.outline),
                                         ),
                                         const Spacer(),
                                         if (_favDetailController
@@ -405,13 +387,10 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                           Text(
                                             '共${_favDetailController.item.value.mediaCount}条视频 · ${Utils.isPublicFavText(_favDetailController.item.value.attr ?? 0)}',
                                             style: TextStyle(
-                                                fontSize: Theme.of(context)
-                                                    .textTheme
-                                                    .labelSmall!
-                                                    .fontSize,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .outline),
+                                                fontSize: theme.textTheme
+                                                    .labelSmall!.fontSize,
+                                                color:
+                                                    theme.colorScheme.outline),
                                           ),
                                       ],
                                     ),
@@ -424,8 +403,8 @@ class _FavDetailPageState extends State<FavDetailPage> {
                       ),
                     ),
                   ),
-                  Obx(() =>
-                      _buildBody(_favDetailController.loadingState.value)),
+                  Obx(() => _buildBody(
+                      theme, _favDetailController.loadingState.value)),
                 ],
               ),
             ),
@@ -435,7 +414,8 @@ class _FavDetailPageState extends State<FavDetailPage> {
     );
   }
 
-  Widget _buildBody(LoadingState<List<FavDetailItemData>?> loadingState) {
+  Widget _buildBody(
+      ThemeData theme, LoadingState<List<FavDetailItemData>?> loadingState) {
     return switch (loadingState) {
       Loading() => SliverGrid(
           gridDelegate: Grid.videoCardHDelegate(context),
@@ -463,7 +443,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                         child: Text(
                           _favDetailController.isEnd.not ? '加载中...' : '没有更多了',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.outline,
+                            color: theme.colorScheme.outline,
                             fontSize: 13,
                           ),
                         ),
@@ -471,6 +451,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                     }
                     FavDetailItemData item = loadingState.response![index];
                     return Stack(
+                      clipBehavior: Clip.none,
                       children: [
                         Positioned.fill(
                           child: FavVideoCardH(
@@ -534,7 +515,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                   width: constraints.maxHeight *
                                       StyleString.aspectRatio,
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: StyleString.mdRadius,
                                     color: Colors.black.withOpacity(0.6),
                                   ),
                                   child: SizedBox(
@@ -552,9 +533,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                           backgroundColor:
                                               WidgetStateProperty.resolveWith(
                                             (states) {
-                                              return Theme.of(context)
-                                                  .colorScheme
-                                                  .surface
+                                              return theme.colorScheme.surface
                                                   .withOpacity(0.8);
                                             },
                                           ),
@@ -562,9 +541,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                         onPressed: null,
                                         icon: Icon(
                                           Icons.done_all_outlined,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
+                                          color: theme.colorScheme.primary,
                                         ),
                                       ),
                                     ),
@@ -588,7 +565,6 @@ class _FavDetailPageState extends State<FavDetailPage> {
           errMsg: loadingState.errMsg,
           onReload: _favDetailController.onReload,
         ),
-      LoadingState() => throw UnimplementedError(),
     };
   }
 }

@@ -78,9 +78,9 @@ class _MediaListPanelState
   }
 
   @override
-  Widget get buildPage {
+  Widget buildPage(ThemeData theme) {
     return Material(
-      color: Theme.of(context).colorScheme.surface,
+      color: theme.colorScheme.surface,
       child: Column(
         children: [
           AppBar(
@@ -111,10 +111,10 @@ class _MediaListPanelState
           ),
           Divider(
             height: 1,
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+            color: theme.colorScheme.outline.withOpacity(0.1),
           ),
           Expanded(
-            child: enableSlide ? slideList() : buildList,
+            child: enableSlide ? slideList(theme) : buildList(theme),
           ),
         ],
       ),
@@ -122,16 +122,18 @@ class _MediaListPanelState
   }
 
   @override
-  Widget get buildList => widget.loadPrevious != null
-      ? refreshIndicator(
-          onRefresh: () async {
-            await widget.loadPrevious!();
-          },
-          child: _buildList,
-        )
-      : _buildList;
+  Widget buildList(ThemeData theme) {
+    return widget.loadPrevious != null
+        ? refreshIndicator(
+            onRefresh: () async {
+              await widget.loadPrevious!();
+            },
+            child: _buildList(theme),
+          )
+        : _buildList(theme);
+  }
 
-  Widget get _buildList => Obx(
+  Widget _buildList(ThemeData theme) => Obx(
         () {
           final showDelBtn =
               widget.onDelete != null && widget.mediaList.length > 1;
@@ -172,12 +174,12 @@ class _MediaListPanelState
                   },
                   onLongPress: () {
                     imageSaveDialog(
-                      context: context,
                       title: item.title,
                       cover: item.cover,
                     );
                   },
                   child: Stack(
+                    clipBehavior: Clip.none,
                     children: [
                       Padding(
                         padding: const EdgeInsets.symmetric(
@@ -193,6 +195,7 @@ class _MediaListPanelState
                               child: LayoutBuilder(
                                 builder: (context, boxConstraints) {
                                   return Stack(
+                                    clipBehavior: Clip.none,
                                     children: [
                                       NetworkImgLayer(
                                         src: item.cover,
@@ -225,19 +228,18 @@ class _MediaListPanelState
                                           ? FontWeight.bold
                                           : null,
                                       color: item.bvid == widget.getBvId()
-                                          ? Theme.of(context)
-                                              .colorScheme
-                                              .primary
+                                          ? theme.colorScheme.primary
                                           : null,
                                     ),
                                   ),
                                   const Spacer(),
                                   Text(
                                     item.upper!.name!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color:
-                                          Theme.of(context).colorScheme.outline,
+                                      color: theme.colorScheme.outline,
                                     ),
                                   ),
                                   const SizedBox(height: 3),
@@ -267,7 +269,7 @@ class _MediaListPanelState
                       if (showDelBtn && item.bvid != widget.getBvId())
                         Positioned(
                           right: 12,
-                          bottom: 0,
+                          bottom: -6,
                           child: InkWell(
                             customBorder: const CircleBorder(),
                             onTap: () {
@@ -283,9 +285,7 @@ class _MediaListPanelState
                               child: Icon(
                                 Icons.clear,
                                 size: 18,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                                color: theme.colorScheme.outline,
                               ),
                             ),
                           ),

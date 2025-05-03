@@ -98,11 +98,13 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final theme = Theme.of(context);
     return refreshIndicator(
       onRefresh: () async {
         await _videoReplyController.onRefresh();
       },
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           CustomScrollView(
             controller: widget.needController == false
@@ -120,7 +122,7 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
                 floating: true,
                 delegate: CustomSliverPersistentHeaderDelegate(
                   extent: 40,
-                  bgColor: Theme.of(context).colorScheme.surface,
+                  bgColor: theme.colorScheme.surface,
                   child: Container(
                     height: 40,
                     padding: const EdgeInsets.fromLTRB(12, 0, 6, 0),
@@ -141,15 +143,14 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
                             icon: Icon(
                               Icons.sort,
                               size: 16,
-                              color: Theme.of(context).colorScheme.secondary,
+                              color: theme.colorScheme.secondary,
                             ),
                             label: Obx(
                               () => Text(
                                 _videoReplyController.sortType.value.label,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color:
-                                      Theme.of(context).colorScheme.secondary,
+                                  color: theme.colorScheme.secondary,
                                 ),
                               ),
                             ),
@@ -160,7 +161,8 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
                   ),
                 ),
               ),
-              Obx(() => _buildBody(_videoReplyController.loadingState.value)),
+              Obx(() =>
+                  _buildBody(theme, _videoReplyController.loadingState.value)),
             ],
           ),
           Positioned(
@@ -194,7 +196,7 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
     );
   }
 
-  Widget _buildBody(LoadingState loadingState) {
+  Widget _buildBody(ThemeData theme, LoadingState loadingState) {
     return switch (loadingState) {
       Loading() => SliverList.builder(
           itemBuilder: (BuildContext context, index) {
@@ -220,7 +222,7 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
                               : '没有更多了',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).colorScheme.outline,
+                        color: theme.colorScheme.outline,
                       ),
                     ),
                   );
@@ -266,7 +268,6 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
           errMsg: loadingState.errMsg,
           onReload: _videoReplyController.onReload,
         ),
-      LoadingState() => throw UnimplementedError(),
     };
   }
 }

@@ -27,7 +27,6 @@ class BangumiCardVMemberHome extends StatelessWidget {
           PageUtils.viewBangumi(seasonId: seasonId);
         },
         onLongPress: () => imageSaveDialog(
-          context: context,
           title: bangumiItem.title,
           cover: bangumiItem.cover,
         ),
@@ -44,19 +43,13 @@ class BangumiCardVMemberHome extends StatelessWidget {
               child: AspectRatio(
                 aspectRatio: 0.75,
                 child: LayoutBuilder(builder: (context, boxConstraints) {
-                  final double maxWidth = boxConstraints.maxWidth;
-                  final double maxHeight = boxConstraints.maxHeight;
-                  return Stack(
-                    children: [
-                      Hero(
-                        tag: heroTag,
-                        child: NetworkImgLayer(
-                          src: bangumiItem.cover,
-                          width: maxWidth,
-                          height: maxHeight,
-                        ),
-                      ),
-                    ],
+                  return Hero(
+                    tag: heroTag,
+                    child: NetworkImgLayer(
+                      src: bangumiItem.cover,
+                      width: boxConstraints.maxWidth,
+                      height: boxConstraints.maxHeight,
+                    ),
                   );
                 }),
               ),

@@ -118,14 +118,15 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
     // 楼层
     int floor = args['floor'];
     // 评论类型
-    int commentType = args['item'].basic!['comment_type'] ?? 11;
+    final item = args['item'] as DynamicItemModel;
+    int commentType = item.basic?.commentType ?? 11;
     replyType = (commentType == 0) ? 11 : commentType;
 
     if (floor == 1) {
-      oid = int.parse(args['item'].basic!['comment_id_str']);
+      oid = int.parse(item.basic!.commentIdStr!);
     } else {
       try {
-        ModuleDynamicModel moduleDynamic = args['item'].modules.moduleDynamic;
+        final moduleDynamic = item.modules.moduleDynamic!;
         String majorType = moduleDynamic.major!.type!;
 
         if (majorType == 'MAJOR_TYPE_OPUS') {
@@ -281,20 +282,24 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: Obx(
-          () {
-            return AnimatedOpacity(
-              opacity: _visibleTitle.value ? 1 : 0,
-              duration: const Duration(milliseconds: 300),
-              child: AuthorPanel(
-                item: _dynamicDetailController.item,
-                source: 'detail', //to remove tag
-              ),
-            );
-          },
+        title: Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: Obx(
+            () {
+              return AnimatedOpacity(
+                opacity: _visibleTitle.value ? 1 : 0,
+                duration: const Duration(milliseconds: 300),
+                child: AuthorPanel(
+                  item: _dynamicDetailController.item,
+                  source: 'detail', //to remove tag
+                ),
+              );
+            },
+          ),
         ),
         actions: context.orientation == Orientation.landscape
             ? [
@@ -352,14 +357,15 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                 onRefresh: () async {
                   await _dynamicDetailController.onRefresh();
                 },
-                child: _buildBody(context.orientation),
+                child: _buildBody(context.orientation, theme),
               )
-            : _buildBody(context.orientation),
+            : _buildBody(context.orientation, theme),
       ),
     );
   }
 
-  Widget _buildBody(Orientation orientation) => Stack(
+  Widget _buildBody(Orientation orientation, ThemeData theme) => Stack(
+        clipBehavior: Clip.none,
         children: [
           Builder(
             builder: (context) {
@@ -376,10 +382,10 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                         callback: _getImageCallback,
                       ),
                     ),
-                    replyPersistentHeader(context),
+                    replyPersistentHeader(theme),
                     Obx(
                       () => replyList(
-                          _dynamicDetailController.loadingState.value),
+                          theme, _dynamicDetailController.loadingState.value),
                     ),
                   ]
                       .map<Widget>((e) => SliverPadding(
@@ -428,13 +434,15 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                             slivers: [
                               SliverPadding(
                                 padding: EdgeInsets.only(right: padding / 4),
-                                sliver: replyPersistentHeader(context),
+                                sliver: replyPersistentHeader(theme),
                               ),
                               SliverPadding(
                                 padding: EdgeInsets.only(right: padding / 4),
                                 sliver: Obx(
-                                  () => replyList(_dynamicDetailController
-                                      .loadingState.value),
+                                  () => replyList(
+                                      theme,
+                                      _dynamicDetailController
+                                          .loadingState.value),
                                 ),
                               ),
                             ],
@@ -498,12 +506,10 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                               ),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surface,
+                                  color: theme.colorScheme.surface,
                                   border: Border(
                                     top: BorderSide(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outline
+                                      color: theme.colorScheme.outline
                                           .withOpacity(0.08),
                                     ),
                                   ),
@@ -528,32 +534,31 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                                 item: _dynamicDetailController
                                                     .item,
                                                 callback: () {
-                                                  int count = int.tryParse(
-                                                          _dynamicDetailController
-                                                                  .item
-                                                                  .modules
-                                                                  ?.moduleStat
-                                                                  ?.forward
-                                                                  ?.count ??
-                                                              '0') ??
-                                                      0;
+                                                  int count =
+                                                      _dynamicDetailController
+                                                              .item
+                                                              .modules
+                                                              .moduleStat
+                                                              ?.forward
+                                                              ?.count ??
+                                                          0;
                                                   _dynamicDetailController
                                                           .item
                                                           .modules
-                                                          ?.moduleStat ??=
+                                                          .moduleStat ??=
                                                       ModuleStatModel();
                                                   _dynamicDetailController
-                                                      .item
-                                                      .modules!
-                                                      .moduleStat
-                                                      ?.forward ??= ForWard();
-                                                  _dynamicDetailController
                                                           .item
-                                                          .modules!
-                                                          .moduleStat!
-                                                          .forward!
-                                                          .count =
-                                                      (count + 1).toString();
+                                                          .modules
+                                                          .moduleStat
+                                                          ?.forward ??=
+                                                      DynamicStat();
+                                                  _dynamicDetailController
+                                                      .item
+                                                      .modules
+                                                      .moduleStat!
+                                                      .forward!
+                                                      .count = count + 1;
                                                   if (btnContext.mounted) {
                                                     (btnContext as Element?)
                                                         ?.markNeedsBuild();
@@ -565,30 +570,27 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                           icon: Icon(
                                             FontAwesomeIcons.shareFromSquare,
                                             size: 16,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .outline,
+                                            color: theme.colorScheme.outline,
                                             semanticLabel: "转发",
                                           ),
                                           style: TextButton.styleFrom(
                                             padding: const EdgeInsets.fromLTRB(
                                                 15, 0, 15, 0),
-                                            foregroundColor: Theme.of(context)
-                                                .colorScheme
-                                                .outline,
+                                            foregroundColor:
+                                                theme.colorScheme.outline,
                                           ),
                                           label: Text(
                                             _dynamicDetailController
                                                         .item
                                                         .modules
-                                                        ?.moduleStat
+                                                        .moduleStat
                                                         ?.forward
                                                         ?.count !=
                                                     null
                                                 ? Utils.numFormat(
                                                     _dynamicDetailController
                                                         .item
-                                                        .modules!
+                                                        .modules
                                                         .moduleStat!
                                                         .forward!
                                                         .count)
@@ -606,17 +608,14 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                         icon: Icon(
                                           FontAwesomeIcons.shareNodes,
                                           size: 16,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .outline,
+                                          color: theme.colorScheme.outline,
                                           semanticLabel: "分享",
                                         ),
                                         style: TextButton.styleFrom(
                                           padding: const EdgeInsets.fromLTRB(
                                               15, 0, 15, 0),
-                                          foregroundColor: Theme.of(context)
-                                              .colorScheme
-                                              .outline,
+                                          foregroundColor:
+                                              theme.colorScheme.outline,
                                         ),
                                         label: const Text('分享'),
                                       ),
@@ -638,7 +637,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                             _dynamicDetailController
                                                         .item
                                                         .modules
-                                                        ?.moduleStat
+                                                        .moduleStat
                                                         ?.like
                                                         ?.status ==
                                                     true
@@ -648,21 +647,17 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                             color: _dynamicDetailController
                                                         .item
                                                         .modules
-                                                        ?.moduleStat
+                                                        .moduleStat
                                                         ?.like
                                                         ?.status ==
                                                     true
-                                                ? Theme.of(context)
-                                                    .colorScheme
-                                                    .primary
-                                                : Theme.of(context)
-                                                    .colorScheme
-                                                    .outline,
+                                                ? theme.colorScheme.primary
+                                                : theme.colorScheme.outline,
                                             semanticLabel:
                                                 _dynamicDetailController
                                                             .item
                                                             .modules
-                                                            ?.moduleStat
+                                                            .moduleStat
                                                             ?.like
                                                             ?.status ==
                                                         true
@@ -672,9 +667,8 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                           style: TextButton.styleFrom(
                                             padding: const EdgeInsets.fromLTRB(
                                                 15, 0, 15, 0),
-                                            foregroundColor: Theme.of(context)
-                                                .colorScheme
-                                                .outline,
+                                            foregroundColor:
+                                                theme.colorScheme.outline,
                                           ),
                                           label: AnimatedSwitcher(
                                             duration: const Duration(
@@ -689,14 +683,14 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                               _dynamicDetailController
                                                           .item
                                                           .modules
-                                                          ?.moduleStat
+                                                          .moduleStat
                                                           ?.like
                                                           ?.count !=
                                                       null
                                                   ? Utils.numFormat(
                                                       _dynamicDetailController
                                                           .item
-                                                          .modules!
+                                                          .modules
                                                           .moduleStat!
                                                           .like!
                                                           .count)
@@ -705,16 +699,12 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                                 color: _dynamicDetailController
                                                             .item
                                                             .modules
-                                                            ?.moduleStat
+                                                            .moduleStat
                                                             ?.like
                                                             ?.status ==
                                                         true
-                                                    ? Theme.of(context)
-                                                        .colorScheme
-                                                        .primary
-                                                    : Theme.of(context)
-                                                        .colorScheme
-                                                        .outline,
+                                                    ? theme.colorScheme.primary
+                                                    : theme.colorScheme.outline,
                                               ),
                                             ),
                                           ),
@@ -733,10 +723,10 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
         ],
       );
 
-  SliverPersistentHeader replyPersistentHeader(BuildContext context) {
+  SliverPersistentHeader replyPersistentHeader(ThemeData theme) {
     return SliverPersistentHeader(
       delegate: CustomSliverPersistentHeaderDelegate(
-        bgColor: Theme.of(context).colorScheme.surface,
+        bgColor: theme.colorScheme.surface,
         child: Container(
           height: 45,
           padding: const EdgeInsets.only(left: 12, right: 6),
@@ -763,13 +753,13 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                   icon: Icon(
                     Icons.sort,
                     size: 16,
-                    color: Theme.of(context).colorScheme.secondary,
+                    color: theme.colorScheme.secondary,
                   ),
                   label: Obx(() => Text(
                         _dynamicDetailController.sortType.value.label,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Theme.of(context).colorScheme.secondary,
+                          color: theme.colorScheme.secondary,
                         ),
                       )),
                 ),
@@ -782,7 +772,8 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
     );
   }
 
-  Widget replyList(LoadingState<List<ReplyInfo>?> loadingState) {
+  Widget replyList(
+      ThemeData theme, LoadingState<List<ReplyInfo>?> loadingState) {
     return switch (loadingState) {
       Loading() => SliverList.builder(
           itemBuilder: (context, index) {
@@ -808,7 +799,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                               : '没有更多了',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).colorScheme.outline,
+                        color: theme.colorScheme.outline,
                       ),
                     ),
                   );
@@ -851,7 +842,6 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
           errMsg: loadingState.errMsg,
           onReload: _dynamicDetailController.onReload,
         ),
-      LoadingState() => throw UnimplementedError(),
     };
   }
 }

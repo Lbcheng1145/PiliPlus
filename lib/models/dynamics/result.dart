@@ -1,14 +1,11 @@
 import 'dart:convert';
 
 import 'package:PiliPlus/common/widgets/avatar.dart';
+import 'package:PiliPlus/models/model_owner.dart';
+
+import 'article_content_model.dart';
 
 class DynamicsDataModel {
-  DynamicsDataModel({
-    this.hasMore,
-    this.items,
-    this.offset,
-    this.total,
-  });
   bool? hasMore;
   List<DynamicItemModel>? items;
   String? offset;
@@ -26,50 +23,86 @@ class DynamicsDataModel {
 
 // 单个动态
 class DynamicItemModel {
-  DynamicItemModel({
-    this.basic,
-    this.idStr,
-    this.modules,
-    this.orig,
-    this.type,
-    this.visible,
-  });
-
-  Map? basic;
+  Basic? basic;
   dynamic idStr;
-  ItemModulesModel? modules;
+  late ItemModulesModel modules;
+
   DynamicItemModel? orig;
   String? type;
   bool? visible;
   bool? isForwarded;
 
+  // opus
+  Fallback? fallback;
+
   DynamicItemModel.fromJson(Map<String, dynamic> json) {
-    basic = json['basic'];
+    if (json['basic'] != null) basic = Basic.fromJson(json['basic']);
     idStr = json['id_str'];
-    modules = ItemModulesModel.fromJson(json['modules']);
-    orig =
-        json['orig'] != null ? DynamicItemModel.fromJson(json['orig']) : null;
-    orig?.isForwarded = true;
+    modules = json['modules'] == null
+        ? ItemModulesModel()
+        : ItemModulesModel.fromJson(json['modules']);
+    if (json['orig'] != null) {
+      orig = DynamicItemModel.fromJson(json['orig'])..isForwarded = true;
+    }
     type = json['type'];
     visible = json['visible'];
   }
+
+  DynamicItemModel.fromOpusJson(Map<String, dynamic> json) {
+    if (json['item']?['basic'] != null) {
+      basic = Basic.fromJson(json['item']['basic']);
+    }
+    idStr = json['item']?['id_str'];
+    // type = json['type']; // int
+    modules = json['item']?['modules'] == null
+        ? ItemModulesModel()
+        : ItemModulesModel.fromOpusJson(
+            (json['item']?['modules'] as List).cast());
+
+    if (json['fallback'] != null) {
+      fallback = Fallback.fromJson(json['fallback']);
+    }
+  }
+}
+
+class Fallback {
+  String? id;
+  int? type;
+
+  Fallback({
+    this.id,
+    this.type,
+  });
+
+  factory Fallback.fromJson(Map<String, dynamic> json) => Fallback(
+        id: json['id'],
+        type: json['type'],
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': type,
+      };
 }
 
 // 单个动态详情
 class ItemModulesModel {
-  ItemModulesModel({
-    this.moduleAuthor,
-    this.moduleDynamic,
-    // this.moduleInter,
-    this.moduleStat,
-    this.moduleTag,
-  });
+  ItemModulesModel();
 
   ModuleAuthorModel? moduleAuthor;
+  ModuleStatModel? moduleStat;
+  ModuleTag? moduleTag; // 也做opus的title用
+
+  // 动态
   ModuleDynamicModel? moduleDynamic;
   // ModuleInterModel? moduleInter;
-  ModuleStatModel? moduleStat;
-  ModuleTag? moduleTag;
+
+  // 专栏
+  List<ModuleTag>? moduleExtend; // opus的tag
+  List<ArticleContentModel>? moduleContent;
+  ModuleBlocked? moduleBlocked;
+
+  // moduleBottom
 
   ItemModulesModel.fromJson(Map<String, dynamic> json) {
     moduleAuthor = json['module_author'] != null
@@ -86,37 +119,110 @@ class ItemModulesModel {
         ? ModuleTag.fromJson(json['module_tag'])
         : null;
   }
+
+  ItemModulesModel.fromOpusJson(List<Map<String, dynamic>> json) {
+    for (var i in json) {
+      switch (i['module_type']) {
+        case 'MODULE_TYPE_TITLE':
+          moduleTag = i['module_title'] == null
+              ? null
+              : ModuleTag.fromJson(i['module_title']);
+          break;
+        case 'MODULE_TYPE_AUTHOR':
+          moduleAuthor = i['module_author'] == null
+              ? null
+              : ModuleAuthorModel.fromJson(i['module_author']);
+          break;
+        case 'MODULE_TYPE_CONTENT':
+          moduleContent = (i['module_content']?['paragraphs'] as List?)
+              ?.map((i) => ArticleContentModel.fromJson(i))
+              .toList();
+          break;
+        case 'MODULE_TYPE_BLOCKED':
+          moduleBlocked = i['module_blocked'] == null
+              ? null
+              : ModuleBlocked.fromJson(i['module_blocked']);
+          break;
+        case 'MODULE_TYPE_EXTEND':
+          moduleExtend = (i['module_extend']['items'] as List?)
+              ?.map((i) => ModuleTag.fromJson(i))
+              .toList();
+          break;
+        case 'MODULE_TYPE_STAT':
+          moduleStat = i['module_stat'] == null
+              ? null
+              : ModuleStatModel.fromJson(i['module_stat']);
+          break;
+        // case 'MODULE_TYPE_BOTTOM':
+        //   break;
+        // default:
+        //   debugPrint('unknown type: ${i}');
+      }
+    }
+  }
+}
+
+class ModuleBlocked {
+  BgImg? bgImg;
+  int? blockedType;
+  Button? button;
+  String? title;
+  String? hintMessage;
+  BgImg? icon;
+
+  ModuleBlocked.fromJson(Map<String, dynamic> json) {
+    bgImg = json['bg_img'] == null ? null : BgImg.fromJson(json['bg_img']);
+    blockedType = json['blocked_type'];
+    button = json['button'] == null ? null : Button.fromJson(json['button']);
+    title = json['title'];
+    hintMessage = json['hint_message'];
+    icon = json['icon'] == null ? null : BgImg.fromJson(json['icon']);
+  }
+}
+
+class Button {
+  int? handleType;
+  String? icon;
+  String? jumpUrl;
+  String? text;
+
+  Button.fromJson(Map<String, dynamic> json) {
+    handleType = json['handle_type'];
+    icon = json['icon'];
+    jumpUrl = json['jump_url'];
+    text = json['text'];
+  }
+}
+
+class BgImg {
+  String? imgDark;
+  String? imgDay;
+
+  BgImg.fromJson(Map<String, dynamic> json) {
+    imgDark = json['img_dark'];
+    imgDay = json['img_day'];
+  }
+}
+
+class Basic {
+  String? commentIdStr;
+  int? commentType;
+  Map<String, dynamic>? likeIcon;
+  String? ridStr;
+
+  Basic.fromJson(Map<String, dynamic> json) {
+    commentIdStr = json['comment_id_str'];
+    commentType = json['comment_type'];
+    likeIcon = json['like_icon'];
+    ridStr = json['rid_str'];
+  }
 }
 
 // 单个动态详情 - 作者信息
-class ModuleAuthorModel {
-  ModuleAuthorModel({
-    // this.avatar,
-    // this.decorate,
-    this.face,
-    this.following,
-    this.jumpUrl,
-    this.label,
-    this.mid,
-    this.name,
-    // this.officialVerify,
-    // this.pandant,
-    this.pubAction,
-    // this.pubLocationText,
-    this.pubTime,
-    this.pubTs,
-    this.type,
-    this.vip,
-    this.decorate,
-    this.pendant,
-  });
-
-  String? face;
+class ModuleAuthorModel extends Owner {
   bool? following;
   String? jumpUrl;
   String? label;
-  int? mid;
-  String? name;
   String? pubAction;
   String? pubTime;
   int? pubTs;
@@ -429,7 +535,7 @@ class DynamicMajorModel {
   Map? courses;
   Map? common;
   Map? music;
-  Map? blocked;
+  ModuleBlocked? blocked;
   Map? medialist;
 
   DynamicMajorModel.fromJson(Map<String, dynamic> json) {
@@ -456,7 +562,9 @@ class DynamicMajorModel {
     courses = json['courses'] ?? {};
     common = json['common'] ?? {};
     music = json['music'] ?? {};
-    blocked = json['blocked'];
+    blocked = json['blocked'] == null
+        ? null
+        : ModuleBlocked.fromJson(json['blocked']);
     medialist = json['medialist'];
   }
 }
@@ -790,63 +898,49 @@ class ModuleStatModel {
     this.comment,
     this.forward,
     this.like,
+    this.favorite,
   });
 
-  Comment? comment;
-  ForWard? forward;
-  Like? like;
+  DynamicStat? comment;
+  DynamicStat? forward;
+  DynamicStat? like;
+  DynamicStat? favorite;
+  // DynamicStat? coin;
 
   ModuleStatModel.fromJson(Map<String, dynamic> json) {
-    comment = Comment.fromJson(json['comment']);
-    forward = ForWard.fromJson(json['forward']);
-    like = Like.fromJson(json['like']);
+    comment = DynamicStat.fromJson(json['comment']);
+    forward = DynamicStat.fromJson(json['forward']);
+    like = DynamicStat.fromJson(json['like']);
+    if (json['favorite'] != null) {
+      favorite = DynamicStat.fromJson(json['favorite']);
+    }
   }
 }
 
-// 动态状态 评论
-class Comment {
-  Comment({
-    this.count,
-    this.forbidden,
-  });
-
-  String? count;
-  bool? forbidden;
-
-  Comment.fromJson(Map<String, dynamic> json) {
-    count = json['count'] == 0 ? null : json['count'].toString();
-    forbidden = json['forbidden'];
-  }
-}
-
-class ForWard {
-  ForWard({this.count, this.forbidden});
-  String? count;
-  bool? forbidden;
-
-  ForWard.fromJson(Map<String, dynamic> json) {
-    count = json['count'] == 0 ? null : json['count'].toString();
-    forbidden = json['forbidden'];
-  }
-}
-
-// 动态状态 点赞
-class Like {
-  Like({
+// 动态状态
+class DynamicStat {
+  DynamicStat({
     this.count,
     this.forbidden,
     this.status,
   });
 
-  String? count;
+  int? count;
   bool? forbidden;
   bool? status;
 
-  Like.fromJson(Map<String, dynamic> json) {
-    count = json['count'] == 0 ? null : json['count'].toString();
+  DynamicStat.fromJson(Map<String, dynamic> json) {
+    count = json['count'] == 0 ? null : _parseInt(json['count']);
     forbidden = json['forbidden'];
     status = json['status'];
   }
+
+  static int? _parseInt(dynamic x) => switch (x) {
+        int() => x,
+        String() => int.tryParse(x),
+        double() => x.toInt(),
+        _ => null
+      };
 }
 
 class Stat {

@@ -221,8 +221,11 @@ class Api {
   static const String followDynamic = '/x/polymer/web-dynamic/v1/feed/all';
 
   // 动态点赞
-  static const String likeDynamic =
-      '${HttpString.tUrl}/dynamic_like/v1/dynamic_like/thumb';
+  // static const String likeDynamic =
+  //     '${HttpString.tUrl}/dynamic_like/v1/dynamic_like/thumb';
+
+  // 动态点赞 new
+  static const String thumbDynamic = '/x/dynamic/feed/dyn/thumb';
 
   // 获取稍后再看
   static const String seeYouLater = '/x/v2/history/toview/web';
@@ -717,7 +720,9 @@ class Api {
 
   static const String createTextDynamic = '/dynamic_svr/v1/dynamic_svr/create';
 
-  static const String removeDynamic = '/dynamic_svr/v1/dynamic_svr/rm_dynamic';
+  // static const String removeDynamic = '${HttpString.tUrl}/dynamic_svr/v1/dynamic_svr/rm_dynamic';
+
+  static const String removeDynamic = '/x/dynamic/feed/operate/remove';
 
   static const String uploadBfs = '/x/dynamic/feed/draw/upload_bfs';
 
@@ -786,4 +791,8 @@ class Api {
   static const String articleView = '/x/article/view';
 
   static const String opusDetail = '/x/polymer/web-dynamic/v1/opus/detail';
+
+  static const String gaiaVgateRegister = '/x/gaia-vgate/v1/register';
+
+  static const String gaiaVgateValidate = '/x/gaia-vgate/v1/validate';
 }

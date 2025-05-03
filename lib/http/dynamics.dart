@@ -1,11 +1,11 @@
+import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/dynamics/article_view/data.dart';
-import 'package:PiliPlus/models/dynamics/opus_detail/data.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
 
+import '../models/space_article/item.dart';
 import '../models/dynamics/result.dart';
 import '../models/dynamics/up.dart';
 import 'index.dart';
@@ -33,9 +33,9 @@ class DynamicsHttp {
         if (GStorage.antiGoodsDyn) {
           data.items?.removeWhere(
             (item) =>
-                item.orig?.modules?.moduleDynamic?.additional?.type ==
+                item.orig?.modules.moduleDynamic?.additional?.type ==
                     'ADDITIONAL_TYPE_GOODS' ||
-                item.modules?.moduleDynamic?.additional?.type ==
+                item.modules.moduleDynamic?.additional?.type ==
                     'ADDITIONAL_TYPE_GOODS',
           );
         }
@@ -61,23 +61,51 @@ class DynamicsHttp {
   }
 
   // 动态点赞
-  static Future likeDynamic({
+  // static Future likeDynamic({
+  //   required String? dynamicId,
+  //   required int? up,
+  // }) async {
+  //   var res = await Request().post(
+  //     Api.likeDynamic,
+  //     queryParameters: {
+  //       'dynamic_id': dynamicId,
+  //       'up': up,
+  //       'csrf': Accounts.main.csrf,
+  //     },
+  //   );
+  //   if (res.data['code'] == 0) {
+  //     return {
+  //       'status': true,
+  //       'data': res.data['data'],
+  //     };
+  //   } else {
+  //     return {'status': false, 'msg': res.data['message']};
+  //   }
+  // }
+
+  // 动态点赞
+  static Future thumbDynamic({
     required String? dynamicId,
     required int? up,
   }) async {
     var res = await Request().post(
-      Api.likeDynamic,
+      Api.thumbDynamic,
       queryParameters: {
-        'dynamic_id': dynamicId,
-        'up': up,
         'csrf': Accounts.main.csrf,
       },
+      data: {
+        'dyn_id_str': dynamicId,
+        'up': up,
+        'spmid': '333.1365.0.0',
+      },
+      options: Options(
+        headers: {
+          'referer': HttpString.dynamicShareBaseUrl,
+        },
+      ),
     );
     if (res.data['code'] == 0) {
-      return {
-        'status': true,
-        'data': res.data['data'],
-      };
+      return {'status': true, 'data': res.data['data']};
     } else {
       return {'status': false, 'msg': res.data['message']};
     }
@@ -160,37 +188,34 @@ class DynamicsHttp {
     }
   }
 
-  static Future articleView({
-    required dynamic cvId,
-  }) async {
-    var res = await Request().get(
+  static Future<LoadingState<Item>> articleView({required dynamic cvId}) async {
+    final res = await Request().get(
       Api.articleView,
       queryParameters: await WbiSign.makSign({
         'id': cvId,
         'gaia_source': 'main_web',
+        'web_location': '333.976',
       }),
     );
-    if (res.data['code'] == 0) {
-      return {'status': true, 'data': ArticleData.fromJson(res.data['data'])};
-    } else {
-      return {'status': false, 'msg': res.data['message']};
-    }
+
+    return res.data['code'] == 0
+        ? LoadingState.success(Item.fromJson(res.data['data']))
+        : LoadingState.error(res.data['message']);
   }
 
-  static Future opusDetail({
-    required dynamic opusId,
-  }) async {
-    var res = await Request().get(
+  static Future<LoadingState<DynamicItemModel>> opusDetail(
+      {required dynamic opusId}) async {
+    final res = await Request().get(
       Api.opusDetail,
       queryParameters: await WbiSign.makSign({
-        'id': opusId,
+        'timezone_offset': '-480',
         'features': 'htmlNewStyle',
+        'id': opusId,
       }),
     );
-    if (res.data['code'] == 0) {
-      return {'status': true, 'data': OpusData.fromJson(res.data['data'])};
-    } else {
-      return {'status': false, 'msg': res.data['message']};
-    }
+
+    return res.data['code'] == 0
+        ? LoadingState.success(DynamicItemModel.fromOpusJson(res.data['data']))
+        : LoadingState.error(res.data['message']);
   }
 }

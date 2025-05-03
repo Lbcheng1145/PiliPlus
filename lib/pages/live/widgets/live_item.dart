@@ -26,7 +26,6 @@ class LiveCardV extends StatelessWidget {
           Get.toNamed('/liveRoom?roomid=${liveItem.roomId}');
         },
         onLongPress: () => imageSaveDialog(
-          context: context,
           title: liveItem.title,
           cover: liveItem.cover,
         ),
@@ -40,6 +39,7 @@ class LiveCardV extends StatelessWidget {
                   double maxWidth = boxConstraints.maxWidth;
                   double maxHeight = boxConstraints.maxHeight;
                   return Stack(
+                    clipBehavior: Clip.none,
                     children: [
                       Hero(
                         tag: heroTag,
@@ -72,6 +72,7 @@ class LiveCardV extends StatelessWidget {
   }
 
   Widget liveContent(context) {
+    final theme = Theme.of(context);
     return Expanded(
       flex: 1,
       child: Padding(
@@ -96,9 +97,8 @@ class LiveCardV extends StatelessWidget {
                     '${liveItem.uname}',
                     textAlign: TextAlign.start,
                     style: TextStyle(
-                      fontSize:
-                          Theme.of(context).textTheme.labelMedium!.fontSize,
-                      color: Theme.of(context).colorScheme.outline,
+                      fontSize: theme.textTheme.labelMedium!.fontSize,
+                      color: theme.colorScheme.outline,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
