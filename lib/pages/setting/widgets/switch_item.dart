@@ -1,6 +1,6 @@
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:PiliPlus/utils/storage.dart';
 import 'package:get/get.dart';
 
 class SetSwitchItem extends StatefulWidget {
@@ -59,7 +59,7 @@ class _SetSwitchItemState extends State<SetSwitchItem> {
     setVal();
   }
 
-  void switchChange(ThemeData theme, value) async {
+  Future<void> switchChange(ThemeData theme, value) async {
     if (widget.setKey == SettingBoxKey.badCertificateCallback &&
         (value ?? !val)) {
       showDialog(

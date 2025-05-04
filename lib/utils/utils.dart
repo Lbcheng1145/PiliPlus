@@ -2,10 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+
 import 'package:PiliPlus/build_config.dart';
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/init.dart';
+import 'package:PiliPlus/models/home/rcmd/result.dart';
+import 'package:PiliPlus/models/model_rec_video_item.dart';
+import 'package:PiliPlus/models/model_video.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/global_data.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
@@ -16,13 +20,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:path/path.dart' as path;
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/v4.dart';
-
-import '../models/home/rcmd/result.dart';
-import '../models/model_rec_video_item.dart';
-import '../models/model_video.dart';
 
 class Utils {
   static final Random random = Random();
@@ -70,7 +70,7 @@ class Utils {
     return _isIpad!;
   }
 
-  static void shareText(String text) async {
+  static Future<void> shareText(String text) async {
     try {
       Rect? sharePositionOrigin;
       if (await isIpad()) {
@@ -276,11 +276,12 @@ class Utils {
     semanticsLabel.write(videoItem.title);
 
     if (!emptyStatCheck(videoItem.stat.view)) {
-      semanticsLabel.write(',${Utils.numFormat(videoItem.stat.view)}');
-      semanticsLabel.write(
-          (videoItem is RecVideoItemAppModel && videoItem.goto == 'picture')
-              ? '浏览'
-              : '播放');
+      semanticsLabel
+        ..write(',${Utils.numFormat(videoItem.stat.view)}')
+        ..write(
+            (videoItem is RecVideoItemAppModel && videoItem.goto == 'picture')
+                ? '浏览'
+                : '播放');
     }
     if (!emptyStatCheck(videoItem.stat.danmu)) {
       semanticsLabel.write(',${Utils.numFormat(videoItem.stat.danmu)}弹幕');
@@ -495,7 +496,7 @@ class Utils {
   }
 
   // 检查更新
-  static Future checkUpdate([bool isAuto = true]) async {
+  static Future<void> checkUpdate([bool isAuto = true]) async {
     if (BuildConfig.isDebug) return;
     SmartDialog.dismiss();
     try {

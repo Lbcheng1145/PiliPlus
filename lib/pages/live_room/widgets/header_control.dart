@@ -1,9 +1,9 @@
 import 'dart:io';
 
+import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
-import 'package:PiliPlus/plugin/pl_player/index.dart';
 import 'package:get/get.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
@@ -94,7 +94,7 @@ class LiveHeaderControl extends StatelessWidget implements PreferredSizeWidget {
               plPlayerController.isFullScreen.value,
               true,
             ),
-            icon: Icon(
+            icon: const Icon(
               size: 18,
               Icons.schedule,
               color: Colors.white,

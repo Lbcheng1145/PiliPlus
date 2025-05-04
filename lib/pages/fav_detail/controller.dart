@@ -1,5 +1,6 @@
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/user.dart';
+import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/user/fav_detail.dart';
 import 'package:PiliPlus/models/user/fav_folder.dart';
 import 'package:PiliPlus/pages/common/multi_select_controller.dart';
@@ -10,7 +11,6 @@ import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/http/video.dart';
 
 class FavDetailController
     extends MultiSelectController<FavDetailData, FavDetailItemData> {
@@ -59,7 +59,7 @@ class FavDetailController
     return false;
   }
 
-  onCancelFav(int index, int id, int type) async {
+  Future<void> onCancelFav(int index, int id, int type) async {
     var result = await VideoHttp.delFav(
       ids: ['$id:$type'],
       delIds: mediaId.toString(),
@@ -85,7 +85,7 @@ class FavDetailController
         mediaId: mediaId,
       );
 
-  onDelChecked(BuildContext context) {
+  void onDelChecked(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) {

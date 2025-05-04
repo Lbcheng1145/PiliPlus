@@ -1,24 +1,23 @@
 // 转发
 import 'package:PiliPlus/common/widgets/badge.dart';
-import 'package:PiliPlus/common/widgets/image_save.dart';
-import 'package:PiliPlus/common/widgets/image_view.dart';
-import 'package:PiliPlus/common/widgets/network_img_layer.dart';
+import 'package:PiliPlus/common/widgets/image/image_save.dart';
+import 'package:PiliPlus/common/widgets/image/image_view.dart';
+import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/article/widgets/opus_content.dart';
+import 'package:PiliPlus/pages/dynamics/widgets/additional_panel.dart';
+import 'package:PiliPlus/pages/dynamics/widgets/article_panel.dart';
+import 'package:PiliPlus/pages/dynamics/widgets/live_panel.dart';
+import 'package:PiliPlus/pages/dynamics/widgets/live_rcmd_panel.dart';
+import 'package:PiliPlus/pages/dynamics/widgets/pic_panel.dart';
+import 'package:PiliPlus/pages/dynamics/widgets/rich_node_panel.dart';
+import 'package:PiliPlus/pages/dynamics/widgets/video_panel.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
+import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/utils/utils.dart';
-
-import '../../../models/dynamics/result.dart';
-import 'additional_panel.dart';
-import 'article_panel.dart';
-import 'live_panel.dart';
-import 'live_rcmd_panel.dart';
-import 'pic_panel.dart';
-import 'rich_node_panel.dart';
-import 'video_panel.dart';
 
 InlineSpan picsNodes(
   List<OpusPicsModel> pics,
@@ -46,7 +45,7 @@ InlineSpan picsNodes(
 
 Widget _blockedItem(ThemeData theme, ModuleBlocked moduleBlocked) {
   return Padding(
-    padding: EdgeInsets.symmetric(horizontal: 13, vertical: 1),
+    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 1),
     child: LayoutBuilder(
       builder: (context, constraints) {
         return moduleBlockedItem(theme, moduleBlocked, constraints.maxWidth);
@@ -67,9 +66,6 @@ Widget forWard(
   switch (item.type) {
     // 图文
     case 'DYNAMIC_TYPE_DRAW':
-      bool hasPics =
-          item.modules.moduleDynamic?.major?.opus?.pics?.isNotEmpty == true;
-
       TextSpan? richNodes = richNode(theme, item, context);
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,12 +107,12 @@ Widget forWard(
                         ? null
                         : TextOverflow.ellipsis,
               ),
-            if (hasPics) ...[
+            if (item.modules.moduleDynamic?.major?.opus?.pics?.isNotEmpty ==
+                true)
               Text.rich(
                 picsNodes(
                     item.modules.moduleDynamic!.major!.opus!.pics!, callback),
               ),
-            ],
             const SizedBox(height: 4),
           ],
           Padding(
@@ -424,8 +420,8 @@ Widget forWard(
                     item.modules.moduleAuthor!.name!,
                     style: TextStyle(
                       color: item.modules.moduleAuthor!.vip != null &&
-                              item.modules.moduleAuthor!.vip!['status'] > 0 &&
-                              item.modules.moduleAuthor!.vip!['type'] == 2
+                              item.modules.moduleAuthor!.vip!.status > 0 &&
+                              item.modules.moduleAuthor!.vip!.type == 2
                           ? context.vipColor
                           : theme.colorScheme.onSurface,
                       fontSize: theme.textTheme.titleMedium!.fontSize,

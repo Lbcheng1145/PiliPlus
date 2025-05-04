@@ -1,19 +1,19 @@
 import 'package:json_annotation/json_annotation.dart';
 
-import 'episodic_button.dart';
-import 'item.dart';
-import 'last_watched_locator.dart';
-import 'order.dart';
+import 'package:PiliPlus/models/space_archive/episodic_button.dart';
+import 'package:PiliPlus/models/space_archive/item.dart';
+import 'package:PiliPlus/models/space_archive/last_watched_locator.dart';
+import 'package:PiliPlus/models/space_archive/order.dart';
 
 part 'data.g.dart';
 
 @JsonSerializable()
-class Data {
+class SpaceArchiveData {
   @JsonKey(name: 'episodic_button')
   EpisodicButton? episodicButton;
   List<Order>? order;
   int? count;
-  List<Item>? item;
+  List<SpaceArchiveItem>? item;
   @JsonKey(name: 'last_watched_locator')
   LastWatchedLocator? lastWatchedLocator;
   @JsonKey(name: 'has_next')
@@ -22,7 +22,7 @@ class Data {
   bool? hasPrev;
   int? next;
 
-  Data({
+  SpaceArchiveData({
     this.episodicButton,
     this.order,
     this.count,
@@ -33,7 +33,8 @@ class Data {
     this.next,
   });
 
-  factory Data.fromJson(Map<String, dynamic> json) => _$DataFromJson(json);
+  factory SpaceArchiveData.fromJson(Map<String, dynamic> json) =>
+      _$DataFromJson(json);
 
   Map<String, dynamic> toJson() => _$DataToJson(this);
 }

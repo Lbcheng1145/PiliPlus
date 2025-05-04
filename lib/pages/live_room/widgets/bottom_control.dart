@@ -1,25 +1,27 @@
+import 'package:PiliPlus/pages/live_room/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/common_btn.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/play_pause_btn.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
-import 'package:PiliPlus/pages/live_room/index.dart';
-import 'package:PiliPlus/plugin/pl_player/index.dart';
 import 'package:get/get.dart';
 
 class BottomControl extends StatelessWidget implements PreferredSizeWidget {
   const BottomControl({
+    super.key,
     required this.plPlayerController,
     required this.liveRoomCtr,
     required this.onRefresh,
-    super.key,
+    this.subTitleStyle = const TextStyle(fontSize: 12),
+    this.titleStyle = const TextStyle(fontSize: 14),
   });
 
   final PlPlayerController plPlayerController;
   final LiveRoomController liveRoomCtr;
   final VoidCallback onRefresh;
 
-  final TextStyle subTitleStyle = const TextStyle(fontSize: 12);
-
-  final TextStyle titleStyle = const TextStyle(fontSize: 14);
+  final TextStyle subTitleStyle;
+  final TextStyle titleStyle;
 
   @override
   Size get preferredSize => const Size(double.infinity, kToolbarHeight);

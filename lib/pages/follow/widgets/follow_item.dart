@@ -1,11 +1,11 @@
+import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/models/follow/result.dart';
 import 'package:PiliPlus/pages/share/view.dart' show UserModel;
+import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
+import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/common/widgets/network_img_layer.dart';
-import 'package:PiliPlus/models/follow/result.dart';
-import 'package:PiliPlus/utils/feed_back.dart';
-import 'package:PiliPlus/utils/utils.dart';
 
 class FollowItem extends StatelessWidget {
   final FollowItemModel item;
@@ -58,7 +58,7 @@ class FollowItem extends StatelessWidget {
             Positioned(
               bottom: 0,
               right: 0,
-              child: Container(
+              child: DecoratedBox(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: theme.colorScheme.surface,
@@ -108,7 +108,7 @@ class FollowItem extends StatelessWidget {
                 ),
                 child: Text(
                   '${item.attribute == -1 ? '' : '已'}关注',
-                  style: TextStyle(fontSize: 12),
+                  style: const TextStyle(fontSize: 12),
                 ),
               ),
             )

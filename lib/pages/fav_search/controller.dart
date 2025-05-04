@@ -1,10 +1,10 @@
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/user/fav_detail.dart';
 import 'package:PiliPlus/pages/common/common_search_controller.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/http/user.dart';
 
 class FavSearchController
     extends CommonSearchController<FavDetailData, FavDetailItemData> {
@@ -37,7 +37,7 @@ class FavSearchController
     return false;
   }
 
-  onCancelFav(int index, int id, int? type) async {
+  Future<void> onCancelFav(int index, int id, int? type) async {
     var result = await VideoHttp.favVideo(
       aid: id,
       addIds: '',
@@ -45,9 +45,7 @@ class FavSearchController
       type: type,
     );
     if (result['status']) {
-      List<FavDetailItemData> dataList =
-          (loadingState.value as Success).response;
-      dataList.removeAt(index);
+      loadingState.value.data!.removeAt(index);
       loadingState.refresh();
       SmartDialog.showToast('取消收藏');
     }

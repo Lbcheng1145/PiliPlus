@@ -1,6 +1,5 @@
+import 'package:PiliPlus/http/init.dart';
 import 'package:dio/dio.dart';
-
-import 'index.dart';
 
 class RetryInterceptor extends Interceptor {
   final int _count;
@@ -24,8 +23,9 @@ class RetryInterceptor extends Interceptor {
             }
             (options..path = redirectUrl).maxRedirects--;
             if (status == 303) {
-              options.data = null;
-              options.method = 'GET';
+              options
+                ..data = null
+                ..method = 'GET';
             }
             Request.dio
                 .fetch(options)

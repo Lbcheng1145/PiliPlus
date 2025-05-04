@@ -1,21 +1,21 @@
 import 'dart:math';
+
+import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/constants.dart';
+import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/msg/account.dart';
 import 'package:PiliPlus/models/msg/msgfeed_at_me.dart';
 import 'package:PiliPlus/models/msg/msgfeed_like_me.dart';
 import 'package:PiliPlus/models/msg/msgfeed_reply_me.dart';
 import 'package:PiliPlus/models/msg/msgfeed_sys_msg.dart';
+import 'package:PiliPlus/models/msg/session.dart';
 import 'package:PiliPlus/pages/dynamics/view.dart' show ReplyOption;
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
-
-import '../models/msg/account.dart';
-import '../models/msg/session.dart';
-import '../utils/wbi_sign.dart';
-import 'api.dart';
-import 'init.dart';
 
 class MsgHttp {
   static Future<LoadingState<MsgFeedReplyMe>> msgFeedReplyMe(
@@ -515,7 +515,6 @@ class MsgHttp {
   static Future sendMsg({
     int? senderUid,
     int? receiverId,
-    int? receiverType,
     int? msgType,
     dynamic content,
   }) async {
@@ -525,7 +524,7 @@ class MsgHttp {
       'msg': {
         'sender_uid': senderUid,
         'receiver_id': receiverId,
-        'receiver_type': receiverType ?? 1,
+        'receiver_type': 1,
         'msg_type': msgType ?? 1,
         'msg_status': 0,
         'dev_id': devId,
@@ -565,6 +564,6 @@ class MsgHttp {
   }
 
   static String getDevId() {
-    return Uuid().v4();
+    return const Uuid().v4();
   }
 }

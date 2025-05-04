@@ -1,13 +1,13 @@
-import 'package:PiliPlus/pages/dynamics/repost_dyn_panel.dart';
+import 'package:PiliPlus/http/dynamics.dart';
+import 'package:PiliPlus/models/dynamics/result.dart';
+import 'package:PiliPlus/pages/dynamics_repost/view.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:PiliPlus/http/dynamics.dart';
-import 'package:PiliPlus/models/dynamics/result.dart';
-import 'package:PiliPlus/utils/feed_back.dart';
 
 class ActionPanel extends StatefulWidget {
   const ActionPanel({
@@ -22,7 +22,7 @@ class ActionPanel extends StatefulWidget {
 
 class _ActionPanelState extends State<ActionPanel> {
   bool isProcessing = false;
-  void handleState(Future Function() action) async {
+  Future<void> handleState(Future Function() action) async {
     if (isProcessing.not) {
       isProcessing = true;
       await action();

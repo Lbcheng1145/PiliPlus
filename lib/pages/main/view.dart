@@ -1,23 +1,25 @@
 import 'dart:io';
 
-import 'package:PiliPlus/common/widgets/network_img_layer.dart';
+import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/tabs.dart';
+import 'package:PiliPlus/models/common/dynamic_badge_mode.dart';
+import 'package:PiliPlus/pages/dynamics/controller.dart';
+import 'package:PiliPlus/pages/dynamics/view.dart';
+import 'package:PiliPlus/pages/home/controller.dart';
+import 'package:PiliPlus/pages/home/view.dart';
+import 'package:PiliPlus/pages/main/controller.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
+import 'package:PiliPlus/utils/event_bus.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/feed_back.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/models/common/dynamic_badge_mode.dart';
-import 'package:PiliPlus/pages/dynamics/index.dart';
-import 'package:PiliPlus/pages/home/index.dart';
-import 'package:PiliPlus/utils/event_bus.dart';
-import 'package:PiliPlus/utils/feed_back.dart';
-import 'package:PiliPlus/utils/storage.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import './controller.dart';
 import 'package:stream_transform/stream_transform.dart';
 
 class MainApp extends StatefulWidget {
@@ -97,8 +99,9 @@ class _MainAppState extends State<MainApp>
       }
       int now = DateTime.now().millisecondsSinceEpoch;
       if (now - _homeController.lateCheckSearchAt >= 5 * 60 * 1000) {
-        _homeController.lateCheckSearchAt = now;
-        _homeController.querySearchDefault();
+        _homeController
+          ..lateCheckSearchAt = now
+          ..querySearchDefault();
       }
     }
   }
@@ -114,13 +117,14 @@ class _MainAppState extends State<MainApp>
       }
       int now = DateTime.now().millisecondsSinceEpoch;
       if (now - _mainController.lastCheckUnreadAt >= 5 * 60 * 1000) {
-        _mainController.lastCheckUnreadAt = now;
-        _mainController.queryUnreadMsg();
+        _mainController
+          ..lastCheckUnreadAt = now
+          ..queryUnreadMsg();
       }
     }
   }
 
-  void setIndex(int value) async {
+  Future<void> setIndex(int value) async {
     feedBack();
 
     if (value != _mainController.selectedIndex.value) {
@@ -223,9 +227,12 @@ class _MainAppState extends State<MainApp>
                                         backgroundColor: Colors.transparent,
                                         tilePadding: const EdgeInsets.symmetric(
                                             vertical: 5, horizontal: 12),
-                                        indicatorShape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(16)),
+                                        indicatorShape:
+                                            const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.all(
+                                            Radius.circular(16),
+                                          ),
+                                        ),
                                         onDestinationSelected: setIndex,
                                         selectedIndex:
                                             _mainController.selectedIndex.value,
@@ -281,7 +288,7 @@ class _MainAppState extends State<MainApp>
                       : SafeArea(
                           right: false,
                           child: Container(
-                            padding: EdgeInsets.only(
+                            padding: const EdgeInsets.only(
                               top: 10,
                             ),
                             width: 80,

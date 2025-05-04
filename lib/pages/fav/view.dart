@@ -4,8 +4,9 @@ import 'package:PiliPlus/models/user/fav_folder.dart';
 import 'package:PiliPlus/pages/fav/article/view.dart';
 import 'package:PiliPlus/pages/fav/note/view.dart';
 import 'package:PiliPlus/pages/fav/pgc/view.dart';
-import 'package:PiliPlus/pages/fav/video/fav_folder_sort_page.dart';
-import 'package:PiliPlus/pages/fav/video/index.dart';
+import 'package:PiliPlus/pages/fav/video/controller.dart';
+import 'package:PiliPlus/pages/fav/video/view.dart';
+import 'package:PiliPlus/pages/fav_folder_sort/view.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -54,8 +55,9 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
 
   @override
   void dispose() {
-    _tabController.removeListener(listener);
-    _tabController.dispose();
+    _tabController
+      ..removeListener(listener)
+      ..dispose();
     super.dispose();
   }
 

@@ -1,19 +1,18 @@
 import 'dart:async';
 
+import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/follow.dart';
-import 'package:PiliPlus/pages/dynamics/tab/controller.dart';
-import 'package:PiliPlus/pages/dynamics/tab/view.dart';
+import 'package:PiliPlus/models/common/dynamics_type.dart';
+import 'package:PiliPlus/models/dynamics/up.dart';
+import 'package:PiliPlus/models/follow/result.dart';
+import 'package:PiliPlus/pages/common/common_controller.dart';
+import 'package:PiliPlus/pages/dynamics_tab/controller.dart';
+import 'package:PiliPlus/pages/dynamics_tab/view.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/http/dynamics.dart';
-import 'package:PiliPlus/models/common/dynamics_type.dart';
-import 'package:PiliPlus/models/dynamics/up.dart';
-import 'package:PiliPlus/utils/storage.dart';
-
-import '../../models/follow/result.dart';
-import '../common/common_controller.dart';
 
 class DynamicsController extends GetxController
     with GetSingleTickerProviderStateMixin, ScrollOrRefreshMixin {
@@ -63,7 +62,7 @@ class DynamicsController extends GetxController
     queryFollowUp();
   }
 
-  onSelectType(value) async {
+  Future<void> onSelectType(value) async {
     initialValue.value = value;
   }
 
@@ -165,9 +164,12 @@ class DynamicsController extends GetxController
     isQuerying = false;
   }
 
-  onSelectUp(mid) async {
+  Future<void> onSelectUp(mid) async {
     if (this.mid == mid) {
       tabController.index = (mid == -1 ? 0 : 4);
+      if (mid == -1) {
+        queryFollowUp();
+      }
       controller.onReload();
       return;
     }
@@ -177,13 +179,13 @@ class DynamicsController extends GetxController
   }
 
   @override
-  onRefresh() async {
+  Future<void> onRefresh() async {
     queryFollowUp();
     await controller.onRefresh();
   }
 
   @override
-  void animateToTop() async {
+  Future<void> animateToTop() async {
     controller.animateToTop();
     scrollController.animToTop();
   }

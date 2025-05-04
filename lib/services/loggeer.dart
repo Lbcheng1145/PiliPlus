@@ -1,11 +1,9 @@
-// final _loggerFactory =
-
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 final _loggerFactory = PiliLogger();
 
@@ -17,7 +15,7 @@ class PiliLogger extends Logger {
   PiliLogger() : super();
 
   @override
-  void log(Level level, dynamic message,
+  Future<void> log(Level level, dynamic message,
       {Object? error, StackTrace? stackTrace, DateTime? time}) async {
     if (level == Level.error || level == Level.fatal) {
       // 添加至文件末尾
@@ -35,7 +33,7 @@ Future<File> getLogsPath() async {
   String dir = (await getApplicationDocumentsDirectory()).path;
   final String filename = p.join(dir, ".pili_logs");
   final File file = File(filename);
-  if (!await file.exists()) {
+  if (!file.existsSync()) {
     await file.create(recursive: true);
   }
   return file;

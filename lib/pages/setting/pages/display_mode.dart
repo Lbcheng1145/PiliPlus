@@ -1,10 +1,9 @@
-import 'package:flutter/foundation.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:hive/hive.dart';
-import 'package:PiliPlus/utils/storage.dart';
 
 class SetDisplayMode extends StatefulWidget {
   const SetDisplayMode({super.key});
@@ -39,8 +38,9 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
 
   @override
   void dispose() {
-    controller.removeListener(listener);
-    controller.dispose();
+    controller
+      ..removeListener(listener)
+      ..dispose();
     super.dispose();
   }
 

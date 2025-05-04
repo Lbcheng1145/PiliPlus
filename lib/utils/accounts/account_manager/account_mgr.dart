@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/constants.dart';
+import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
@@ -12,12 +13,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
-import '../account.dart';
-
 final _setCookieReg = RegExp('(?<=)(,)(?=[^;]+?=)');
 
 class AccountManager extends Interceptor {
-  static final Map<AccountType, Set<String>> apiTypeSet = {
+  static const Map<AccountType, Set<String>> apiTypeSet = {
     AccountType.heartbeat: {
       Api.videoIntro,
       Api.replyList,
@@ -54,7 +53,7 @@ class AccountManager extends Interceptor {
     AccountType.video: {Api.videoUrl, Api.bangumiVideoUrl}
   };
 
-  static final loginApi = {
+  static const loginApi = {
     Api.getTVCode,
     Api.qrcodePoll,
     Api.getCaptcha,

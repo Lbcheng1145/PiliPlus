@@ -1,5 +1,5 @@
-import 'package:PiliPlus/common/widgets/dialog.dart';
-import 'package:PiliPlus/common/widgets/loading_widget.dart';
+import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
+import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/member/tags.dart';
@@ -8,7 +8,7 @@ import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'controller.dart';
+import 'package:PiliPlus/pages/follow/controller.dart';
 
 class FollowPage extends StatefulWidget {
   const FollowPage({super.key});
@@ -106,7 +106,7 @@ class _FollowPageState extends State<FollowPage> {
                               Text(
                                 '${item.name}${count != null ? '($count)' : ''} ',
                               ),
-                              Icon(Icons.menu, size: 18),
+                              const Icon(Icons.menu, size: 18),
                             ],
                           ),
                         ),

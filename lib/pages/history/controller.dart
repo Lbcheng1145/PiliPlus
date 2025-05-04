@@ -1,13 +1,13 @@
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/http/user.dart';
+import 'package:PiliPlus/models/user/history.dart';
 import 'package:PiliPlus/pages/common/multi_select_controller.dart';
 import 'package:PiliPlus/pages/history/base_controller.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/http/user.dart';
-import 'package:PiliPlus/models/user/history.dart';
-import 'package:PiliPlus/utils/storage.dart';
 
 class HistoryController extends MultiSelectController<HistoryData, HisListItem>
     with GetSingleTickerProviderStateMixin {
@@ -37,7 +37,7 @@ class HistoryController extends MultiSelectController<HistoryData, HisListItem>
   }
 
   @override
-  onSelect(int index, [bool disableSelect = true]) {
+  void onSelect(int index, [bool disableSelect = true]) {
     List<HisListItem> list = (loadingState.value as Success).response;
     list[index].checked = !(list[index].checked ?? false);
     baseCtr.checkedCount.value =
@@ -121,7 +121,7 @@ class HistoryController extends MultiSelectController<HistoryData, HisListItem>
     }
   }
 
-  void _onDelete(List<HisListItem> result) async {
+  Future<void> _onDelete(List<HisListItem> result) async {
     SmartDialog.showLoading(msg: '请求中');
     List<String> kidList = result.map((item) {
       return '${item.history.business}_${item.kid}';

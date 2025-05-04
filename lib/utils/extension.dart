@@ -108,10 +108,9 @@ extension BuildContextExt on BuildContext {
 
 extension Unique<E, Id> on List<E> {
   List<E> unique([Id Function(E element)? id, bool inplace = true]) {
-    final ids = <dynamic>{};
-    var list = inplace ? this : List<E>.from(this);
-    list.retainWhere((x) => ids.add(id != null ? id(x) : x as Id));
-    return list;
+    final ids = <Id>{};
+    return (inplace ? this : List<E>.from(this))
+      ..retainWhere((x) => ids.add(id != null ? id(x) : x as Id));
   }
 }
 
@@ -145,8 +144,8 @@ extension RationalExt on Rational {
   /// Android docs specified boundaries as inclusive.
   bool get fitsInAndroidRequirements {
     final aspectRatio = numerator / denominator;
-    final min = 1 / 2.39;
-    final max = 2.39;
+    const min = 1 / 2.39;
+    const max = 2.39;
     return (min <= aspectRatio) && (aspectRatio <= max);
   }
 }

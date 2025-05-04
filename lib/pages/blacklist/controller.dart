@@ -1,4 +1,4 @@
-import 'package:PiliPlus/common/widgets/dialog.dart';
+import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/http/black.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/video.dart';
@@ -45,8 +45,7 @@ class BlackListController
       onConfirm: () async {
         var result = await VideoHttp.relationMod(mid: mid, act: 6, reSrc: 11);
         if (result['status']) {
-          List<BlackListItem> list = (loadingState.value as Success).response;
-          list.removeAt(index);
+          loadingState.value.data!.removeAt(index);
           total.value -= 1;
           loadingState.refresh();
           SmartDialog.showToast('操作成功');

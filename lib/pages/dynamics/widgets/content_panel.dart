@@ -1,9 +1,8 @@
 // 内容
-import 'package:PiliPlus/common/widgets/image_view.dart';
+import 'package:PiliPlus/common/widgets/image/image_view.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
+import 'package:PiliPlus/pages/dynamics/widgets/rich_node_panel.dart';
 import 'package:flutter/material.dart';
-
-import 'rich_node_panel.dart';
 
 Widget content(
   ThemeData theme,
@@ -52,7 +51,9 @@ Widget content(
           source == 'detail'
               ? SelectableText.rich(
                   richNodes,
-                  style: TextStyle(fontSize: !isSave ? 16 : 15),
+                  style: !isSave
+                      ? const TextStyle(fontSize: 16)
+                      : const TextStyle(fontSize: 15),
                 )
               : Text.rich(
                   style: const TextStyle(fontSize: 15),

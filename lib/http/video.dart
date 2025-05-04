@@ -1,29 +1,28 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'package:PiliPlus/grpc/app/card/v1/card.pb.dart' as card;
-import 'package:PiliPlus/grpc/grpc_repo.dart';
+
+import 'package:PiliPlus/common/constants.dart';
+import 'package:PiliPlus/http/api.dart';
+import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/http/login.dart';
 import 'package:PiliPlus/models/bangumi/pgc_rank/pgc_rank_item_model.dart';
+import 'package:PiliPlus/models/common/reply_type.dart';
+import 'package:PiliPlus/models/home/rcmd/result.dart';
 import 'package:PiliPlus/models/member/article.dart';
+import 'package:PiliPlus/models/model_hot_video_item.dart';
+import 'package:PiliPlus/models/model_rec_video_item.dart';
+import 'package:PiliPlus/models/user/fav_folder.dart';
+import 'package:PiliPlus/models/video/ai.dart';
+import 'package:PiliPlus/models/video/play/url.dart';
+import 'package:PiliPlus/models/video_detail_res.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/id_utils.dart';
+import 'package:PiliPlus/utils/recommend_filter.dart';
+import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import '../common/constants.dart';
-import '../models/common/reply_type.dart';
-import '../models/home/rcmd/result.dart';
-import '../models/model_hot_video_item.dart';
-import '../models/model_rec_video_item.dart';
-import '../models/user/fav_folder.dart';
-import '../models/video/ai.dart';
-import '../models/video/play/url.dart';
-import '../models/video_detail_res.dart';
-import '../utils/id_utils.dart';
-import '../utils/recommend_filter.dart';
-import '../utils/storage.dart';
-import '../utils/wbi_sign.dart';
-import 'api.dart';
-import 'init.dart';
-import 'login.dart';
 
 /// view层根据 status 判断渲染逻辑
 class VideoHttp {
@@ -172,21 +171,21 @@ class VideoHttp {
     }
   }
 
-  static Future<LoadingState> hotVideoListGrpc({required int idx}) async {
-    dynamic res = await GrpcRepo.popular(idx);
-    if (res['status']) {
-      List<card.Card> list = <card.Card>[];
-      Set<int> blackMids = GStorage.blackMids;
-      for (card.Card item in res['data']) {
-        if (!blackMids.contains(item.smallCoverV5.up.id.toInt())) {
-          list.add(item);
-        }
-      }
-      return LoadingState.success(list);
-    } else {
-      return LoadingState.error(res['msg']);
-    }
-  }
+  // static Future<LoadingState> hotVideoListGrpc({required int idx}) async {
+  //   dynamic res = await GrpcRepo.popular(idx);
+  //   if (res['status']) {
+  //     List<card.Card> list = <card.Card>[];
+  //     Set<int> blackMids = GStorage.blackMids;
+  //     for (card.Card item in res['data']) {
+  //       if (!blackMids.contains(item.smallCoverV5.up.id.toInt())) {
+  //         list.add(item);
+  //       }
+  //     }
+  //     return LoadingState.success(list);
+  //   } else {
+  //     return LoadingState.error(res['msg']);
+  //   }
+  // }
 
   // 视频流
   static Future videoUrl({
@@ -927,7 +926,7 @@ class VideoHttp {
       dynamic data = res.data['data'];
       return {
         'status': true,
-        'subtitles': data['subtitle']['subtitles'],
+        'subtitles': data['subtitle']?['subtitles'],
         'view_points': data['view_points'],
         'last_play_cid': data['last_play_cid'],
         'interaction': data['interaction'],
@@ -950,11 +949,11 @@ class VideoHttp {
     }
 
     String processList(List list) {
-      final sb = StringBuffer('WEBVTT\n\n');
-      sb.writeAll(
-          list.map((item) =>
-              '${item?['sid'] ?? 0}\n${subtitleTimecode(item['from'])} --> ${subtitleTimecode(item['to'])}\n${item['content'].trim()}'),
-          '\n\n');
+      final sb = StringBuffer('WEBVTT\n\n')
+        ..writeAll(
+            list.map((item) =>
+                '${item?['sid'] ?? 0}\n${subtitleTimecode(item['from'])} --> ${subtitleTimecode(item['to'])}\n${item['content'].trim()}'),
+            '\n\n');
       return sb.toString();
     }
 

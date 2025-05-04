@@ -1,11 +1,12 @@
 import 'dart:convert';
 
 import 'package:PiliPlus/common/skeleton/msg_feed_sys_msg_.dart';
-import 'package:PiliPlus/common/widgets/dialog.dart';
-import 'package:PiliPlus/common/widgets/http_error.dart';
+import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
+import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/msg/msgfeed_sys_msg.dart';
+import 'package:PiliPlus/pages/msg_feed_top/sys_msg/controller.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
@@ -14,8 +15,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-
-import 'controller.dart';
 
 class SysMsgPage extends StatefulWidget {
   const SysMsgPage({super.key});
@@ -82,7 +81,6 @@ class _SysMsgPageState extends State<SysMsgPage> {
                   } catch (_) {}
                 }
                 return ListTile(
-                  onTap: () {},
                   onLongPress: () {
                     showConfirmDialog(
                       context: context,
@@ -173,47 +171,49 @@ class _SysMsgPageState extends State<SysMsgPage> {
             } else {
               IdUtils.av2bv(int.parse(match[3]!));
             }
-            spanChildren.add(TextSpan(text: '【'));
-            spanChildren.add(
-              TextSpan(
-                text: match[3],
-                style: TextStyle(color: theme.colorScheme.primary),
-                recognizer: TapGestureRecognizer()
-                  ..onTap = () {
-                    try {
-                      PiliScheme.videoPush(
-                        isBV ? null : int.parse(match[3]!),
-                        isBV ? match[3]! : null,
-                      );
-                    } catch (err) {
-                      SmartDialog.showToast(err.toString());
-                    }
-                  },
-              ),
-            );
-            spanChildren.add(TextSpan(text: '】'));
+            spanChildren
+              ..add(const TextSpan(text: '【'))
+              ..add(
+                TextSpan(
+                  text: match[3],
+                  style: TextStyle(color: theme.colorScheme.primary),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () {
+                      try {
+                        PiliScheme.videoPush(
+                          isBV ? null : int.parse(match[3]!),
+                          isBV ? match[3]! : null,
+                        );
+                      } catch (err) {
+                        SmartDialog.showToast(err.toString());
+                      }
+                    },
+                ),
+              )
+              ..add(const TextSpan(text: '】'));
           } catch (e) {
             spanChildren.add(TextSpan(text: match[0]));
           }
         } else if (matchStr.startsWith('（')) {
           try {
             match[4]; // dynId
-            spanChildren.add(TextSpan(text: '（'));
-            spanChildren.add(
-              TextSpan(
-                text: '查看动态',
-                style: TextStyle(color: theme.colorScheme.primary),
-                recognizer: TapGestureRecognizer()
-                  ..onTap = () {
-                    try {
-                      PageUtils.pushDynFromId(id: match[4]);
-                    } catch (err) {
-                      SmartDialog.showToast(err.toString());
-                    }
-                  },
-              ),
-            );
-            spanChildren.add(TextSpan(text: '）'));
+            spanChildren
+              ..add(const TextSpan(text: '（'))
+              ..add(
+                TextSpan(
+                  text: '查看动态',
+                  style: TextStyle(color: theme.colorScheme.primary),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () {
+                      try {
+                        PageUtils.pushDynFromId(id: match[4]);
+                      } catch (err) {
+                        SmartDialog.showToast(err.toString());
+                      }
+                    },
+                ),
+              )
+              ..add(const TextSpan(text: '）'));
           } catch (e) {
             spanChildren.add(TextSpan(text: match[0]));
           }

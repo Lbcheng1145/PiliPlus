@@ -2,13 +2,20 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/models/live/room_info_h5.dart';
-import 'package:PiliPlus/pages/live_room/send_dm_panel.dart';
+import 'package:PiliPlus/pages/live_room/controller.dart';
+import 'package:PiliPlus/pages/live_room/send_danmaku/view.dart';
+import 'package:PiliPlus/pages/live_room/widgets/bottom_control.dart';
 import 'package:PiliPlus/pages/live_room/widgets/chat.dart';
 import 'package:PiliPlus/pages/live_room/widgets/header_control.dart';
+import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
+import 'package:PiliPlus/plugin/pl_player/view.dart';
 import 'package:PiliPlus/services/service_locator.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
@@ -17,13 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/common/widgets/network_img_layer.dart';
-import 'package:PiliPlus/plugin/pl_player/index.dart';
 import 'package:screen_brightness/screen_brightness.dart';
-
-import '../../utils/storage.dart';
-import 'controller.dart';
-import 'widgets/bottom_control.dart';
 
 class LiveRoomPage extends StatefulWidget {
   const LiveRoomPage({super.key});
@@ -72,8 +73,9 @@ class _LiveRoomPageState extends State<LiveRoomPage>
     }
     videoSourceInit();
     _futureBuilderFuture = _liveRoomController.queryLiveInfo();
-    plPlayerController.autoEnterFullscreen();
-    plPlayerController.addStatusLister(playerListener);
+    plPlayerController
+      ..autoEnterFullscreen()
+      ..addStatusLister(playerListener);
     _listener = plPlayerController.isFullScreen.listen((isFullScreen) {
       if (isFullScreen != _isFullScreen) {
         _isFullScreen = isFullScreen;
@@ -92,7 +94,7 @@ class _LiveRoomPageState extends State<LiveRoomPage>
     }
   }
 
-  void _updateFontSize() async {
+  Future<void> _updateFontSize() async {
     if (Platform.isAndroid) {
       _isPipMode =
           await const MethodChannel("floating").invokeMethod('inPipAlready');
@@ -124,8 +126,9 @@ class _LiveRoomPageState extends State<LiveRoomPage>
     ScreenBrightness().resetApplicationScreenBrightness();
     PlPlayerController.setPlayCallBack(null);
     _liveRoomController.msgStream?.close();
-    plPlayerController.removeStatusLister(playerListener);
-    plPlayerController.dispose();
+    plPlayerController
+      ..removeStatusLister(playerListener)
+      ..dispose();
     super.dispose();
   }
 
@@ -328,10 +331,7 @@ class _LiveRoomPageState extends State<LiveRoomPage>
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      child: Padding(
-                        padding: EdgeInsets.only(bottom: 0),
-                        child: _buildInputWidget,
-                      ),
+                      child: _buildInputWidget,
                     ),
             ),
           ],
@@ -359,13 +359,13 @@ class _LiveRoomPageState extends State<LiveRoomPage>
     );
   }
 
-  final Color _color = Color(0xFFEEEEEE);
+  final Color _color = const Color(0xFFEEEEEE);
 
   PreferredSizeWidget get _buildAppBar => AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         toolbarHeight: isFullScreen ? 0 : null,
-        titleTextStyle: TextStyle(color: Colors.white),
+        titleTextStyle: const TextStyle(color: Colors.white),
         title: Obx(
           () {
             return _liveRoomController.roomInfoH5.value == null
@@ -550,7 +550,7 @@ class _LiveRoomPageState extends State<LiveRoomPage>
           right: 10,
           bottom: 25 + MediaQuery.of(context).padding.bottom,
         ),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
@@ -616,7 +616,7 @@ class _LiveRoomPageState extends State<LiveRoomPage>
       },
       transitionDuration: const Duration(milliseconds: 500),
       transitionBuilder: (context, animation, secondaryAnimation, child) {
-        var tween = Tween(begin: Offset(0.0, 1.0), end: Offset.zero)
+        var tween = Tween(begin: const Offset(0.0, 1.0), end: Offset.zero)
             .chain(CurveTween(curve: Curves.linear));
         return SlideTransition(
           position: animation.drive(tween),

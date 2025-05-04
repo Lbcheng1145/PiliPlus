@@ -1,12 +1,14 @@
-import 'package:PiliPlus/grpc/app/main/community/reply/v1/reply.pb.dart';
+import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
+    show MainListReply, ReplyInfo;
 import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/http/reply.dart';
 import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/dynamics/article_content_model.dart'
     show ArticleContentModel;
 import 'package:PiliPlus/models/dynamics/result.dart';
-import 'package:PiliPlus/models/model_owner.dart';
+import 'package:PiliPlus/models/model_avatar.dart';
 import 'package:PiliPlus/models/space_article/item.dart';
 import 'package:PiliPlus/pages/common/reply_controller.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
@@ -14,8 +16,6 @@ import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/url_utils.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/http/reply.dart';
-import 'package:fixnum/fixnum.dart' as $fixnum;
 
 class ArticleController extends ReplyController<MainListReply> {
   late String id;
@@ -36,7 +36,7 @@ class ArticleController extends ReplyController<MainListReply> {
 
   final RxBool isLoaded = false.obs;
   DynamicItemModel? opusData; // 标题信息从summary获取, 动态没有favorite
-  Item? articleData;
+  SpaceArticleItem? articleData;
   final Rx<ModuleStatModel?> stats = Rx<ModuleStatModel?>(null);
 
   List<ArticleContentModel>? get opus =>
@@ -63,7 +63,7 @@ class ArticleController extends ReplyController<MainListReply> {
     }
   }
 
-  init() {
+  void init() {
     url = type == 'read'
         ? 'https://www.bilibili.com/read/cv$id'
         : 'https://www.bilibili.com/opus/$id';
@@ -170,13 +170,11 @@ class ArticleController extends ReplyController<MainListReply> {
 
   @override
   Future<LoadingState<MainListReply>> customGetData() {
-    return ReplyHttp.replyListGrpc(
+    return ReplyHttp.mainList(
       type: commentType,
       oid: commentId,
-      cursor: CursorReq(
-        next: cursor?.next ?? $fixnum.Int64(0),
-        mode: mode.value,
-      ),
+      mode: mode.value,
+      offset: paginationReply?.nextOffset,
       antiGoodsReply: antiGoodsReply,
     );
   }
@@ -225,7 +223,7 @@ class ArticleController extends ReplyController<MainListReply> {
 }
 
 class Summary {
-  Owner? author;
+  Avatar? author;
   String? title;
   String? cover;
 

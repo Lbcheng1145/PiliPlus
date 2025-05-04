@@ -1,6 +1,5 @@
 import 'package:PiliPlus/http/user.dart';
-
-import 'storage.dart';
+import 'package:PiliPlus/utils/storage.dart';
 
 class Data {
   static Future init() async {

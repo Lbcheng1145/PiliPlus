@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:PiliPlus/http/api.dart';
+import 'package:PiliPlus/http/init.dart';
+import 'package:PiliPlus/models/common/tab_type.dart';
+import 'package:PiliPlus/pages/common/common_controller.dart';
+import 'package:PiliPlus/pages/mine/view.dart';
+import 'package:PiliPlus/utils/feed_back.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/models/common/tab_type.dart';
-import 'package:PiliPlus/utils/storage.dart';
-import '../../http/index.dart';
-import '../../utils/feed_back.dart';
-import '../common/common_controller.dart';
-import '../mine/view.dart';
 
 class HomeController extends GetxController
     with GetSingleTickerProviderStateMixin, ScrollOrRefreshMixin {
@@ -71,14 +72,15 @@ class HomeController extends GetxController
     return controller.onRefresh().catchError((e) => debugPrint(e.toString()));
   }
 
-  void setTabConfig() async {
+  Future<void> setTabConfig() async {
     final defaultTabs = [...tabsConfig];
     final tabbarSort = GStorage.tabbarSort;
-    defaultTabs.retainWhere(
-        (item) => tabbarSort.contains((item['type'] as TabType).name));
-    defaultTabs.sort((a, b) => tabbarSort
-        .indexOf((a['type'] as TabType).name)
-        .compareTo(tabbarSort.indexOf((b['type'] as TabType).name)));
+    defaultTabs
+      ..retainWhere(
+          (item) => tabbarSort.contains((item['type'] as TabType).name))
+      ..sort((a, b) => tabbarSort
+          .indexOf((a['type'] as TabType).name)
+          .compareTo(tabbarSort.indexOf((b['type'] as TabType).name)));
 
     tabs = defaultTabs;
 
@@ -97,7 +99,7 @@ class HomeController extends GetxController
     super.dispose();
   }
 
-  void querySearchDefault() async {
+  Future<void> querySearchDefault() async {
     try {
       var res = await Request().get(Api.searchDefault);
       if (res.data['code'] == 0) {
@@ -106,7 +108,7 @@ class HomeController extends GetxController
     } catch (_) {}
   }
 
-  showUserInfoDialog(context) {
+  void showUserInfoDialog(context) {
     feedBack();
     showDialog(
       context: context,

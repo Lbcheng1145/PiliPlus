@@ -1,13 +1,12 @@
+import 'package:PiliPlus/http/init.dart';
+import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
+import 'package:PiliPlus/utils/id_utils.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
+import 'package:PiliPlus/utils/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-
-import '../http/init.dart';
-import '../http/search.dart';
-import 'id_utils.dart';
-import 'utils.dart';
 
 class UrlUtils {
   // 302重定向路由截取
@@ -42,7 +41,7 @@ class UrlUtils {
   }
 
   // 匹配url路由跳转
-  static matchUrlPush(
+  static Future<void> matchUrlPush(
     String pathSegment,
     String redirectUrl,
   ) async {

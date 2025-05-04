@@ -1,11 +1,11 @@
-import 'package:PiliPlus/common/widgets/dialog.dart';
+import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/search/search_trending/trending_data.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:PiliPlus/http/search.dart';
+import 'package:PiliPlus/models/search/search_trending/trending_data.dart';
 import 'package:PiliPlus/models/search/suggest.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:get/get_rx/src/rx_workers/utils/debouncer.dart';
 
 class SSearchController extends GetxController {
@@ -96,7 +96,7 @@ class SSearchController extends GetxController {
   }
 
   // 搜索
-  void submit() async {
+  Future<void> submit() async {
     if (controller.text.isEmpty) {
       if (hintText.isEmpty) {
         return;
@@ -106,8 +106,9 @@ class SSearchController extends GetxController {
     }
 
     if (recordSearchHistory.value) {
-      historyList.remove(controller.text);
-      historyList.insert(0, controller.text);
+      historyList
+        ..remove(controller.text)
+        ..insert(0, controller.text);
       GStorage.historyWord.put('cacheList', historyList);
     }
 
@@ -153,12 +154,12 @@ class SSearchController extends GetxController {
     }
   }
 
-  onLongSelect(word) {
+  void onLongSelect(word) {
     historyList.remove(word);
     GStorage.historyWord.put('cacheList', historyList);
   }
 
-  onClearHistory() {
+  void onClearHistory() {
     showConfirmDialog(
       context: Get.context!,
       title: '确定清空搜索历史？',

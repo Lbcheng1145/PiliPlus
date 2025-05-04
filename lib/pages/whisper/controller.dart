@@ -1,15 +1,14 @@
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/http/msg.dart';
 import 'package:PiliPlus/models/msg/account.dart';
+import 'package:PiliPlus/models/msg/msgfeed_unread.dart';
 import 'package:PiliPlus/models/msg/session.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/http/msg.dart';
-
-import '../../models/msg/msgfeed_unread.dart';
-import '../../utils/storage.dart';
 
 class WhisperController
     extends CommonListController<List<SessionList>?, SessionList> {
@@ -86,8 +85,7 @@ class WhisperController
       if (isRefresh) {
         loadingState.value = LoadingState<List<SessionList>?>.success(dataList);
       } else if (loadingState.value is Success) {
-        List<SessionList> list = (loadingState.value as Success).response;
-        list.addAll(dataList);
+        loadingState.value.data!.addAll(dataList);
         loadingState.refresh();
       }
     });
@@ -104,8 +102,7 @@ class WhisperController
   Future onRemove(int index, int? talkerId) async {
     var res = await MsgHttp.removeMsg(talkerId);
     if (res['status']) {
-      List<SessionList> list = (loadingState.value as Success).response;
-      list.removeAt(index);
+      loadingState.value.data!.removeAt(index);
       loadingState.refresh();
       SmartDialog.showToast('删除成功');
     } else {

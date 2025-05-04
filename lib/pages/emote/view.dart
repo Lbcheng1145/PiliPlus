@@ -1,11 +1,11 @@
-import 'package:PiliPlus/common/widgets/loading_widget.dart';
+import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
+import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/video/reply/emote.dart';
+import 'package:PiliPlus/pages/emote/controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../common/widgets/network_img_layer.dart';
-import 'controller.dart';
-import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 
 class EmotePanel extends StatefulWidget {
   final ValueChanged<Emote> onChoose;
@@ -58,7 +58,8 @@ class _EmotePanelState extends State<EmotePanel>
                             return Material(
                               color: Colors.transparent,
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius:
+                                    const BorderRadius.all(Radius.circular(8)),
                                 onTap: () {
                                   widget.onChoose(e.emote![index]);
                                 },
@@ -124,7 +125,7 @@ class _EmotePanelState extends State<EmotePanel>
   Widget _errorWidget([String? errMsg]) => Center(
         child: TextButton.icon(
           onPressed: _emotePanelController.onReload,
-          icon: Icon(Icons.refresh),
+          icon: const Icon(Icons.refresh),
           label: Text(errMsg ?? '没有数据'),
         ),
       );

@@ -1,25 +1,23 @@
+import 'package:PiliPlus/models/model_avatar.dart' hide Avatar;
+import 'package:PiliPlus/models/space/achieve.dart';
+import 'package:PiliPlus/models/space/avatar.dart';
+import 'package:PiliPlus/models/space/entrance.dart';
+import 'package:PiliPlus/models/space/honours.dart';
+import 'package:PiliPlus/models/space/level_info.dart';
+import 'package:PiliPlus/models/space/likes.dart';
+import 'package:PiliPlus/models/space/nameplate.dart';
+import 'package:PiliPlus/models/space/nft_certificate.dart';
+import 'package:PiliPlus/models/space/official_verify.dart';
 import 'package:PiliPlus/models/space/pr_info.dart';
+import 'package:PiliPlus/models/space/profession_verify.dart';
+import 'package:PiliPlus/models/space/relation.dart';
 import 'package:PiliPlus/models/space/space_tag_bottom.dart';
 import 'package:json_annotation/json_annotation.dart';
-
-import 'achieve.dart';
-import 'avatar.dart';
-import 'entrance.dart';
-import 'honours.dart';
-import 'level_info.dart';
-import 'likes.dart';
-import 'nameplate.dart';
-import 'nft_certificate.dart';
-import 'official_verify.dart';
-import 'pendant.dart';
-import 'profession_verify.dart';
-import 'relation.dart';
-import 'vip.dart';
 
 part 'card.g.dart';
 
 @JsonSerializable()
-class Card {
+class SpaceCard {
   Avatar? avatar;
   String? mid;
   String? name;
@@ -89,7 +87,7 @@ class Card {
   @JsonKey(name: 'has_digital_asset')
   bool? hasDigitalAsset;
 
-  Card({
+  SpaceCard({
     this.avatar,
     this.mid,
     this.name,
@@ -140,7 +138,7 @@ class Card {
     this.hasDigitalAsset,
   });
 
-  factory Card.fromJson(Map<String, dynamic> json) => _$CardFromJson(json);
+  factory SpaceCard.fromJson(Map<String, dynamic> json) => _$CardFromJson(json);
 
   Map<String, dynamic> toJson() => _$CardToJson(this);
 }

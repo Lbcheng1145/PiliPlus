@@ -1,5 +1,5 @@
-import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/live.dart';
+import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/live/follow.dart';
 import 'package:PiliPlus/models/live/item.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
@@ -59,7 +59,8 @@ class LiveController
   }
 
   late RxBool isLogin = Accounts.main.isLogin.obs;
-  late Rx<LoadingState> followListState = LoadingState.loading().obs;
+  late Rx<LoadingState<List<LiveFollowingItemModel>?>> followListState =
+      Rx(LoadingState.loading());
   late int followPage = 1;
   late bool followEnd = false;
   late RxInt liveCount = 0.obs;
@@ -93,9 +94,8 @@ class LiveController
         }
         followListState.value = LoadingState.success(dataList);
       } else if (followListState.value is Success) {
-        List<LiveFollowingItemModel> list =
-            (followListState.value as Success).response;
-        list.addAll(dataList!);
+        List<LiveFollowingItemModel> list = followListState.value.data!
+          ..addAll(dataList!);
         if (list.length >= liveCount.value) {
           followEnd = true;
         }

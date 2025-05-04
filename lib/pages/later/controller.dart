@@ -1,5 +1,6 @@
-import 'package:PiliPlus/common/widgets/dialog.dart';
+import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/models/model_hot_video_item.dart';
 import 'package:PiliPlus/pages/common/multi_select_controller.dart';
 import 'package:PiliPlus/pages/later/base_controller.dart';
@@ -12,7 +13,6 @@ import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/http/user.dart';
 
 class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
   LaterController(this.laterViewType);
@@ -31,7 +31,7 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
       );
 
   @override
-  onSelect(int index, [bool disableSelect = true]) {
+  void onSelect(int index, [bool disableSelect = true]) {
     List<HotVideoItemModel> list = (loadingState.value as Success).response;
     list[index].checked = !(list[index].checked ?? false);
     baseCtr.checkedCount.value =
@@ -91,7 +91,7 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
       builder: (context) {
         return AlertDialog(
           title: const Text('提示'),
-          content: Text('即将移除该视频，确定是否移除'),
+          content: const Text('即将移除该视频，确定是否移除'),
           actions: [
             TextButton(
               onPressed: Get.back,
@@ -105,16 +105,14 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
                 Get.back();
                 var res = await UserHttp.toViewDel(aids: [aid]);
                 if (res['status']) {
-                  List<HotVideoItemModel> list =
-                      (loadingState.value as Success).response;
-                  list.removeAt(index);
+                  loadingState.value.data!.removeAt(index);
                   baseCtr.counts[laterViewType] =
                       baseCtr.counts[laterViewType]! - 1;
                   loadingState.refresh();
                 }
                 SmartDialog.showToast(res['msg']);
               },
-              child: Text('确认移除'),
+              child: const Text('确认移除'),
             )
           ],
         );
@@ -150,7 +148,7 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
     );
   }
 
-  onDelChecked(BuildContext context) {
+  void onDelChecked(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) {
@@ -183,7 +181,7 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
     );
   }
 
-  void _onDelete(List<HotVideoItemModel> result) async {
+  Future<void> _onDelete(List<HotVideoItemModel> result) async {
     SmartDialog.showLoading(msg: '请求中');
     List<int?> aids = result.map((item) => item.aid).toList();
     dynamic res = await UserHttp.toViewDel(aids: aids);

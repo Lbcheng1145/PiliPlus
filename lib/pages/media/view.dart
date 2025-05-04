@@ -1,15 +1,15 @@
 import 'dart:async';
 
+import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/user/fav_folder.dart';
 import 'package:PiliPlus/pages/common/common_page.dart';
 import 'package:PiliPlus/pages/main/controller.dart';
+import 'package:PiliPlus/pages/media/controller.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/common/widgets/network_img_layer.dart';
-import 'package:PiliPlus/models/user/fav_folder.dart';
-import 'package:PiliPlus/pages/media/index.dart';
-import 'package:PiliPlus/utils/utils.dart';
 
 class MediaPage extends CommonPage {
   const MediaPage({super.key});
@@ -279,7 +279,7 @@ class FavFolderItem extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 8),
               clipBehavior: Clip.hardEdge,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
                 color: theme.colorScheme.onInverseSurface.withOpacity(0.4),
                 boxShadow: [
                   BoxShadow(

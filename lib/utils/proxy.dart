@@ -1,8 +1,9 @@
 import 'dart:io';
+
 import 'package:system_proxy/system_proxy.dart';
 
 class CustomProxy {
-  init() async {
+  Future<void> init() async {
     Map<String, String>? proxy = await SystemProxy.getProxySettings();
     if (proxy != null) {
       HttpOverrides.global =

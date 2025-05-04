@@ -1,21 +1,22 @@
 import 'package:json_annotation/json_annotation.dart';
 
-import 'item.dart';
-import 'list.dart';
+import 'package:PiliPlus/models/space_article/item.dart';
+import 'package:PiliPlus/models/space_article/list.dart';
 
 part 'data.g.dart';
 
 @JsonSerializable()
-class Data {
+class SpaceArticleData {
   int? count;
-  List<Item>? item;
+  List<SpaceArticleItem>? item;
   @JsonKey(name: 'lists_count')
   int? listsCount;
   List<ArticleList>? lists;
 
-  Data({this.count, this.item, this.listsCount, this.lists});
+  SpaceArticleData({this.count, this.item, this.listsCount, this.lists});
 
-  factory Data.fromJson(Map<String, dynamic> json) => _$DataFromJson(json);
+  factory SpaceArticleData.fromJson(Map<String, dynamic> json) =>
+      _$DataFromJson(json);
 
   Map<String, dynamic> toJson() => _$DataToJson(this);
 }

@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:PiliPlus/common/constants.dart';
-
-import 'skeleton.dart';
+import 'package:PiliPlus/common/skeleton/skeleton.dart';
+import 'package:flutter/material.dart';
 
 class MediaBangumiSkeleton extends StatefulWidget {
   const MediaBangumiSkeleton({super.key});
@@ -24,8 +23,9 @@ class _MediaBangumiSkeletonState extends State<MediaBangumiSkeleton> {
               width: 111,
               height: 148,
               decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.all(Radius.circular(6)),
-                  color: bgColor),
+                borderRadius: const BorderRadius.all(Radius.circular(6)),
+                color: bgColor,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(

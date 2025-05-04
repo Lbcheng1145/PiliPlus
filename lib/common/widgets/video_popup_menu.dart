@@ -1,17 +1,16 @@
+import 'package:PiliPlus/http/user.dart';
+import 'package:PiliPlus/http/video.dart';
+import 'package:PiliPlus/models/home/rcmd/result.dart';
 import 'package:PiliPlus/models/model_video.dart';
+import 'package:PiliPlus/models/space_archive/item.dart';
+import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/pages/search/widgets/search_text.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-
-import '../../http/user.dart';
-import '../../http/video.dart';
-import '../../models/home/rcmd/result.dart';
-import '../../pages/mine/controller.dart';
-import '../../utils/storage.dart';
-import 'package:PiliPlus/models/space_archive/item.dart';
 
 class VideoCustomAction {
   String title;
@@ -54,7 +53,7 @@ class VideoCustomActions {
           },
         ),
       ],
-      if (videoItem is! Item)
+      if (videoItem is! SpaceArchiveItem)
         VideoCustomAction(
           '访问：${videoItem.owner.name}',
           'visit',
@@ -65,7 +64,7 @@ class VideoCustomActions {
             });
           },
         ),
-      if (videoItem is! Item)
+      if (videoItem is! SpaceArchiveItem)
         VideoCustomAction(
             '不感兴趣', 'dislike', Icon(MdiIcons.thumbDownOutline, size: 16),
             () async {
@@ -117,7 +116,7 @@ class VideoCustomActions {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (tp.dislikeReasons != null) ...[
-                          Text('我不想看'),
+                          const Text('我不想看'),
                           const SizedBox(height: 5),
                           Wrap(
                             spacing: 8.0,
@@ -129,7 +128,7 @@ class VideoCustomActions {
                         ],
                         if (tp.feedbacks != null) ...[
                           const SizedBox(height: 5),
-                          Text('反馈'),
+                          const Text('反馈'),
                           const SizedBox(height: 5),
                           Wrap(
                             spacing: 8.0,
@@ -154,10 +153,7 @@ class VideoCustomActions {
                               Get.back();
                             },
                             style: FilledButton.styleFrom(
-                              visualDensity: VisualDensity(
-                                horizontal: -2,
-                                vertical: -2,
-                              ),
+                              visualDensity: VisualDensity.compact,
                             ),
                             child: const Text("撤销"),
                           ),
@@ -198,10 +194,7 @@ class VideoCustomActions {
                                 }
                               },
                               style: FilledButton.styleFrom(
-                                visualDensity: VisualDensity(
-                                  horizontal: -2,
-                                  vertical: -2,
-                                ),
+                                visualDensity: VisualDensity.compact,
                               ),
                               child: const Text("点踩"),
                             ),
@@ -217,10 +210,7 @@ class VideoCustomActions {
                                     res['status'] ? "取消踩" : res['msg']);
                               },
                               style: FilledButton.styleFrom(
-                                visualDensity: VisualDensity(
-                                  horizontal: -2,
-                                  vertical: -2,
-                                ),
+                                visualDensity: VisualDensity.compact,
                               ),
                               child: const Text("撤销"),
                             ),
@@ -234,7 +224,7 @@ class VideoCustomActions {
             );
           }
         }),
-      if (videoItem is! Item)
+      if (videoItem is! SpaceArchiveItem)
         VideoCustomAction('拉黑：${videoItem.owner.name}', 'block',
             Icon(MdiIcons.cancel, size: 16), () async {
           await showDialog(
@@ -289,7 +279,7 @@ class VideoCustomActions {
 class VideoPopupMenu extends StatelessWidget {
   final double? size;
   final double? iconSize;
-  final double menuItemHeight = 45;
+  final double menuItemHeight;
   final dynamic videoItem;
   final VoidCallback? onRemove;
 
@@ -299,6 +289,7 @@ class VideoPopupMenu extends StatelessWidget {
     required this.iconSize,
     required this.videoItem,
     this.onRemove,
+    this.menuItemHeight = 45,
   });
 
   @override

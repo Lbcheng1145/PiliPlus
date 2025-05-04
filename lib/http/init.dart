@@ -1,19 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:PiliPlus/build_config.dart';
+import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/retry_interceptor.dart';
 import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/accounts/account_manager/account_mgr.dart';
 import 'package:PiliPlus/utils/global_data.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:archive/archive.dart';
 import 'package:brotli/brotli.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:dio_http2_adapter/dio_http2_adapter.dart';
-import '../utils/storage.dart';
-import 'constants.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart' as web;
 
 class Request {
@@ -128,9 +129,10 @@ class Request {
         ..autoUncompress = false; // Http2Adapter没有自动解压, 统一行为
       // 设置代理
       if (enableSystemProxy) {
-        client.findProxy = (_) => 'PROXY $systemProxyHost:$systemProxyPort';
-        client.badCertificateCallback =
-            (X509Certificate cert, String host, int port) => true;
+        client
+          ..findProxy = ((_) => 'PROXY $systemProxyHost:$systemProxyPort')
+          ..badCertificateCallback =
+              (X509Certificate cert, String host, int port) => true;
       }
       return client;
     });

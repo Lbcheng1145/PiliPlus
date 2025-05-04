@@ -1,4 +1,4 @@
-import 'package:PiliPlus/common/widgets/http_error.dart';
+import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/pages/common/common_search_controller.dart';
 import 'package:flutter/material.dart';
@@ -64,7 +64,7 @@ abstract class CommonSearchPageState<S extends CommonSearchPage, R, T>
 
   Widget _buildBody(LoadingState<List<T>?> loadingState) {
     return switch (loadingState) {
-      Loading() => HttpError(),
+      Loading() => const HttpError(),
       Success() => loadingState.response?.isNotEmpty == true
           ? buildList(loadingState.response!)
           : HttpError(

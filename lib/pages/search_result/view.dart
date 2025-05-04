@@ -1,15 +1,15 @@
+import 'package:PiliPlus/common/widgets/scroll_physics.dart';
+import 'package:PiliPlus/models/common/search_type.dart';
 import 'package:PiliPlus/pages/search/controller.dart';
 import 'package:PiliPlus/pages/search_panel/article/view.dart';
 import 'package:PiliPlus/pages/search_panel/live/view.dart';
 import 'package:PiliPlus/pages/search_panel/pgc/view.dart';
 import 'package:PiliPlus/pages/search_panel/user/view.dart';
 import 'package:PiliPlus/pages/search_panel/video/view.dart';
+import 'package:PiliPlus/pages/search_result/controller.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/models/common/search_type.dart';
-import 'controller.dart';
-import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 
 class SearchResultPage extends StatefulWidget {
   const SearchResultPage({super.key});
@@ -55,8 +55,9 @@ class _SearchResultPageState extends State<SearchResultPage>
 
   @override
   void dispose() {
-    _tabController.removeListener(listener);
-    _tabController.dispose();
+    _tabController
+      ..removeListener(listener)
+      ..dispose();
     super.dispose();
   }
 

@@ -1,25 +1,24 @@
-import 'package:PiliPlus/common/widgets/dialog.dart';
+import 'package:PiliPlus/common/constants.dart';
+import 'package:PiliPlus/common/skeleton/video_card_h.dart';
+import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
+import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/models/user/fav_detail.dart';
 import 'package:PiliPlus/models/user/fav_folder.dart';
-import 'package:PiliPlus/pages/fav_detail/fav_sort_page.dart';
+import 'package:PiliPlus/pages/fav_detail/controller.dart';
+import 'package:PiliPlus/pages/fav_detail/widget/fav_video_card.dart';
+import 'package:PiliPlus/pages/fav_sort/view.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/grid.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/common/skeleton/video_card_h.dart';
-import 'package:PiliPlus/common/widgets/http_error.dart';
-import 'package:PiliPlus/common/widgets/network_img_layer.dart';
-import 'package:PiliPlus/pages/fav_detail/index.dart';
-
-import '../../common/constants.dart';
-import '../../utils/grid.dart';
-import 'widget/fav_video_card.dart';
 
 class FavDetailPage extends StatefulWidget {
   const FavDetailPage({super.key});
@@ -123,8 +122,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                         ? [
                             TextButton(
                               style: TextButton.styleFrom(
-                                visualDensity:
-                                    VisualDensity(horizontal: -2, vertical: -2),
+                                visualDensity: VisualDensity.compact,
                               ),
                               onPressed: () =>
                                   _favDetailController.handleSelect(true),
@@ -132,8 +130,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                             ),
                             TextButton(
                               style: TextButton.styleFrom(
-                                visualDensity:
-                                    VisualDensity(horizontal: -2, vertical: -2),
+                                visualDensity: VisualDensity.compact,
                               ),
                               onPressed: () {
                                 RequestUtils.onCopyOrMove<FavDetailData,
@@ -154,8 +151,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                             ),
                             TextButton(
                               style: TextButton.styleFrom(
-                                visualDensity:
-                                    VisualDensity(horizontal: -2, vertical: -2),
+                                visualDensity: VisualDensity.compact,
                               ),
                               onPressed: () {
                                 RequestUtils.onCopyOrMove<FavDetailData,
@@ -176,8 +172,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                             ),
                             TextButton(
                               style: TextButton.styleFrom(
-                                visualDensity:
-                                    VisualDensity(horizontal: -2, vertical: -2),
+                                visualDensity: VisualDensity.compact,
                               ),
                               onPressed: () =>
                                   _favDetailController.onDelChecked(context),
@@ -223,7 +218,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                               }
                                             });
                                           },
-                                          child: Text('编辑信息'),
+                                          child: const Text('编辑信息'),
                                         ),
                                         PopupMenuItem(
                                           onTap: () {
@@ -243,7 +238,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                               }
                                             });
                                           },
-                                          child: Text('清除失效内容'),
+                                          child: const Text('清除失效内容'),
                                         ),
                                         PopupMenuItem(
                                           onTap: () {
@@ -272,7 +267,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                               );
                                             }
                                           },
-                                          child: Text('排序'),
+                                          child: const Text('排序'),
                                         ),
                                         if (!Utils.isDefaultFav(
                                             _favDetailController

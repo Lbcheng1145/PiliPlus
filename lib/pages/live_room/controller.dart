@@ -1,24 +1,25 @@
 import 'dart:convert';
 
+import 'package:PiliPlus/http/constants.dart';
+import 'package:PiliPlus/http/live.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/live/danmu_info.dart';
 import 'package:PiliPlus/models/live/quality.dart';
+import 'package:PiliPlus/models/live/room_info.dart';
+import 'package:PiliPlus/models/live/room_info_h5.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/models/data_source.dart';
 import 'package:PiliPlus/services/service_locator.dart';
 import 'package:PiliPlus/tcp/live.dart';
 import 'package:PiliPlus/utils/danmaku_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/video_utils.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/http/constants.dart';
-import 'package:PiliPlus/http/live.dart';
-import 'package:PiliPlus/models/live/room_info.dart';
-import 'package:PiliPlus/plugin/pl_player/index.dart';
-import '../../models/live/room_info_h5.dart';
-import '../../utils/video_utils.dart';
 
 class LiveRoomController extends GetxController {
   LiveRoomController(this.heroTag);
@@ -56,7 +57,7 @@ class LiveRoomController extends GetxController {
     }
   }
 
-  playerInit(source) async {
+  Future<void> playerInit(source) async {
     await plPlayerController.setDataSource(
       DataSource(
         videoSource: source,
@@ -68,8 +69,6 @@ class LiveRoomController extends GetxController {
           'referer': HttpString.baseUrl
         },
       ),
-      // 硬解
-      enableHA: true,
       autoplay: true,
       direction: isPortrait.value ? 'vertical' : 'horizontal',
     );
@@ -229,13 +228,14 @@ class LiveRoomController extends GetxController {
 
   @override
   void onClose() {
-    scrollController.removeListener(listener);
-    scrollController.dispose();
+    scrollController
+      ..removeListener(listener)
+      ..dispose();
     super.onClose();
   }
 
   // 修改画质
-  void changeQn(int qn) async {
+  Future<void> changeQn(int qn) async {
     if (currentQn == qn) {
       return;
     }

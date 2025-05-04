@@ -1,28 +1,29 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:PiliPlus/grpc/app/main/community/reply/v1/reply.pb.dart';
+import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
+    show MainListReply, ReplyInfo, SubjectControl, Mode;
+import 'package:PiliPlus/grpc/bilibili/pagination.pb.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/reply.dart';
+import 'package:PiliPlus/models/common/reply_sort_type.dart';
 import 'package:PiliPlus/models/common/reply_type.dart';
 import 'package:PiliPlus/models/video/reply/data.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
-import 'package:PiliPlus/pages/video/detail/reply_new/reply_page.dart';
+import 'package:PiliPlus/pages/video/reply_new/view.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/models/common/reply_sort_type.dart';
-import 'package:PiliPlus/utils/feed_back.dart';
-import 'package:PiliPlus/utils/storage.dart';
 import 'package:get/get_navigation/src/dialog/dialog_route.dart';
 
 abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
-  String nextOffset = '';
   RxInt count = (-1).obs;
 
   Rx<ReplySortType> sortType = ReplySortType.time.obs;
@@ -32,7 +33,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
   late final bool isLogin = Accounts.main.isLogin;
 
   dynamic upMid;
-  CursorReply? cursor;
+  FeedPaginationReply? paginationReply;
   late Rx<Mode> mode = Mode.MAIN_LIST_HOT.obs;
   late bool hasUpTop = false;
 
@@ -65,7 +66,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
 
   @override
   void checkIsEnd(int length) {
-    if (length >= count.value) {
+    if (count.value != -1 && length >= count.value) {
       isEnd = true;
     }
   }
@@ -73,7 +74,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
   @override
   bool customHandleResponse(bool isRefresh, Success response) {
     MainListReply data = response.response;
-    cursor = data.cursor;
+    paginationReply = data.paginationReply;
     count.value = data.subjectControl.count.toInt();
     if (isRefresh) {
       upMid ??= data.subjectControl.upMid;
@@ -88,13 +89,12 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
 
   @override
   Future onRefresh() {
-    cursor = null;
-    nextOffset = '';
+    paginationReply = null;
     return super.onRefresh();
   }
 
   // 排序搜索评论
-  queryBySort() {
+  void queryBySort() {
     EasyThrottle.throttle('queryBySort', const Duration(seconds: 1), () {
       feedBack();
       switch (sortType.value) {
@@ -107,7 +107,6 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
           mode.value = Mode.MAIN_LIST_TIME;
           break;
       }
-      nextOffset = '';
       onReload();
     });
   }
@@ -251,7 +250,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
   }
 
   // ref https://github.com/freedom-introvert/biliSendCommAntifraud
-  void checkReply({
+  Future<void> checkReply({
     required BuildContext context,
     required dynamic oid,
     required dynamic rpid,
@@ -304,7 +303,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('评论检查结果'),
+          title: const Text('评论检查结果'),
           content: SelectableText(message),
         ),
       );
@@ -479,7 +478,7 @@ https://api.bilibili.com/x/v2/reply/reply?oid=$oid&pn=1&ps=20&root=${rpid ?? rep
     }
   }
 
-  void onToggleTop(index, oid, int type, bool isUpTop, int rpid) async {
+  Future<void> onToggleTop(index, oid, int type, bool isUpTop, int rpid) async {
     final res = await ReplyHttp.replyTop(
       oid: oid,
       type: type,

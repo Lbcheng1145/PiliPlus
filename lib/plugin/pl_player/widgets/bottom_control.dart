@@ -1,20 +1,15 @@
 import 'dart:async';
 
-import 'package:PiliPlus/common/widgets/segment_progress_bar.dart';
+import 'package:PiliPlus/common/widgets/progress_bar/audio_video_progress_bar.dart';
+import 'package:PiliPlus/common/widgets/progress_bar/segment_progress_bar.dart';
+import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/view.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:nil/nil.dart';
-import 'package:PiliPlus/plugin/pl_player/index.dart'
-    show
-        PlPlayerController,
-        buildSeekPreviewWidget,
-        buildDmChart,
-        buildViewPointWidget;
-import 'package:PiliPlus/utils/feed_back.dart';
-
-import '../../../common/widgets/audio_video_progress_bar.dart';
 
 class BottomControl extends StatelessWidget implements PreferredSizeWidget {
   final PlPlayerController controller;
@@ -57,7 +52,7 @@ class BottomControl extends StatelessWidget implements PreferredSizeWidget {
                     alignment: Alignment.bottomCenter,
                     children: [
                       if (controller.dmTrend.isNotEmpty &&
-                          controller.showDmChart.value)
+                          controller.showDmTreandChart.value)
                         buildDmChart(theme, controller, 4.5),
                       if (controller.viewPointList.isNotEmpty &&
                           controller.showVP.value)
@@ -104,12 +99,11 @@ class BottomControl extends StatelessWidget implements PreferredSizeWidget {
                           if (controller.showSeekPreview) {
                             controller.showPreview.value = false;
                           }
-                          controller.onChangedSliderEnd();
                           controller
-                              .onChangedSlider(duration.inSeconds.toDouble());
-                          controller.seekTo(
-                              Duration(seconds: duration.inSeconds),
-                              type: 'slider');
+                            ..onChangedSliderEnd()
+                            ..onChangedSlider(duration.inSeconds.toDouble())
+                            ..seekTo(Duration(seconds: duration.inSeconds),
+                                type: 'slider');
                           SemanticsService.announce(
                               "${(duration.inSeconds / max * 100).round()}%",
                               TextDirection.ltr);
@@ -122,7 +116,7 @@ class BottomControl extends StatelessWidget implements PreferredSizeWidget {
                           bottom: 5.25,
                           child: IgnorePointer(
                             child: CustomPaint(
-                              size: Size(double.infinity, 3.5),
+                              size: const Size(double.infinity, 3.5),
                               painter: SegmentProgressBar(
                                 segmentColors: controller.segmentList,
                               ),
@@ -137,7 +131,7 @@ class BottomControl extends StatelessWidget implements PreferredSizeWidget {
                           bottom: 5.25,
                           child: IgnorePointer(
                             child: CustomPaint(
-                              size: Size(double.infinity, 3.5),
+                              size: const Size(double.infinity, 3.5),
                               painter: SegmentProgressBar(
                                 segmentColors: controller.viewPointList,
                               ),

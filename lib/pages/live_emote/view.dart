@@ -1,15 +1,15 @@
 import 'dart:math';
 
-import 'package:PiliPlus/common/widgets/loading_widget.dart';
+import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
+import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/live/live_emoticons/datum.dart';
 import 'package:PiliPlus/models/live/live_emoticons/emoticon.dart';
+import 'package:PiliPlus/pages/live_emote/controller.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../common/widgets/network_img_layer.dart';
-import 'controller.dart';
-import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 
 class LiveEmotePanel extends StatefulWidget {
   final int roomId;
@@ -75,7 +75,8 @@ class _LiveEmotePanelState extends State<LiveEmotePanel>
                             return Material(
                               color: Colors.transparent,
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius:
+                                    const BorderRadius.all(Radius.circular(8)),
                                 onTap: () {
                                   if (item.pkgType == 3) {
                                     widget.onChoose(item.emoticons![index]);
@@ -139,7 +140,7 @@ class _LiveEmotePanelState extends State<LiveEmotePanel>
   Widget _errorWidget([String? errMsg]) => Center(
         child: TextButton.icon(
           onPressed: _emotePanelController.onReload,
-          icon: Icon(Icons.refresh),
+          icon: const Icon(Icons.refresh),
           label: Text(errMsg ?? '没有数据'),
         ),
       );

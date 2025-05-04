@@ -1,13 +1,15 @@
 import 'dart:convert';
+
+import 'package:PiliPlus/common/constants.dart';
+import 'package:PiliPlus/http/api.dart';
+import 'package:PiliPlus/http/init.dart';
+import 'package:PiliPlus/models/login/model.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
+import 'package:PiliPlus/utils/login_utils.dart';
+import 'package:PiliPlus/utils/utils.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:encrypt/encrypt.dart';
-import '../common/constants.dart';
-import '../models/login/index.dart';
-import '../utils/login_utils.dart';
-import '../utils/utils.dart';
-import 'index.dart';
 
 class LoginHttp {
   static final String deviceId = LoginUtils.genDeviceId();
@@ -85,10 +87,10 @@ class LoginHttp {
     required String cid,
     required String tel,
     // String? deviceTouristId,
-    String? gee_challenge,
-    String? gee_seccode,
-    String? gee_validate,
-    String? recaptcha_token,
+    String? geeChallenge,
+    String? geeSeccode,
+    String? geeValidate,
+    String? recaptchaToken,
   }) async {
     int timestamp = DateTime.now().millisecondsSinceEpoch;
     var data = {
@@ -99,16 +101,16 @@ class LoginHttp {
       'cid': cid,
       // if (deviceTouristId != null) 'device_tourist_id': deviceTouristId,
       'disable_rcmd': '0',
-      if (gee_challenge != null) 'gee_challenge': gee_challenge,
-      if (gee_seccode != null) 'gee_seccode': gee_seccode,
-      if (gee_validate != null) 'gee_validate': gee_validate,
+      if (geeChallenge != null) 'gee_challenge': geeChallenge,
+      if (geeSeccode != null) 'gee_seccode': geeSeccode,
+      if (geeValidate != null) 'gee_validate': geeValidate,
       'local_id': buvid,
       // https://chinggg.github.io/post/appre/
       'login_session_id':
           md5.convert(utf8.encode(buvid + timestamp.toString())).toString(),
       'mobi_app': 'android_hd',
       'platform': 'android',
-      if (recaptcha_token != null) 'recaptcha_token': recaptcha_token,
+      if (recaptchaToken != null) 'recaptcha_token': recaptchaToken,
       's_locale': 'zh_CN',
       'statistics': Constants.statistics,
       'tel': tel,
@@ -182,10 +184,10 @@ class LoginHttp {
     required String password,
     required String key,
     required String salt,
-    String? gee_challenge,
-    String? gee_seccode,
-    String? gee_validate,
-    String? recaptcha_token,
+    String? geeChallenge,
+    String? geeSeccode,
+    String? geeValidate,
+    String? recaptchaToken,
   }) async {
     dynamic publicKey = RSAKeyParser().parse(key);
     String passwordEncrypted =
@@ -208,15 +210,15 @@ class LoginHttp {
           .base64),
       'from_pv': 'main.homepage.avatar-nologin.all.click',
       'from_url': Uri.encodeComponent('bilibili://pegasus/promo'),
-      if (gee_challenge != null) 'gee_challenge': gee_challenge,
-      if (gee_seccode != null) 'gee_seccode': gee_seccode,
-      if (gee_validate != null) 'gee_validate': gee_validate,
+      if (geeChallenge != null) 'gee_challenge': geeChallenge,
+      if (geeSeccode != null) 'gee_seccode': geeSeccode,
+      if (geeValidate != null) 'gee_validate': geeValidate,
       'local_id': buvid, //LoginUtils.generateBuvid(),
       'mobi_app': 'android_hd',
       'password': passwordEncrypted,
       'permission': 'ALL',
       'platform': 'android',
-      if (recaptcha_token != null) 'recaptcha_token': recaptcha_token,
+      if (recaptchaToken != null) 'recaptcha_token': recaptchaToken,
       's_locale': 'zh_CN',
       'statistics': Constants.statistics,
       'ts': (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString(),

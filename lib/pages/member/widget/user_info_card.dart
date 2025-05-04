@@ -1,9 +1,9 @@
 import 'package:PiliPlus/common/constants.dart';
-import 'package:PiliPlus/common/widgets/avatar.dart';
 import 'package:PiliPlus/common/widgets/interactiveviewer_gallery/interactiveviewer_gallery.dart'
     show SourceModel;
-import 'package:PiliPlus/models/space/card.dart' as space;
-import 'package:PiliPlus/models/space/images.dart' as space;
+import 'package:PiliPlus/common/widgets/pendant_avatar.dart';
+import 'package:PiliPlus/models/space/card.dart';
+import 'package:PiliPlus/models/space/images.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
@@ -29,8 +29,8 @@ class UserInfoCard extends StatelessWidget {
   final bool isV;
   final bool isOwner;
   final int relation;
-  final space.Card card;
-  final space.Images images;
+  final SpaceCard card;
+  final SpaceImages images;
   final VoidCallback onFollow;
   final dynamic live;
   final int? silence;
@@ -55,7 +55,7 @@ class UserInfoCard extends StatelessWidget {
         children: [
           Text(
             Utils.numFormat(count),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
             ),
           ),
@@ -72,7 +72,7 @@ class UserInfoCard extends StatelessWidget {
     );
   }
 
-  _buildHeader(BuildContext context, ThemeData theme) {
+  Widget _buildHeader(BuildContext context, ThemeData theme) {
     bool darken = theme.brightness == Brightness.dark;
     String imgUrl = (darken
             ? images.nightImgurl?.isEmpty == true
@@ -109,7 +109,7 @@ class UserInfoCard extends StatelessWidget {
     );
   }
 
-  _buildLeft(BuildContext context, ThemeData theme) => [
+  List<Widget> _buildLeft(BuildContext context, ThemeData theme) => [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Wrap(
@@ -131,8 +131,7 @@ class UserInfoCard extends StatelessWidget {
                     height: 1,
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
-                    color: (card.vip?.vipStatus ?? -1) > 0 &&
-                            card.vip?.vipType == 2
+                    color: (card.vip?.status ?? -1) > 0 && card.vip?.type == 2
                         ? context.vipColor
                         : null,
                   ),
@@ -143,7 +142,7 @@ class UserInfoCard extends StatelessWidget {
                 height: 11,
                 semanticLabel: '等级${card.levelInfo?.currentLevel}',
               ),
-              if (card.vip?.vipStatus == 1)
+              if (card.vip?.status == 1)
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -158,7 +157,7 @@ class UserInfoCard extends StatelessWidget {
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
-                    style: TextStyle(
+                    style: const TextStyle(
                       height: 1,
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
@@ -205,7 +204,7 @@ class UserInfoCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    TextSpan(
+                    const TextSpan(
                       text: ' ',
                     )
                   ],
@@ -267,7 +266,7 @@ class UserInfoCard extends StatelessWidget {
             return Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: const BorderRadius.all(Radius.circular(6)),
                 color: isLight
                     ? theme.colorScheme.errorContainer
                     : theme.colorScheme.error,
@@ -302,7 +301,7 @@ class UserInfoCard extends StatelessWidget {
           }),
       ];
 
-  _buildRight(BuildContext context, ThemeData theme) => Column(
+  Column _buildRight(BuildContext context, ThemeData theme) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
@@ -327,7 +326,7 @@ class UserInfoCard extends StatelessWidget {
                         }
                       },
                     )
-                  : SizedBox(
+                  : const SizedBox(
                       height: 15,
                       width: 1,
                       child: VerticalDivider(),
@@ -362,10 +361,7 @@ class UserInfoCard extends StatelessWidget {
                     ),
                     padding: EdgeInsets.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: const VisualDensity(
-                      horizontal: -2,
-                      vertical: -2,
-                    ),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -377,10 +373,7 @@ class UserInfoCard extends StatelessWidget {
                     backgroundColor: relation != 0
                         ? theme.colorScheme.onInverseSurface
                         : null,
-                    visualDensity: const VisualDensity(
-                      horizontal: -2,
-                      vertical: -2,
-                    ),
+                    visualDensity: VisualDensity.compact,
                   ),
                   child: Text.rich(
                     style: TextStyle(
@@ -421,21 +414,21 @@ class UserInfoCard extends StatelessWidget {
         ],
       );
 
-  _buildAvatar(BuildContext context) => Hero(
+  Hero _buildAvatar(BuildContext context) => Hero(
       tag: card.face ?? '',
-      child: Avatar(
-        avatar: card.face ?? '',
+      child: PendantAvatar(
+        avatar: card.face,
         size: 80,
         badgeSize: 22,
         officialType: card.officialVerify?.type,
-        isVip: (card.vip?.vipStatus ?? -1) > 0,
+        isVip: (card.vip?.status ?? -1) > 0,
         garbPendantImage: card.pendant!.image!,
         roomId: live is Map && live['liveStatus'] == 1 ? live['roomid'] : null,
         onTap: () => context
             .imageView(imgList: [SourceModel(url: card.face.http2https)]),
       ));
 
-  _buildV(BuildContext context, ThemeData theme) => Column(
+  Column _buildV(BuildContext context, ThemeData theme) => Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -533,7 +526,7 @@ class UserInfoCard extends StatelessWidget {
         );
       });
 
-  _buildH(BuildContext context, ThemeData theme) => Column(
+  Column _buildH(BuildContext context, ThemeData theme) => Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,

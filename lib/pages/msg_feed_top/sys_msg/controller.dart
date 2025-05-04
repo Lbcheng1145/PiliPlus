@@ -1,9 +1,9 @@
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/http/msg.dart';
 import 'package:PiliPlus/models/msg/msgfeed_sys_msg.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:PiliPlus/http/msg.dart';
 
 class SysMsgController
     extends CommonListController<List<SystemNotifyList>?, SystemNotifyList> {
@@ -43,8 +43,7 @@ class SysMsgController
     try {
       var res = await MsgHttp.delSysMsg(id);
       if (res['status']) {
-        List<SystemNotifyList> list = (loadingState.value as Success).response;
-        list.removeAt(index);
+        loadingState.value.data!.removeAt(index);
         loadingState.refresh();
         SmartDialog.showToast('删除成功');
       } else {

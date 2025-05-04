@@ -1,10 +1,10 @@
 import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/http/member.dart';
 import 'package:PiliPlus/http/msg.dart';
+import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
 import 'package:PiliPlus/utils/extension.dart';
-import 'package:PiliPlus/http/member.dart';
-import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 class MemberDynamicsController
@@ -14,7 +14,7 @@ class MemberDynamicsController
   String offset = '';
 
   @override
-  void onInit() async {
+  void onInit() {
     super.onInit();
     queryData();
   }
@@ -59,8 +59,7 @@ class MemberDynamicsController
   Future onRemove(dynamicId) async {
     var res = await MsgHttp.removeDynamic(dynIdStr: dynamicId);
     if (res['status']) {
-      List<DynamicItemModel> list = (loadingState.value as Success).response;
-      list.removeWhere((item) => item.idStr == dynamicId);
+      loadingState.value.data!.removeWhere((item) => item.idStr == dynamicId);
       loadingState.refresh();
       SmartDialog.showToast('删除成功');
     } else {
@@ -79,8 +78,9 @@ class MemberDynamicsController
       } else {
         final item = list.firstWhere((item) => item.idStr == dynamicId);
         item.modules.moduleTag = ModuleTag(text: '置顶');
-        list.remove(item);
-        list.insert(0, item);
+        list
+          ..remove(item)
+          ..insert(0, item);
         loadingState.refresh();
         SmartDialog.showToast('置顶成功');
       }

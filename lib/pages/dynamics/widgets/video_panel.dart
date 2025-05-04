@@ -1,13 +1,12 @@
 // 视频or合集
-import 'package:PiliPlus/models/dynamics/result.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/badge.dart';
-import 'package:PiliPlus/common/widgets/network_img_layer.dart';
+import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/models/dynamics/result.dart';
+import 'package:PiliPlus/pages/dynamics/widgets/rich_node_panel.dart';
 import 'package:PiliPlus/utils/utils.dart';
-
-import 'rich_node_panel.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 Widget videoSeasonWidget(
   ThemeData theme,
@@ -89,8 +88,8 @@ Widget videoSeasonWidget(
                 alignment: Alignment.bottomLeft,
                 padding: const EdgeInsets.fromLTRB(10, 0, 8, 8),
                 clipBehavior: Clip.hardEdge,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
@@ -98,7 +97,7 @@ Widget videoSeasonWidget(
                       Colors.black54,
                     ],
                   ),
-                  borderRadius: const BorderRadius.only(
+                  borderRadius: BorderRadius.only(
                     bottomLeft: StyleString.imgRadius,
                     bottomRight: StyleString.imgRadius,
                   ),

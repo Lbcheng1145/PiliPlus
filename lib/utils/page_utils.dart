@@ -9,9 +9,9 @@ import 'package:PiliPlus/models/common/search_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/models/live/item.dart';
 import 'package:PiliPlus/pages/contact/view.dart';
-import 'package:PiliPlus/pages/video/detail/introduction/widgets/fav_panel.dart';
-import 'package:PiliPlus/pages/video/detail/introduction/widgets/menu_row.dart';
+import 'package:PiliPlus/pages/fav_panel/view.dart';
 import 'package:PiliPlus/pages/share/view.dart';
+import 'package:PiliPlus/pages/video/introduction/ugc/widgets/menu_row.dart';
 import 'package:PiliPlus/services/shutdown_timer_service.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/extension.dart';
@@ -28,9 +28,11 @@ import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PageUtils {
-  static void pmShare(BuildContext context, {required Map content}) async {
+  static Future<void> pmShare(BuildContext context,
+      {required Map content}) async {
     // debugPrint(content.toString());
 
+    int? selectedIndex;
     List<UserModel> userList = <UserModel>[];
 
     final shareListRes = await GrpcRepo.shareList(size: 3);
@@ -50,6 +52,7 @@ class PageUtils {
         transitionDuration: const Duration(milliseconds: 120),
       );
       if (userModel != null) {
+        selectedIndex = 0;
         userList.add(userModel);
       }
     }
@@ -60,6 +63,7 @@ class PageUtils {
         builder: (context) => SharePanel(
           content: content,
           userList: userList,
+          selectedIndex: selectedIndex,
         ),
         useSafeArea: true,
         enableDrag: false,
@@ -155,7 +159,7 @@ class PageUtils {
                                             .startShutdownTimer();
                                         setState(() {});
                                       },
-                                      child: Text('确定'),
+                                      child: const Text('确定'),
                                     ),
                                   ],
                                 );
@@ -168,7 +172,7 @@ class PageUtils {
                             shutdownTimerService.startShutdownTimer();
                           }
                         },
-                        contentPadding: const EdgeInsets.only(),
+                        contentPadding: EdgeInsets.zero,
                         title: Text(choice == -1
                             ? '自定义'
                             : choice == 0
@@ -199,7 +203,7 @@ class PageUtils {
                               !shutdownTimerService.waitForPlayingCompleted;
                           setState(() {});
                         },
-                        contentPadding: const EdgeInsets.only(),
+                        contentPadding: EdgeInsets.zero,
                         title: const Text("额外等待视频播放完毕", style: titleStyle),
                         trailing: Transform.scale(
                           alignment: Alignment.centerRight,
@@ -342,7 +346,7 @@ class PageUtils {
     );
   }
 
-  static void pushDynDetail(DynamicItemModel item, floor,
+  static Future<void> pushDynDetail(DynamicItemModel item, floor,
       {action = 'all'}) async {
     feedBack();
 
@@ -553,7 +557,7 @@ class PageUtils {
     }
   }
 
-  static launchURL(String url) async {
+  static Future<void> launchURL(String url) async {
     try {
       final Uri uri = Uri.parse(url);
       if (!await launchUrl(
@@ -567,7 +571,7 @@ class PageUtils {
     }
   }
 
-  static void handleWebview(
+  static Future<void> handleWebview(
     String url, {
     bool off = false,
     bool inApp = false,
@@ -629,8 +633,8 @@ class PageUtils {
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         Offset begin =
             MediaQuery.orientationOf(Get.context!) == Orientation.portrait
-                ? Offset(0.0, 1.0)
-                : Offset(1.0, 0.0);
+                ? const Offset(0.0, 1.0)
+                : const Offset(1.0, 0.0);
         var tween = Tween(begin: begin, end: Offset.zero)
             .chain(CurveTween(curve: Curves.easeInOut));
         return SlideTransition(
@@ -683,7 +687,7 @@ class PageUtils {
     return false;
   }
 
-  static void viewBangumi(
+  static Future<void> viewBangumi(
       {dynamic seasonId, dynamic epId, dynamic progress}) async {
     try {
       SmartDialog.showLoading(msg: '资源获取中');

@@ -1,10 +1,9 @@
-import 'package:PiliPlus/common/widgets/image_save.dart';
+import 'package:PiliPlus/common/widgets/image/image_save.dart';
+import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/models/space_archive/item.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
-import 'package:flutter/material.dart';
-import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/utils/utils.dart';
-import 'package:PiliPlus/common/widgets/network_img_layer.dart';
+import 'package:flutter/material.dart';
 
 // 视频卡片 - 垂直布局
 class BangumiCardVMemberHome extends StatelessWidget {
@@ -13,7 +12,7 @@ class BangumiCardVMemberHome extends StatelessWidget {
     required this.bangumiItem,
   });
 
-  final Item bangumiItem;
+  final SpaceArchiveItem bangumiItem;
 
   @override
   Widget build(BuildContext context) {
@@ -33,26 +32,18 @@ class BangumiCardVMemberHome extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: StyleString.imgRadius,
-                topRight: StyleString.imgRadius,
-                bottomLeft: StyleString.imgRadius,
-                bottomRight: StyleString.imgRadius,
-              ),
-              child: AspectRatio(
-                aspectRatio: 0.75,
-                child: LayoutBuilder(builder: (context, boxConstraints) {
-                  return Hero(
-                    tag: heroTag,
-                    child: NetworkImgLayer(
-                      src: bangumiItem.cover,
-                      width: boxConstraints.maxWidth,
-                      height: boxConstraints.maxHeight,
-                    ),
-                  );
-                }),
-              ),
+            AspectRatio(
+              aspectRatio: 0.75,
+              child: LayoutBuilder(builder: (context, boxConstraints) {
+                return Hero(
+                  tag: heroTag,
+                  child: NetworkImgLayer(
+                    src: bangumiItem.cover,
+                    width: boxConstraints.maxWidth,
+                    height: boxConstraints.maxHeight,
+                  ),
+                );
+              }),
             ),
             bangumiContent(bangumiItem)
           ],
@@ -62,7 +53,7 @@ class BangumiCardVMemberHome extends StatelessWidget {
   }
 }
 
-Widget bangumiContent(Item bangumiItem) {
+Widget bangumiContent(SpaceArchiveItem bangumiItem) {
   return Expanded(
     child: Padding(
       padding: const EdgeInsets.fromLTRB(4, 5, 0, 3),

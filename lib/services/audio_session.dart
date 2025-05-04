@@ -1,11 +1,12 @@
+import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
 import 'package:audio_session/audio_session.dart';
-import 'package:PiliPlus/plugin/pl_player/index.dart';
 
 class AudioSessionHandler {
   late AudioSession session;
   bool _playInterrupted = false;
 
-  setActive(bool active) {
+  void setActive(bool active) {
     session.setActive(active);
   }
 

@@ -1,11 +1,11 @@
 import 'package:PiliPlus/models/dynamics/article_content_model.dart';
 
-import 'author.dart';
-import 'category.dart';
-import 'media.dart';
-import 'stats.dart';
+import 'package:PiliPlus/models/space_article/author.dart';
+import 'package:PiliPlus/models/space_article/category.dart';
+import 'package:PiliPlus/models/space_article/media.dart';
+import 'package:PiliPlus/models/space_article/stats.dart';
 
-class Item {
+class SpaceArticleItem {
   int? id;
   Category? category;
   List<Category>? categories;
@@ -56,7 +56,7 @@ class Item {
   String? dynIdStr;
   int? totalArtNum;
 
-  Item.fromJson(Map<String, dynamic> json) {
+  SpaceArticleItem.fromJson(Map<String, dynamic> json) {
     id = json["id"];
     category =
         json["category"] == null ? null : Category.fromJson(json["category"]);

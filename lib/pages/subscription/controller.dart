@@ -1,12 +1,11 @@
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/http/user.dart';
+import 'package:PiliPlus/models/user/sub_folder.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/http/user.dart';
-import 'package:PiliPlus/utils/storage.dart';
-
-import '../../models/user/sub_folder.dart';
 
 class SubController
     extends CommonListController<List<SubFolderItemData>?, SubFolderItemData> {
@@ -50,9 +49,7 @@ class SubController
               var res = await UserHttp.cancelSub(
                   id: subFolderItem.id!, type: subFolderItem.type!);
               if (res['status']) {
-                List<SubFolderItemData> list =
-                    (loadingState.value as Success).response;
-                list.remove(subFolderItem);
+                loadingState.value.data!.remove(subFolderItem);
                 loadingState.refresh();
                 SmartDialog.showToast('取消订阅成功');
               } else {

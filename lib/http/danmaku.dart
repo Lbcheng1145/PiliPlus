@@ -1,15 +1,16 @@
-import 'package:PiliPlus/grpc/dm/v1/dm.pb.dart';
+import 'package:PiliPlus/grpc/bilibili/community/service/dm/v1.pb.dart';
 import 'package:PiliPlus/grpc/grpc_repo.dart';
+import 'package:PiliPlus/http/api.dart';
+import 'package:PiliPlus/http/init.dart';
+import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:dio/dio.dart';
-import 'index.dart';
 
 class DanmakuHttp {
   // 获取视频弹幕
-  static Future queryDanmaku({
+  static Future<LoadingState<DmSegMobileReply>> queryDanmaku({
     required int cid,
     required int segmentIndex,
-    required bool mergeDanmaku,
     int queryCount = 1,
   }) async {
     // 构建参数对象
@@ -17,34 +18,18 @@ class DanmakuHttp {
         await GrpcRepo.dmSegMobile(cid: cid, segmentIndex: segmentIndex);
     if (!response['status']) {
       if (queryCount >= 3) {
-        return {'status': false};
+        return const Error('');
       } else {
         await Future.delayed(const Duration(seconds: 1));
         return await queryDanmaku(
           cid: cid,
           segmentIndex: segmentIndex,
-          mergeDanmaku: mergeDanmaku,
           queryCount: ++queryCount,
         );
       }
     }
     DmSegMobileReply data = response['data'];
-    if (mergeDanmaku && data.elems.isNotEmpty) {
-      final Map counts = <String, int>{};
-      data.elems.retainWhere((item) {
-        int? count = counts[item.content];
-        counts[item.content] = count != null ? count + 1 : 1;
-        return count == null;
-      });
-      for (DanmakuElem item in data.elems) {
-        item.clearAttr();
-        final count = counts[item.content];
-        if (count != 1) {
-          item.attr = count;
-        }
-      }
-    }
-    return {'status': true, 'data': data};
+    return LoadingState.success(data);
   }
 
   static Future shootDanmaku({
@@ -62,7 +47,7 @@ class DanmakuHttp {
     int? pool, // 弹幕池选择（0：普通池 1：字幕池 2：特殊池（代码/BAS弹幕）默认普通池，0）
     //int? rnd,// 当前时间戳*1000000（若无此项，则发送弹幕冷却时间限制为90s；若有此项，则发送弹幕冷却时间限制为5s）
     bool? colorful, //60001：专属渐变彩色（需要会员）
-    int? checkbox_type, //是否带 UP 身份标识（0：普通；4：带有标识）
+    int? checkboxType, //是否带 UP 身份标识（0：普通；4：带有标识）
     // String? csrf,//CSRF Token（位于 Cookie）	Cookie 方式必要
     // String? access_key,//	APP 登录 Token		APP 方式必要
   }) async {
@@ -83,7 +68,7 @@ class DanmakuHttp {
       'pool': pool,
       'rnd': DateTime.now().microsecondsSinceEpoch,
       'colorful': colorful == true ? 60001 : null,
-      'checkbox_type': checkbox_type,
+      'checkbox_type': checkboxType,
       'csrf': Accounts.main.csrf,
       // 'access_key': access_key,
     }..removeWhere((key, value) => value == null);

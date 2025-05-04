@@ -1,10 +1,10 @@
-import '../model_owner.dart';
-import '../model_video.dart';
-import 'badge.dart';
-import 'cursor_attr.dart';
-import 'three_point.dart';
+import 'package:PiliPlus/models/model_owner.dart';
+import 'package:PiliPlus/models/model_video.dart';
+import 'package:PiliPlus/models/space_archive/badge.dart';
+import 'package:PiliPlus/models/space_archive/cursor_attr.dart';
+import 'package:PiliPlus/models/space_archive/three_point.dart';
 
-class Item extends BaseSimpleVideoItemModel {
+class SpaceArchiveItem extends BaseSimpleVideoItemModel {
   String? subtitle;
   String? tname;
   String? get cover => pic; // 不知道哪里使用了cover
@@ -34,7 +34,7 @@ class Item extends BaseSimpleVideoItemModel {
   Map? season;
   Map? history;
 
-  Item.fromJson(Map<String, dynamic> json) {
+  SpaceArchiveItem.fromJson(Map<String, dynamic> json) {
     title = json['title'];
     subtitle = json['subtitle'];
     tname = json['tname'];

@@ -1,15 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:PiliPlus/grpc/dm/v1/dm.pb.dart';
+import 'package:PiliPlus/grpc/bilibili/community/service/dm/v1.pb.dart';
+import 'package:PiliPlus/pages/danmaku/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
+import 'package:PiliPlus/utils/danmaku_utils.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:PiliPlus/pages/danmaku/index.dart';
-import 'package:PiliPlus/plugin/pl_player/index.dart';
-import 'package:PiliPlus/utils/danmaku_utils.dart';
-import 'package:PiliPlus/utils/storage.dart';
 
 /// 传入播放器控制器，监听播放进度，加载对应弹幕
 class PlDanmaku extends StatefulWidget {
@@ -143,8 +144,9 @@ class _PlDanmakuState extends State<PlDanmaku> {
   @override
   void dispose() {
     _listenerFS?.cancel();
-    playerController.removePositionListener(videoPositionListen);
-    playerController.removeStatusLister(playerListener);
+    playerController
+      ..removePositionListener(videoPositionListen)
+      ..removeStatusLister(playerListener);
     _plDanmakuController.dispose();
     super.dispose();
   }

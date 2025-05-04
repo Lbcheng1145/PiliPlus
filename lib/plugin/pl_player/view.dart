@@ -2,13 +2,31 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:PiliPlus/common/widgets/segment_progress_bar.dart';
+import 'package:PiliPlus/common/constants.dart';
+import 'package:PiliPlus/common/widgets/progress_bar/audio_video_progress_bar.dart';
+import 'package:PiliPlus/common/widgets/progress_bar/segment_progress_bar.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/super_resolution_type.dart';
-import 'package:PiliPlus/pages/video/detail/controller.dart';
-import 'package:PiliPlus/pages/video/detail/introduction/controller.dart';
+import 'package:PiliPlus/models/video_detail_res.dart';
+import 'package:PiliPlus/pages/video/controller.dart';
+import 'package:PiliPlus/pages/video/introduction/pgc/controller.dart';
+import 'package:PiliPlus/pages/video/introduction/ugc/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/models/bottom_control_type.dart';
+import 'package:PiliPlus/plugin/pl_player/models/bottom_progress_behavior.dart';
+import 'package:PiliPlus/plugin/pl_player/models/duration.dart';
+import 'package:PiliPlus/plugin/pl_player/models/fullscreen_mode.dart';
+import 'package:PiliPlus/plugin/pl_player/utils.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/app_bar_ani.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/backward_seek.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/bottom_control.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/common_btn.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/forward_seek.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/play_pause_btn.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
+import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -20,26 +38,8 @@ import 'package:get/get.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:PiliPlus/plugin/pl_player/controller.dart';
-import 'package:PiliPlus/plugin/pl_player/models/duration.dart';
-import 'package:PiliPlus/plugin/pl_player/models/fullscreen_mode.dart';
-import 'package:PiliPlus/plugin/pl_player/utils.dart';
-import 'package:PiliPlus/utils/storage.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:screen_brightness/screen_brightness.dart';
-
-import '../../common/widgets/audio_video_progress_bar.dart';
-import '../../models/video_detail_res.dart';
-import '../../pages/bangumi/introduction/controller.dart';
-import '../../utils/utils.dart';
-import 'models/bottom_control_type.dart';
-import 'models/bottom_progress_behavior.dart';
-import 'widgets/app_bar_ani.dart';
-import 'widgets/backward_seek.dart';
-import 'widgets/bottom_control.dart';
-import 'widgets/common_btn.dart';
-import 'widgets/forward_seek.dart';
-import 'widgets/play_pause_btn.dart';
 
 class PLVideoPlayer extends StatefulWidget {
   const PLVideoPlayer({
@@ -139,7 +139,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   }
 
   // 双击播放、暂停
-  void onDoubleTapCenter() async {
+  Future<void> onDoubleTapCenter() async {
     if (plPlayerController.videoPlayerController!.state.completed) {
       await plPlayerController.videoPlayerController!.seek(Duration.zero);
       plPlayerController.videoPlayerController!.play();
@@ -373,13 +373,13 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
               height: 30,
               alignment: Alignment.center,
               child: ComBtn(
-                icon: plPlayerController.showDmChart.value
-                    ? Icon(
+                icon: plPlayerController.showDmTreandChart.value
+                    ? const Icon(
                         Icons.show_chart,
                         size: 22,
                         color: Colors.white,
                       )
-                    : Stack(
+                    : const Stack(
                         clipBehavior: Clip.none,
                         alignment: Alignment.center,
                         children: [
@@ -396,8 +396,8 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                         ],
                       ),
                 onTap: () {
-                  plPlayerController.showDmChart.value =
-                      !plPlayerController.showDmChart.value;
+                  plPlayerController.showDmTreandChart.value =
+                      !plPlayerController.showDmTreandChart.value;
                 },
               ),
             )),
@@ -578,9 +578,9 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                         onTap: () {
                           widget.videoDetailController!.setSubtitle(0);
                         },
-                        child: Text(
+                        child: const Text(
                           "关闭字幕",
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
                       ...widget.videoDetailController!.subtitles
@@ -856,7 +856,8 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(6)),
                           color: theme.colorScheme.secondaryContainer,
                         ),
                         child: Text(
@@ -870,12 +871,14 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                   }
                 } else {
                   if (plPlayerController.cancelSeek == true) {
-                    plPlayerController.cancelSeek = null;
-                    plPlayerController.hasToast = null;
+                    plPlayerController
+                      ..cancelSeek = null
+                      ..hasToast = null;
                   }
                 }
-                plPlayerController.onUpdatedSliderProgress(result);
-                plPlayerController.onChangedSliderStart();
+                plPlayerController
+                  ..onUpdatedSliderProgress(result)
+                  ..onChangedSliderStart();
                 if (plPlayerController.showSeekPreview &&
                     plPlayerController.cancelSeek != true) {
                   try {
@@ -1100,9 +1103,9 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                 duration: const Duration(milliseconds: 150),
                 child: Container(
                   alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: const Color(0x88000000),
-                    borderRadius: BorderRadius.circular(16.0),
+                  decoration: const BoxDecoration(
+                    color: Color(0x88000000),
+                    borderRadius: BorderRadius.all(Radius.circular(16)),
                   ),
                   height: 32.0,
                   width: 70.0,
@@ -1136,9 +1139,9 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                   child: IntrinsicWidth(
                     child: Container(
                       alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: const Color(0x88000000),
-                        borderRadius: BorderRadius.circular(64.0),
+                      decoration: const BoxDecoration(
+                        color: Color(0x88000000),
+                        borderRadius: BorderRadius.all(Radius.circular(64)),
                       ),
                       height: 34.0,
                       padding: const EdgeInsets.only(left: 10, right: 10),
@@ -1190,9 +1193,9 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0x88000000),
-                    borderRadius: BorderRadius.circular(64.0),
+                  decoration: const BoxDecoration(
+                    color: Color(0x88000000),
+                    borderRadius: BorderRadius.all(Radius.circular(64)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1236,9 +1239,9 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0x88000000),
-                    borderRadius: BorderRadius.circular(64.0),
+                  decoration: const BoxDecoration(
+                    color: Color(0x88000000),
+                    borderRadius: BorderRadius.all(Radius.circular(64)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1318,52 +1321,51 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
         // ),
 
         Obx(
-          () =>
-              showRestoreScaleBtn.value && plPlayerController.showControls.value
-                  ? Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 95),
-                        child: FilledButton.tonal(
-                          style: FilledButton.styleFrom(
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            backgroundColor: theme
-                                .colorScheme.secondaryContainer
-                                .withOpacity(0.8),
-                            visualDensity:
-                                VisualDensity(horizontal: -2, vertical: -2),
-                            padding: const EdgeInsets.all(15),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                          onPressed: () async {
-                            showRestoreScaleBtn.value = false;
-                            final animController = AnimationController(
-                              vsync: this,
-                              duration: const Duration(milliseconds: 255),
-                            );
-                            final anim = Matrix4Tween(
-                              begin: transformationController.value,
-                              end: Matrix4.identity(),
-                            ).animate(
-                              CurveTween(curve: Curves.easeOut)
-                                  .animate(animController),
-                            );
-                            void listener() {
-                              transformationController.value = anim.value;
-                            }
-
-                            animController.addListener(listener);
-                            await animController.forward(from: 0);
-                            animController.removeListener(listener);
-                            animController.dispose();
-                          },
-                          child: Text('还原屏幕'),
+          () => showRestoreScaleBtn.value &&
+                  plPlayerController.showControls.value
+              ? Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 95),
+                    child: FilledButton.tonal(
+                      style: FilledButton.styleFrom(
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        backgroundColor: theme.colorScheme.secondaryContainer
+                            .withOpacity(0.8),
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.all(15),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(6)),
                         ),
                       ),
-                    )
-                  : const SizedBox.shrink(),
+                      onPressed: () async {
+                        showRestoreScaleBtn.value = false;
+                        final animController = AnimationController(
+                          vsync: this,
+                          duration: const Duration(milliseconds: 255),
+                        );
+                        final anim = Matrix4Tween(
+                          begin: transformationController.value,
+                          end: Matrix4.identity(),
+                        ).animate(
+                          CurveTween(curve: Curves.easeOut)
+                              .animate(animController),
+                        );
+                        void listener() {
+                          transformationController.value = anim.value;
+                        }
+
+                        animController.addListener(listener);
+                        await animController.forward(from: 0);
+                        animController
+                          ..removeListener(listener)
+                          ..dispose();
+                      },
+                      child: const Text('还原屏幕'),
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
         ),
 
         /// 进度条 live模式下禁用
@@ -1408,7 +1410,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                     alignment: Alignment.bottomCenter,
                     children: [
                       if (plPlayerController.dmTrend.isNotEmpty &&
-                          plPlayerController.showDmChart.value)
+                          plPlayerController.showDmTreandChart.value)
                         buildDmChart(theme, plPlayerController),
                       if (plPlayerController.viewPointList.isNotEmpty &&
                           plPlayerController.showVP.value)
@@ -1460,7 +1462,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                           bottom: 0.75,
                           child: IgnorePointer(
                             child: CustomPaint(
-                              size: Size(double.infinity, 3.5),
+                              size: const Size(double.infinity, 3.5),
                               painter: SegmentProgressBar(
                                 segmentColors: plPlayerController.segmentList,
                               ),
@@ -1475,7 +1477,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                           bottom: 0.75,
                           child: IgnorePointer(
                             child: CustomPaint(
-                              size: Size(double.infinity, 3.5),
+                              size: const Size(double.infinity, 3.5),
                               painter: SegmentProgressBar(
                                 segmentColors: plPlayerController.viewPointList,
                               ),
@@ -1518,9 +1520,9 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                     visible: plPlayerController.showControls.value &&
                         (isFullScreen || plPlayerController.controlsLock.value),
                     child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: const Color(0x45000000),
-                        borderRadius: BorderRadius.circular(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0x45000000),
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
                       ),
                       child: ComBtn(
                         icon: Icon(
@@ -1555,9 +1557,9 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                   visible:
                       plPlayerController.showControls.value && isFullScreen,
                   child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: const Color(0x45000000),
-                      borderRadius: BorderRadius.circular(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0x45000000),
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
                     ),
                     child: ComBtn(
                       icon: const Icon(
@@ -1701,11 +1703,12 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                                   Duration.zero,
                                   player.state.duration,
                                 );
-                                plPlayerController.seekTo(
-                                  result,
-                                  type: 'slider',
-                                );
-                                plPlayerController.play();
+                                plPlayerController
+                                  ..seekTo(
+                                    result,
+                                    type: 'slider',
+                                  )
+                                  ..play();
                               },
                             ),
                           ),
@@ -1732,11 +1735,12 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                                   Duration.zero,
                                   player.state.duration,
                                 );
-                                plPlayerController.seekTo(
-                                  result,
-                                  type: 'slider',
-                                );
-                                plPlayerController.play();
+                                plPlayerController
+                                  ..seekTo(
+                                    result,
+                                    type: 'slider',
+                                  )
+                                  ..play();
                               },
                             ),
                           ),
@@ -1872,7 +1876,9 @@ Widget buildSeekPreviewWidget(PlPlayerController plPlayerController) {
               padding: EdgeInsets.only(left: left),
               child: UnconstrainedBox(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(scale == 2.5 ? 6 : 10),
+                  borderRadius: scale == 2.5
+                      ? const BorderRadius.all(Radius.circular(6))
+                      : StyleString.mdRadius,
                   child: Align(
                     widthFactor: 0.1,
                     heightFactor: 0.1,
