@@ -1,109 +1,141 @@
+import 'package:PiliPlus/common/widgets/pair.dart';
 import 'package:PiliPlus/http/live.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/live/follow.dart';
-import 'package:PiliPlus/models/live/item.dart';
+import 'package:PiliPlus/models/live/live_feed_index/card_data_list_item.dart';
+import 'package:PiliPlus/models/live/live_feed_index/card_list.dart';
+import 'package:PiliPlus/models/live/live_second_list/tag.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
-import 'package:PiliPlus/utils/extension.dart';
-import 'package:PiliPlus/utils/request_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:get/get_rx/src/rx_types/rx_types.dart';
 
-class LiveController
-    extends CommonListController<List<LiveItemModel>?, LiveItemModel> {
+class LiveController extends CommonListController {
   @override
   void onInit() {
     super.onInit();
     queryData();
-    if (isLogin.value) {
-      fetchLiveFollowing();
+  }
+
+  int? count;
+
+  // area
+  int? areaId;
+  String? sortType;
+  int? parentAreaId;
+  final RxInt areaIndex = 0.obs;
+
+  // tag
+  final RxInt tagIndex = 0.obs;
+  List<LiveSecondTag>? newTags;
+
+  final Rx<Pair<LiveCardList?, LiveCardList?>> topState =
+      Pair<LiveCardList?, LiveCardList?>(first: null, second: null).obs;
+  final RxBool isLogin = Accounts.main.isLogin.obs;
+
+  @override
+  void checkIsEnd(int length) {
+    if (count != null && length >= count!) {
+      isEnd = true;
     }
   }
 
-  String? gaiaVtoken;
+  @override
+  List? getDataList(response) {
+    return response.cardList;
+  }
 
   @override
-  Future<LoadingState<List<LiveItemModel>?>> customGetData() =>
-      LiveHttp.liveList(pn: currentPage, gaiaVtoken: gaiaVtoken);
-
-  @override
-  bool handleError(String? errMsg) {
-    if (errMsg?.startsWith('voucher') == true) {
-      loadingState.value = LoadingState.error(' -352 ');
-      RequestUtils.validate(
-        errMsg!,
-        (gaiaVtoken) {
-          this.gaiaVtoken = gaiaVtoken;
-          onReload();
-        },
-      );
-      return true;
+  bool customHandleResponse(bool isRefresh, Success response) {
+    if (isRefresh) {
+      if (areaIndex.value == 0) {
+        if (response.response.hasMore == 0) {
+          isEnd = true;
+        }
+        topState.value = Pair(
+          first: response.response.followItem,
+          second: response.response.areaItem,
+        );
+      } else {
+        count = response.response.count;
+        newTags = response.response.newTags;
+        if (sortType != null) {
+          tagIndex.value =
+              newTags?.indexWhere((e) => e.sortType == sortType) ?? -1;
+        }
+      }
     }
     return false;
   }
 
   @override
-  Future onRefresh() {
-    fetchLiveFollowing();
-    return super.onRefresh();
+  Future<LoadingState> customGetData() {
+    if (areaIndex.value != 0) {
+      return LiveHttp.liveSecondList(
+        pn: currentPage,
+        isLogin: isLogin.value,
+        areaId: areaId,
+        parentAreaId: parentAreaId,
+        sortType: sortType,
+      );
+    }
+    return LiveHttp.liveFeedIndex(pn: currentPage, isLogin: isLogin.value);
   }
 
   @override
-  Future onReload() {
-    if (loadingState.value is Error) {
-      String? errMsg = (loadingState.value as Error).errMsg;
-      if (errMsg == '-352') {
-        gaiaVtoken = null;
-      }
+  Future<void> onRefresh() {
+    count = null;
+    currentPage = 1;
+    isEnd = false;
+    if (areaIndex.value != 0) {
+      queryTop();
     }
-    return super.onReload();
+    return queryData();
   }
 
-  late RxBool isLogin = Accounts.main.isLogin.obs;
-  late Rx<LoadingState<List<LiveFollowingItemModel>?>> followListState =
-      Rx(LoadingState.loading());
-  late int followPage = 1;
-  late bool followEnd = false;
-  late RxInt liveCount = 0.obs;
+  Future<void> queryTop() async {
+    final res = await LiveHttp.liveFeedIndex(
+      pn: currentPage,
+      isLogin: isLogin.value,
+      moduleSelect: true,
+    );
+    if (res is Success) {
+      final data = res.data;
+      topState.value = Pair(
+        first: data.followItem,
+        second: data.areaItem,
+      );
+      areaIndex.value = (data.areaItem?.cardData?.areaEntranceV3?.list
+                  ?.indexWhere((e) =>
+                      e.areaV2Id == areaId &&
+                      e.areaV2ParentId == parentAreaId) ??
+              -2) +
+          1;
+    }
+  }
 
-  Future fetchLiveFollowing([bool isRefresh = true]) async {
-    if (!isLogin.value || (isRefresh.not && followEnd)) {
+  void onSelectArea(int index, CardLiveItem? cardLiveItem) {
+    if (index == areaIndex.value) {
       return;
     }
-    if (isRefresh) {
-      followPage = 1;
-      followEnd = false;
-    }
-    dynamic res = await LiveHttp.liveFollowing(pn: followPage, ps: 20);
-    if (res['status']) {
-      LiveFollowingModel data = res['data'];
-      liveCount.value = data.liveCount ?? 0;
-      List<LiveFollowingItemModel>? dataList = data.list
-          ?.where((LiveFollowingItemModel item) =>
-              item.liveStatus == 1 && item.recordLiveTime == 0)
-          .toList();
-      if (dataList.isNullOrEmpty) {
-        followEnd = true;
-        if (isRefresh) {
-          followListState.value = LoadingState.success(dataList);
-        }
-        return;
-      }
-      if (isRefresh) {
-        if (dataList!.length >= liveCount.value) {
-          followEnd = true;
-        }
-        followListState.value = LoadingState.success(dataList);
-      } else if (followListState.value is Success) {
-        List<LiveFollowingItemModel> list = followListState.value.data!
-          ..addAll(dataList!);
-        if (list.length >= liveCount.value) {
-          followEnd = true;
-        }
-        followListState.refresh();
-      }
-      followPage++;
-    } else if (isRefresh) {
-      followListState.value = LoadingState.error(res['msg']);
-    }
+    tagIndex.value = 0;
+    newTags = null;
+    sortType = null;
+    areaIndex.value = index;
+    areaId = cardLiveItem?.areaV2Id;
+    parentAreaId = cardLiveItem?.areaV2ParentId;
+
+    count = null;
+    currentPage = 1;
+    isEnd = false;
+    queryData();
+  }
+
+  void onSelectTag(int index, String? sortType) {
+    tagIndex.value = index;
+    this.sortType = sortType;
+
+    count = null;
+    currentPage = 1;
+    isEnd = false;
+    queryData();
   }
 }

@@ -19,7 +19,7 @@ class SubController
   }
 
   @override
-  Future queryData([bool isRefresh = true]) {
+  Future<void> queryData([bool isRefresh = true]) {
     if (mid == 0) {
       loadingState.value = LoadingState.error('账号未登录');
       return Future.value();
@@ -28,7 +28,7 @@ class SubController
   }
 
   // 取消订阅
-  Future<void> cancelSub(SubFolderItemData subFolderItem) async {
+  void cancelSub(SubFolderItemData subFolderItem) {
     showDialog(
       context: Get.context!,
       builder: (context) => AlertDialog(

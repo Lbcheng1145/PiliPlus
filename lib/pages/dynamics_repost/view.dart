@@ -1,6 +1,7 @@
 import 'package:PiliPlus/common/widgets/button/toolbar_icon_button.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/http/msg.dart';
+import 'package:PiliPlus/models/common/publish_panel_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/common/common_publish_page.dart';
 import 'package:PiliPlus/pages/emote/controller.dart';
@@ -341,7 +342,8 @@ class _RepostPanelState extends CommonPublishPageState<RepostPanel> {
   Widget? get customPanel => EmotePanel(onChoose: onChooseEmote);
 
   @override
-  Future onCustomPublish({required String message, List? pictures}) async {
+  Future<void> onCustomPublish(
+      {required String message, List? pictures}) async {
     dynamic result = await MsgHttp.createDynamic(
       mid: Accounts.main.mid,
       dynIdStr: widget.item?.idStr ?? widget.dynIdStr,

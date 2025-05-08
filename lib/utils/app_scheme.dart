@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:PiliPlus/http/search.dart';
-import 'package:PiliPlus/models/common/reply_type.dart';
+import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/pages/video/reply_reply/view.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
@@ -18,7 +18,7 @@ class PiliScheme {
   static StreamSubscription? listener;
   static final uriDigitRegExp = RegExp(r'/(\d+)');
 
-  static Future<void> init() async {
+  static void init() {
     // Register our protocol only on Windows platform
     // registerProtocolHandler('bilibili');
     appLinks = AppLinks();
@@ -44,7 +44,7 @@ class PiliScheme {
       } else if (RegExp(r'^\S+://').hasMatch(url).not) {
         url = 'https://$url';
       }
-      return await routePush(
+      return routePush(
         Uri.parse(url),
         selfHandle: selfHandle,
         off: off,
@@ -454,7 +454,7 @@ class PiliScheme {
             return false;
         }
       case 'http' || 'https':
-        return await _fullPathPush(
+        return _fullPathPush(
           uri,
           selfHandle: selfHandle,
           off: off,

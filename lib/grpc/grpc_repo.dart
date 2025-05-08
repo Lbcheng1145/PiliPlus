@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/grpc/bilibili/app/dynamic/v1.pb.dart';
+import 'package:PiliPlus/grpc/bilibili/app/im/v1.pb.dart';
 import 'package:PiliPlus/grpc/bilibili/community/service/dm/v1.pb.dart';
 import 'package:PiliPlus/grpc/bilibili/im/interfaces/v1.pb.dart';
 import 'package:PiliPlus/grpc/bilibili/im/type.pb.dart';
@@ -22,7 +23,7 @@ import 'package:PiliPlus/utils/utils.dart';
 import 'package:archive/archive.dart';
 import 'package:dio/dio.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:protobuf/protobuf.dart' show GeneratedMessage;
+import 'package:protobuf/protobuf.dart' show GeneratedMessage, PbMap;
 import 'package:uuid/uuid.dart';
 
 class GrpcUrl {
@@ -46,8 +47,11 @@ class GrpcUrl {
 
   // im
   static const im = '/bilibili.im.interface.v1.ImInterface';
+  static const im2 = '/bilibili.app.im.v1.im';
   static const sendMsg = '$im/SendMsg';
   static const shareList = '$im/ShareList';
+  static const sessionMain = '$im2/SessionMain';
+  static const clearUnread = '$im2/ClearUnread';
 }
 
 class GrpcRepo {
@@ -207,24 +211,24 @@ class GrpcRepo {
   // static Future playerOnline({
   //   int aid = 0,
   //   int cid = 0,
-  // }) async {
-  //   return await _request(
+  // }) {
+  //   return _request(
   //       GrpcUrl.playerOnline,
   //       PlayerOnlineReq(aid: Int64(aid), cid: Int64(cid), playOpen: true),
   //       PlayerOnlineReply.fromBuffer,
   //       onSuccess: (response) => response.totalNumberText);
   // }
 
-  // static Future popular(int idx) async {
-  //   return await _request(GrpcUrl.popular, PopularResultReq(idx: Int64(idx)),
+  // static Future popular(int idx) {
+  //   return _request(GrpcUrl.popular, PopularResultReq(idx: Int64(idx)),
   //       PopularReply.fromBuffer, onSuccess: (response) {
   //     response.items.retainWhere((item) => item.smallCoverV5.base.goto == 'av');
   //     return {'status': true, 'data': response.items};
   //   });
   // }
 
-  // static Future replyInfo({required int rpid}) async {
-  //   return await _request(
+  // static Future replyInfo({required int rpid}) {
+  //   return _request(
   //     GrpcUrl.replyInfo,
   //     ReplyInfoReq(rpid: Int64(rpid)),
   //     ReplyInfoReply.fromBuffer,
@@ -235,8 +239,8 @@ class GrpcRepo {
   // static Future dynSpace({
   //   required int uid,
   //   required int page,
-  // }) async {
-  //   return await _request(
+  // }) {
+  //   return _request(
   //     GrpcUrl.dynSpace,
   //     DynSpaceReq(
   //       hostUid: Int64(uid),
@@ -253,15 +257,19 @@ class GrpcRepo {
     required int oid,
     required Mode mode,
     required String? offset,
-  }) async {
-    return await _request(
+    required Int64? cursorNext,
+  }) {
+    return _request(
       GrpcUrl.mainList,
       MainListReq(
         oid: Int64(oid),
         type: Int64(type),
         rpid: Int64(0),
-        mode: mode,
-        pagination: FeedPagination(offset: offset ?? ''),
+        cursor: CursorReq(
+          mode: mode,
+          next: cursorNext,
+        ),
+        // pagination: FeedPagination(offset: offset ?? ''),
       ),
       MainListReply.fromBuffer,
     );
@@ -274,8 +282,8 @@ class GrpcRepo {
     required int rpid,
     required Mode mode,
     required String? offset,
-  }) async {
-    return await _request(
+  }) {
+    return _request(
       GrpcUrl.detailList,
       DetailListReq(
         oid: Int64(oid),
@@ -296,8 +304,8 @@ class GrpcRepo {
     required int root,
     required int dialog,
     required String? offset,
-  }) async {
-    return await _request(
+  }) {
+    return _request(
       GrpcUrl.dialogList,
       DialogListReq(
         oid: Int64(oid),
@@ -310,8 +318,8 @@ class GrpcRepo {
     );
   }
 
-  static Future dynRed() async {
-    return await _request(
+  static Future dynRed() {
+    return _request(
       GrpcUrl.dynRed,
       DynRedReq(tabOffset: [TabOffset(tab: 1)]),
       DynRedReply.fromBuffer,
@@ -320,8 +328,8 @@ class GrpcRepo {
   }
 
   static Future dmSegMobile(
-      {required int cid, required int segmentIndex, int type = 1}) async {
-    return await _request(
+      {required int cid, required int segmentIndex, int type = 1}) {
+    return _request(
       GrpcUrl.dmSegMobile,
       DmSegMobileReq(
         oid: Int64(cid),
@@ -337,9 +345,9 @@ class GrpcRepo {
     required int receiverId,
     required String content,
     MsgType msgType = MsgType.EN_MSG_TYPE_TEXT,
-  }) async {
+  }) {
     final devId = const Uuid().v4();
-    return await _request(
+    return _request(
       GrpcUrl.sendMsg,
       ReqSendMsg(
         msg: Msg(
@@ -358,11 +366,35 @@ class GrpcRepo {
     );
   }
 
-  static Future shareList({int size = 10}) async {
-    return await _request(
+  static Future shareList({int size = 10}) {
+    return _request(
       GrpcUrl.shareList,
       ReqShareList(size: size),
       RspShareList.fromBuffer,
+    );
+  }
+
+  static Future sessionMain({PbMap<int, Offset>? offset}) {
+    return _request(
+      GrpcUrl.sessionMain,
+      SessionMainReq(
+        paginationParams: PaginationParams(offsets: offset),
+      ),
+      SessionMainReply.fromBuffer,
+    );
+  }
+
+  static Future clearUnread({
+    SessionPageType? pageType,
+    SessionId? sessionId,
+  }) {
+    return _request(
+      GrpcUrl.clearUnread,
+      ClearUnreadReq(
+        pageType: pageType,
+        sessionId: sessionId,
+      ),
+      ClearUnreadReply.fromBuffer,
     );
   }
 }

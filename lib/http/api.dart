@@ -704,7 +704,8 @@ class Api {
   /// 取消订阅-播单
   static const String unfavFolder = '/x/v3/fav/folder/unfav';
 
-  static const String videoTags = '/x/tag/archive/tags';
+  // static const String videoTags = '/x/tag/archive/tags';
+  static const String videoTags = '/x/web-interface/view/detail/tag';
 
   static const String reportMember = '/ajax/report/add';
 
@@ -735,10 +736,6 @@ class Api {
 
   /// 稍后再看&收藏夹视频列表
   static const String mediaList = '/x/v2/medialist/resource/list';
-
-  /// 我的关注 - 正在直播
-  static const String getFollowingLive =
-      '${HttpString.liveBaseUrl}/xlive/web-ucenter/user/following';
 
   static const String pgcIndexCondition = '/pgc/season/index/condition';
 
@@ -799,4 +796,35 @@ class Api {
   static const String voteInfo = '/x/vote/vote_info';
 
   static const String doVote = '/x/vote/do_vote';
+
+  static const String liveFeedIndex =
+      '${HttpString.liveBaseUrl}/xlive/app-interface/v2/index/feed';
+
+  static const String liveFollow =
+      '${HttpString.liveBaseUrl}/xlive/web-ucenter/user/following';
+
+  static const String liveSecondList =
+      '${HttpString.liveBaseUrl}/xlive/app-interface/v2/second/getList';
+
+  static const String msgSetNotice = '/x/msgfeed/notice';
+
+  static const String liveAreaList =
+      '${HttpString.liveBaseUrl}/xlive/app-interface/v2/index/getAreaList';
+
+  static const String liveRoomAreaList =
+      '${HttpString.liveBaseUrl}/room/v1/Area/getList';
+
+  static const String getLiveFavTag =
+      '${HttpString.liveBaseUrl}/xlive/app-interface/v2/second/get_fav_tag';
+
+  static const String setLiveFavTag =
+      '${HttpString.liveBaseUrl}/xlive/app-interface/v2/second/set_fav_tag';
+
+  static const String liveSearch =
+      '${HttpString.liveBaseUrl}/xlive/app-interface/v2/search_live';
+
+  static const String topicTop =
+      '${HttpString.appBaseUrl}/x/topic/web/details/top';
+
+  static const String topicFeed = '/x/polymer/web-dynamic/v1/feed/topic';
 }

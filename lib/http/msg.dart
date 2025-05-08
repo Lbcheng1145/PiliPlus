@@ -1,20 +1,23 @@
 import 'dart:math';
 
+import 'package:PiliPlus/grpc/bilibili/app/im/v1.pb.dart';
+import 'package:PiliPlus/grpc/grpc_repo.dart';
 import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/common/reply/reply_option_type.dart';
 import 'package:PiliPlus/models/msg/account.dart';
 import 'package:PiliPlus/models/msg/msgfeed_at_me.dart';
 import 'package:PiliPlus/models/msg/msgfeed_like_me.dart';
 import 'package:PiliPlus/models/msg/msgfeed_reply_me.dart';
 import 'package:PiliPlus/models/msg/msgfeed_sys_msg.dart';
 import 'package:PiliPlus/models/msg/session.dart';
-import 'package:PiliPlus/pages/dynamics/view.dart' show ReplyOption;
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:protobuf/protobuf.dart' show PbMap;
 import 'package:uuid/uuid.dart';
 
 class MsgHttp {
@@ -123,7 +126,7 @@ class MsgHttp {
     dynamic rawText,
     List? pics,
     int? publishTime,
-    ReplyOption? replyOption,
+    ReplyOptionType? replyOption,
     int? privatePub,
   }) async {
     String csrf = Accounts.main.csrf;
@@ -150,9 +153,9 @@ class MsgHttp {
             "option": {
               if (privatePub != null) 'private_pub': privatePub,
               if (publishTime != null) "timer_pub_time": publishTime,
-              if (replyOption == ReplyOption.close)
+              if (replyOption == ReplyOptionType.close)
                 "close_comment": 1
-              else if (replyOption == ReplyOption.choose)
+              else if (replyOption == ReplyOptionType.choose)
                 "up_choose_comment": 1,
             },
           "scene": rid != null
@@ -430,6 +433,16 @@ class MsgHttp {
     }
   }
 
+  static Future<LoadingState<SessionMainReply>> sessionMain(
+      {PbMap<int, Offset>? offset}) async {
+    final res = await GrpcRepo.sessionMain(offset: offset);
+    if (res['status']) {
+      return LoadingState.success(res['data']);
+    } else {
+      return LoadingState.error(res['msg']);
+    }
+  }
+
   static Future accountList(uids) async {
     var res = await Request().get(Api.sessionAccountList, queryParameters: {
       'uids': uids,
@@ -565,5 +578,33 @@ class MsgHttp {
 
   static String getDevId() {
     return const Uuid().v4();
+  }
+
+  static Future msgSetNotice({
+    required dynamic id,
+    required int noticeState,
+  }) async {
+    final csrf = Accounts.main.csrf;
+    var res = await Request().post(
+      Api.msgSetNotice,
+      data: {
+        'mobi_app': 'web',
+        'platform': 'web',
+        'tp': 0,
+        'id': id,
+        'notice_state': noticeState,
+        'build': 0,
+        'csrf_token': csrf,
+        'csrf': csrf,
+      },
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+      ),
+    );
+    if (res.data['code'] == 0) {
+      return {'status': true};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
+    }
   }
 }

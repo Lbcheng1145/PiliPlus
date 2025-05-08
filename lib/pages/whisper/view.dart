@@ -1,8 +1,9 @@
 import 'package:PiliPlus/common/skeleton/whisper_item.dart';
+import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
+import 'package:PiliPlus/grpc/bilibili/app/im/v1.pb.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/msg/session.dart';
 import 'package:PiliPlus/pages/whisper/controller.dart';
 import 'package:PiliPlus/pages/whisper/widgets/item.dart';
 import 'package:flutter/material.dart';
@@ -22,11 +23,29 @@ class _WhisperPageState extends State<WhisperPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('消息')),
+      appBar: AppBar(
+        title: const Text('消息'),
+        actions: [
+          IconButton(
+            tooltip: '一键已读',
+            onPressed: () {
+              showConfirmDialog(
+                context: context,
+                title: '一键已读',
+                content: '是否清除全部新消息提醒？',
+                onConfirm: _whisperController.onClearUnread,
+              );
+            },
+            icon: const Icon(
+              size: 20,
+              Icons.cleaning_services,
+            ),
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
       body: refreshIndicator(
-        onRefresh: () async {
-          await _whisperController.onRefresh();
-        },
+        onRefresh: _whisperController.onRefresh,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
@@ -38,7 +57,7 @@ class _WhisperPageState extends State<WhisperPage> {
     );
   }
 
-  Widget _buildBody(LoadingState<List<SessionList>?> loadingState) {
+  Widget _buildBody(LoadingState<List<Session>?> loadingState) {
     return switch (loadingState) {
       Loading() => SliverList.builder(
           itemCount: 12,

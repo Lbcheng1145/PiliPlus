@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/tabs.dart';
-import 'package:PiliPlus/models/common/dynamic_badge_mode.dart';
+import 'package:PiliPlus/models/common/dynamic/dynamic_badge_mode.dart';
 import 'package:PiliPlus/pages/dynamics/controller.dart';
 import 'package:PiliPlus/pages/dynamics/view.dart';
 import 'package:PiliPlus/pages/home/controller.dart';
@@ -124,7 +124,7 @@ class _MainAppState extends State<MainApp>
     }
   }
 
-  Future<void> setIndex(int value) async {
+  void setIndex(int value) {
     feedBack();
 
     if (value != _mainController.selectedIndex.value) {
@@ -156,9 +156,9 @@ class _MainAppState extends State<MainApp>
         });
       } else {
         if (currentPage is HomePage) {
-          _homeController.animateToTop();
+          _homeController.toTopOrRefresh();
         } else if (currentPage is DynamicsPage) {
-          _dynamicController.animateToTop();
+          _dynamicController.toTopOrRefresh();
         }
       }
       _lastSelectTime = now;
@@ -181,7 +181,7 @@ class _MainAppState extends State<MainApp>
     final bool isPortrait = context.orientation == Orientation.portrait;
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (bool didPop, Object? result) async {
+      onPopInvokedWithResult: (bool didPop, Object? result) {
         if (_mainController.selectedIndex.value != 0) {
           setIndex(0);
           _mainController.bottomBarStream?.add(true);

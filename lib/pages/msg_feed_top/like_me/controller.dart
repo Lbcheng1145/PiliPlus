@@ -39,7 +39,7 @@ class LikeMeController extends CommonDataController<MsgFeedLikeMe, dynamic> {
   }
 
   @override
-  Future onRefresh() {
+  Future<void> onRefresh() {
     cursor = -1;
     cursorTime = -1;
     return super.onRefresh();
@@ -49,7 +49,7 @@ class LikeMeController extends CommonDataController<MsgFeedLikeMe, dynamic> {
   Future<LoadingState<MsgFeedLikeMe>> customGetData() =>
       MsgHttp.msgFeedLikeMe(cursor: cursor, cursorTime: cursorTime);
 
-  Future onRemove(dynamic id, int index, bool isLatest) async {
+  Future<void> onRemove(dynamic id, int index, bool isLatest) async {
     try {
       var res = await MsgHttp.delMsgfeed(0, id);
       if (res['status']) {
@@ -66,5 +66,24 @@ class LikeMeController extends CommonDataController<MsgFeedLikeMe, dynamic> {
         SmartDialog.showToast(res['msg']);
       }
     } catch (_) {}
+  }
+
+  Future<void> onSetNotice(
+      int? id, int index, bool isNotice, bool isLatest) async {
+    int noticeState = isNotice ? 1 : 0;
+    var res = await MsgHttp.msgSetNotice(id: id, noticeState: noticeState);
+    if (res['status']) {
+      Pair<List<LikeMeItems>, List<LikeMeItems>> pair =
+          (loadingState.value as Success).response;
+      if (isLatest) {
+        pair.first[index].noticeState = noticeState;
+      } else {
+        pair.second[index].noticeState = noticeState;
+      }
+      loadingState.refresh();
+      SmartDialog.showToast('操作成功');
+    } else {
+      SmartDialog.showToast(res['msg']);
+    }
   }
 }

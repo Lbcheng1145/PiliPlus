@@ -7,6 +7,7 @@ import 'package:PiliPlus/common/widgets/pair.dart';
 import 'package:PiliPlus/common/widgets/progress_bar/segment_progress_bar.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/video.dart';
+import 'package:PiliPlus/models/common/account_type.dart';
 import 'package:PiliPlus/models/common/audio_normalization.dart';
 import 'package:PiliPlus/models/common/sponsor_block/segment_type.dart';
 import 'package:PiliPlus/models/common/sponsor_block/skip_type.dart';
@@ -394,8 +395,7 @@ class PlPlayerController {
 
   static Function? _playCallBack;
 
-  static Future<void> playIfExists(
-      {bool repeat = false, bool hideControls = true}) async {
+  static void playIfExists({bool repeat = false, bool hideControls = true}) {
     // await _instance?.play(repeat: repeat, hideControls: hideControls);
     _playCallBack?.call();
   }
@@ -825,7 +825,7 @@ class PlPlayerController {
   }
 
   // 开始播放
-  Future _initializePlayer() async {
+  Future<void> _initializePlayer() async {
     if (_instance == null) return;
     // 设置倍速
     if (videoType.value == 'live') {
@@ -847,7 +847,7 @@ class PlPlayerController {
 
     // 自动播放
     if (_autoPlay) {
-      await playIfExists();
+      playIfExists();
       // await play(duration: duration);
     }
   }
@@ -1413,7 +1413,7 @@ class PlPlayerController {
       _statusListeners.remove(listener);
 
   /// 截屏
-  Future screenshot() async {
+  Future<Uint8List?> screenshot() async {
     final Uint8List? screenshot =
         await _videoPlayerController!.screenshot(format: 'image/png');
     return screenshot;
@@ -1428,7 +1428,7 @@ class PlPlayerController {
   }
 
   // 记录播放记录
-  Future makeHeartBeat(
+  Future<void> makeHeartBeat(
     int progress, {
     type = 'playing',
     bool isManual = false,

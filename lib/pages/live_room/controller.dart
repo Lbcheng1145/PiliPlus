@@ -1,12 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/live.dart';
 import 'package:PiliPlus/http/video.dart';
-import 'package:PiliPlus/models/live/danmu_info.dart';
-import 'package:PiliPlus/models/live/quality.dart';
-import 'package:PiliPlus/models/live/room_info.dart';
-import 'package:PiliPlus/models/live/room_info_h5.dart';
+import 'package:PiliPlus/models/common/video/live_quality.dart';
+import 'package:PiliPlus/models/live/live_room/danmu_info.dart';
+import 'package:PiliPlus/models/live/live_room/room_info.dart';
+import 'package:PiliPlus/models/live/live_room/room_info_h5.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/data_source.dart';
@@ -76,7 +77,7 @@ class LiveRoomController extends GetxController {
 
   final RxBool isPortrait = false.obs;
 
-  Future queryLiveInfo() async {
+  Future<void> queryLiveInfo() async {
     if (currentQn == null) {
       await Connectivity().checkConnectivity().then((res) {
         currentQn = res.contains(ConnectivityResult.wifi)
@@ -121,7 +122,7 @@ class LiveRoomController extends GetxController {
     }
   }
 
-  Future queryLiveInfoH5() async {
+  Future<void> queryLiveInfoH5() async {
     var res = await LiveHttp.liveRoomInfoH5(roomId: roomId);
     if (res['status']) {
       roomInfoH5.value = res['data'];
@@ -235,14 +236,14 @@ class LiveRoomController extends GetxController {
   }
 
   // 修改画质
-  Future<void> changeQn(int qn) async {
+  FutureOr<void> changeQn(int qn) {
     if (currentQn == qn) {
-      return;
+      return null;
     }
     currentQn = qn;
     currentQnDesc.value = LiveQuality.values
         .firstWhere((element) => element.code == currentQn)
         .description;
-    await queryLiveInfo();
+    return queryLiveInfo();
   }
 }

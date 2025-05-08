@@ -1,6 +1,7 @@
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/rich_node_panel.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
@@ -52,12 +53,23 @@ Widget liveRcmdPanel(
       ],
       const SizedBox(height: 4),
       if (item.modules.moduleDynamic?.topic != null) ...[
-        Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: StyleString.safeSpace),
-          child: Text(
-            '#${item.modules.moduleDynamic!.topic!.name}',
-            style: authorStyle,
+        GestureDetector(
+          onTap: () {
+            Get.toNamed(
+              '/dynTopic',
+              parameters: {
+                'id': item.modules.moduleDynamic!.topic!.id!.toString(),
+                'name': item.modules.moduleDynamic!.topic!.name!,
+              },
+            );
+          },
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: StyleString.safeSpace),
+            child: Text(
+              '#${item.modules.moduleDynamic!.topic!.name}',
+              style: authorStyle,
+            ),
           ),
         ),
         const SizedBox(height: 6),
@@ -92,7 +104,7 @@ Widget liveRcmdPanel(
                     text: watchedShow?['text_large'],
                     top: 6,
                     right: 56,
-                    type: 'gray',
+                    type: PBadgeType.gray,
                   ),
                   PBadge(
                     text: liveStatus == 1 ? '直播中' : '直播结束',

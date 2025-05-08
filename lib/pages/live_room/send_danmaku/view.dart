@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:PiliPlus/common/widgets/button/toolbar_icon_button.dart';
 import 'package:PiliPlus/http/live.dart';
+import 'package:PiliPlus/models/common/publish_panel_type.dart';
 import 'package:PiliPlus/pages/common/common_publish_page.dart';
 import 'package:PiliPlus/pages/live_emote/controller.dart';
 import 'package:PiliPlus/pages/live_emote/view.dart';
@@ -187,7 +188,7 @@ class _ReplyPageState extends CommonPublishPageState<LiveSendDmPanel> {
   }
 
   @override
-  Future onCustomPublish({
+  Future<void> onCustomPublish({
     required String message,
     List? pictures,
     int? dmType,

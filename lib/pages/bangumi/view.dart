@@ -8,7 +8,7 @@ import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/bangumi/list.dart';
 import 'package:PiliPlus/models/bangumi/pgc_timeline/result.dart';
-import 'package:PiliPlus/models/common/tab_type.dart';
+import 'package:PiliPlus/models/common/home_tab_type.dart';
 import 'package:PiliPlus/pages/bangumi/controller.dart';
 import 'package:PiliPlus/pages/bangumi/widgets/bangumi_card_v.dart';
 import 'package:PiliPlus/pages/bangumi/widgets/bangumi_card_v_timeline.dart';
@@ -25,7 +25,7 @@ class BangumiPage extends CommonPage {
     required this.tabType,
   });
 
-  final TabType tabType;
+  final HomeTabType tabType;
 
   @override
   State<BangumiPage> createState() => _BangumiPageState();
@@ -47,9 +47,7 @@ class _BangumiPageState extends CommonPageState<BangumiPage, BangumiController>
     super.build(context);
     final ThemeData theme = Theme.of(context);
     return refreshIndicator(
-      onRefresh: () async {
-        await controller.onRefresh();
-      },
+      onRefresh: controller.onRefresh,
       child: CustomScrollView(
         controller: controller.scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
@@ -225,7 +223,7 @@ class _BangumiPageState extends CommonPageState<BangumiPage, BangumiController>
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
-                  if (widget.tabType == TabType.bangumi) {
+                  if (widget.tabType == HomeTabType.bangumi) {
                     Get.to(const PgcIndexPage());
                   } else {
                     List<String> titles = const [
@@ -353,7 +351,7 @@ class _BangumiPageState extends CommonPageState<BangumiPage, BangumiController>
           children: [
             Obx(
               () => Text(
-                '最近${widget.tabType == TabType.bangumi ? '追番' : '追剧'}${controller.followCount.value == -1 ? '' : ' ${controller.followCount.value}'}',
+                '最近${widget.tabType == HomeTabType.bangumi ? '追番' : '追剧'}${controller.followCount.value == -1 ? '' : ' ${controller.followCount.value}'}',
                 style: theme.textTheme.titleMedium,
               ),
             ),
@@ -381,7 +379,7 @@ class _BangumiPageState extends CommonPageState<BangumiPage, BangumiController>
                           Get.toNamed(
                             '/fav',
                             arguments:
-                                widget.tabType == TabType.bangumi ? 1 : 2,
+                                widget.tabType == HomeTabType.bangumi ? 1 : 2,
                           );
                         },
                         child: Padding(
@@ -446,7 +444,7 @@ class _BangumiPageState extends CommonPageState<BangumiPage, BangumiController>
             )
           : Center(
               child: Text(
-                  '还没有${widget.tabType == TabType.bangumi ? '追番' : '追剧'}')),
+                  '还没有${widget.tabType == HomeTabType.bangumi ? '追番' : '追剧'}')),
       Error() => Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           alignment: Alignment.center,

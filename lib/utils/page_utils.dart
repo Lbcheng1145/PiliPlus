@@ -5,9 +5,10 @@ import 'package:PiliPlus/grpc/grpc_repo.dart';
 import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/models/bangumi/info.dart';
+import 'package:PiliPlus/models/common/image_preview_type.dart';
 import 'package:PiliPlus/models/common/search_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
-import 'package:PiliPlus/models/live/item.dart';
+import 'package:PiliPlus/models/live/live_room/item.dart';
 import 'package:PiliPlus/pages/contact/view.dart';
 import 'package:PiliPlus/pages/fav_panel/view.dart';
 import 'package:PiliPlus/pages/share/view.dart';
@@ -260,7 +261,7 @@ class PageUtils {
     );
   }
 
-  static Future pushDynFromId({id, rid, bool off = false}) async {
+  static Future<void> pushDynFromId({id, rid, bool off = false}) async {
     SmartDialog.showLoading();
     dynamic res = await DynamicsHttp.dynamicDetail(
       id: id,

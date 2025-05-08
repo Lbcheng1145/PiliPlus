@@ -44,9 +44,7 @@ class _MemberFavoriteState extends State<MemberFavorite>
       Loading() => loadingWidget,
       Success() => (loadingState.response as List?)?.isNotEmpty == true
           ? refreshIndicator(
-              onRefresh: () async {
-                await _controller.onRefresh();
-              },
+              onRefresh: _controller.onRefresh,
               child: CustomScrollView(
                 slivers: [
                   SliverToBoxAdapter(
@@ -114,10 +112,6 @@ class _MemberFavoriteState extends State<MemberFavorite>
                     _controller.first.value.mediaListResponse?.list
                         ?.remove(item);
                     _controller.first.refresh();
-                  } else {
-                    Future.delayed(const Duration(milliseconds: 100), () {
-                      _controller.onRefresh();
-                    });
                   }
                 },
               ),

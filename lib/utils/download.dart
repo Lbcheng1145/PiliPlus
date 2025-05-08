@@ -50,7 +50,7 @@ class DownloadUtils {
     if (status == PermissionStatus.denied ||
         status == PermissionStatus.permanentlyDenied) {
       if (!context.mounted) return false;
-      await showDialog(
+      showDialog(
         context: context,
         builder: (context) {
           return AlertDialog(
@@ -58,7 +58,7 @@ class DownloadUtils {
             content: const Text('存储权限未授权'),
             actions: [
               TextButton(
-                onPressed: () async {
+                onPressed: () {
                   openAppSettings();
                 },
                 child: const Text('去授权'),
@@ -91,15 +91,15 @@ class DownloadUtils {
       final androidInfo = await DeviceInfoPlugin().androidInfo;
       if (androidInfo.version.sdkInt <= 32) {
         if (!context.mounted) return false;
-        return await requestStoragePer(context);
+        return requestStoragePer(context);
       } else {
-        return await requestPhotoPer();
+        return requestPhotoPer();
       }
     }
-    return await requestStoragePer(context);
+    return requestStoragePer(context);
   }
 
-  static Future downloadLivePhoto({
+  static Future<bool> downloadLivePhoto({
     required BuildContext context,
     required String url,
     required String liveUrl,
@@ -108,7 +108,7 @@ class DownloadUtils {
   }) async {
     try {
       if (!await checkPermissionDependOnSdkInt(context)) {
-        return;
+        return false;
       }
       SmartDialog.showLoading(msg: '正在下载');
 
@@ -168,12 +168,12 @@ class DownloadUtils {
     }
   }
 
-  static Future downloadImg(
+  static Future<bool> downloadImg(
     BuildContext context,
     List<String> imgList, {
     String imgType = 'cover',
   }) async {
-    if (!await checkPermissionDependOnSdkInt(context)) return;
+    if (!await checkPermissionDependOnSdkInt(context)) return false;
     final cancelToken = CancelToken();
     SmartDialog.showLoading(
       msg: '正在下载原图',

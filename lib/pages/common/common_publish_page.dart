@@ -4,9 +4,9 @@ import 'dart:math';
 
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
-import 'package:PiliPlus/common/widgets/interactiveviewer_gallery/interactiveviewer_gallery.dart'
-    show SourceModel, SourceType;
 import 'package:PiliPlus/http/msg.dart';
+import 'package:PiliPlus/models/common/image_preview_type.dart';
+import 'package:PiliPlus/models/common/publish_panel_type.dart';
 import 'package:PiliPlus/models/live/live_emoticons/emoticon.dart';
 import 'package:PiliPlus/models/video/reply/emote.dart';
 import 'package:PiliPlus/utils/extension.dart';
@@ -19,8 +19,6 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-
-enum PanelType { none, keyboard, emoji }
 
 abstract class CommonPublishPage extends StatefulWidget {
   const CommonPublishPage({
@@ -87,7 +85,7 @@ abstract class CommonPublishPageState<T extends CommonPublishPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       if (mounted && widget.autofocus && selectKeyboard.value) {
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
           if (focusNode.hasFocus) {
             focusNode.unfocus();
             _requestFocus();
@@ -104,7 +102,7 @@ abstract class CommonPublishPageState<T extends CommonPublishPage>
     }
   }
 
-  Future<void> updatePanelType(PanelType type) async {
+  void updatePanelType(PanelType type) {
     final isSwitchToKeyboard = PanelType.keyboard == type;
     final isSwitchToEmojiPanel = PanelType.emoji == type;
     bool isUpdated = false;
@@ -161,7 +159,7 @@ abstract class CommonPublishPageState<T extends CommonPublishPage>
     return false;
   }
 
-  Future onPublish() async {
+  Future<void> onPublish() async {
     feedBack();
     List<Map<String, dynamic>>? pictures;
     if (pathList.isNotEmpty) {
@@ -196,7 +194,7 @@ abstract class CommonPublishPageState<T extends CommonPublishPage>
     onCustomPublish(message: editController.text, pictures: pictures);
   }
 
-  Future onCustomPublish({required String message, List? pictures});
+  Future<void> onCustomPublish({required String message, List? pictures});
 
   void onChooseEmote(emote) {
     enablePublish.value = true;

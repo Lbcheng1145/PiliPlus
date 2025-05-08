@@ -1,5 +1,5 @@
 import 'package:PiliPlus/models/bangumi/info.dart';
-import 'package:PiliPlus/models/live/room_info_h5.dart';
+import 'package:PiliPlus/models/live/live_room/room_info_h5.dart';
 import 'package:PiliPlus/models/video_detail_res.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
@@ -9,7 +9,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:get/get_utils/get_utils.dart';
 
 Future<VideoPlayerServiceHandler> initAudioService() async {
-  return await AudioService.init(
+  return AudioService.init(
     builder: () => VideoPlayerServiceHandler(),
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.example.piliplus.audio',
@@ -40,7 +40,7 @@ class VideoPlayerServiceHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> play() async {
-    await PlPlayerController.playIfExists();
+    PlPlayerController.playIfExists();
     // player.play();
   }
 

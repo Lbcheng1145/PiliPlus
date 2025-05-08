@@ -27,19 +27,19 @@ class SysMsgController
     }
   }
 
-  Future msgSysUpdateCursor(int? cursor) async {
+  void msgSysUpdateCursor(int? cursor) {
     if (cursor != null) {
       MsgHttp.msgSysUpdateCursor(cursor);
     }
   }
 
   @override
-  Future onRefresh() {
+  Future<void> onRefresh() {
     cursor = -1;
     return super.onRefresh();
   }
 
-  Future onRemove(dynamic id, int index) async {
+  Future<void> onRemove(dynamic id, int index) async {
     try {
       var res = await MsgHttp.delSysMsg(id);
       if (res['status']) {

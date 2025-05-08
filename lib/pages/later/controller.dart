@@ -1,11 +1,10 @@
 import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/user.dart';
+import 'package:PiliPlus/models/common/later_view_type.dart';
 import 'package:PiliPlus/models/model_hot_video_item.dart';
 import 'package:PiliPlus/pages/common/multi_select_controller.dart';
 import 'package:PiliPlus/pages/later/base_controller.dart';
-import 'package:PiliPlus/pages/later/view.dart'
-    show LaterViewType, LaterViewTypeExt;
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
@@ -85,8 +84,8 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
   }
 
   // single
-  Future toViewDel(BuildContext context, int index, int? aid) async {
-    await showDialog(
+  void toViewDel(BuildContext context, int index, int? aid) {
+    showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -166,7 +165,7 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
               ),
             ),
             TextButton(
-              onPressed: () async {
+              onPressed: () {
                 Get.back();
                 _onDelete(((loadingState.value as Success).response
                         as List<HotVideoItemModel>)
@@ -234,7 +233,7 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
   }
 
   @override
-  Future onReload() {
+  Future<void> onReload() {
     scrollController.jumpToTop();
     return super.onReload();
   }

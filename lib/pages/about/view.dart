@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:PiliPlus/build_config.dart';
 import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
+import 'package:PiliPlus/models/common/account_type.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/services/loggeer.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
@@ -42,12 +43,12 @@ class _AboutPageState extends State<AboutPage> {
     getCurrentApp();
   }
 
-  Future getCacheSize() async {
+  Future<void> getCacheSize() async {
     cacheSize.value =
         CacheManage.formatSize(await CacheManage().loadApplicationCache());
   }
 
-  Future getCurrentApp() async {
+  Future<void> getCurrentApp() async {
     var currentInfo = await PackageInfo.fromPlatform();
     String buildNumber = currentInfo.buildNumber;
     currentVersion.value = "${currentInfo.version}+$buildNumber";
@@ -228,7 +229,7 @@ Commit Hash: ${BuildConfig.commitHash}''',
                   children: [
                     ListTile(
                       title: const Text('导出'),
-                      onTap: () async {
+                      onTap: () {
                         Get.back();
                         String res = jsonEncode(Accounts.account.toMap());
                         Utils.copyText(res);
@@ -245,7 +246,7 @@ Commit Hash: ${BuildConfig.commitHash}''',
                           return;
                         }
                         if (!context.mounted) return;
-                        await showDialog(
+                        showDialog(
                           context: context,
                           builder: (context) {
                             return AlertDialog(
@@ -311,9 +312,9 @@ Commit Hash: ${BuildConfig.commitHash}''',
                     children: [
                       ListTile(
                         title: const Text('导出设置至剪贴板'),
-                        onTap: () async {
+                        onTap: () {
                           Get.back();
-                          String data = await GStorage.exportAllSettings();
+                          String data = GStorage.exportAllSettings();
                           Utils.copyText(data);
                         },
                       ),

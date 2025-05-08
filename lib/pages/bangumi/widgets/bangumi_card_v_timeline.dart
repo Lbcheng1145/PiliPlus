@@ -2,6 +2,7 @@ import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/models/bangumi/pgc_timeline/episode.dart';
+import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:flutter/material.dart';
 
@@ -24,7 +25,7 @@ class BangumiCardVTimeline extends StatelessWidget {
           title: item.title,
           cover: item.cover,
         ),
-        onTap: () async {
+        onTap: () {
           PageUtils.viewBangumi(seasonId: item.seasonId, epId: item.episodeId);
         },
         child: Column(
@@ -53,7 +54,7 @@ class BangumiCardVTimeline extends StatelessWidget {
                       text: '${item.pubTime}',
                       left: 6,
                       bottom: 6,
-                      type: 'gray',
+                      type: PBadgeType.gray,
                     ),
                   ],
                 );

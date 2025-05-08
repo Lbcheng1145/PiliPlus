@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
 import 'package:PiliPlus/http/danmaku.dart';
 import 'package:PiliPlus/main.dart';
+import 'package:PiliPlus/models/common/publish_panel_type.dart';
 import 'package:PiliPlus/pages/common/common_publish_page.dart';
 import 'package:PiliPlus/pages/setting/slide_color_picker.dart';
 import 'package:PiliPlus/utils/extension.dart';
@@ -470,7 +471,8 @@ class _SendDanmakuPanelState extends CommonPublishPageState<SendDanmakuPanel> {
   }
 
   @override
-  Future onCustomPublish({required String message, List? pictures}) async {
+  Future<void> onCustomPublish(
+      {required String message, List? pictures}) async {
     SmartDialog.showLoading(msg: '发送中...');
     bool isColorful = _color.value == Colors.transparent;
     final res = await DanmakuHttp.shootDanmaku(

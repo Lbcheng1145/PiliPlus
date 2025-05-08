@@ -2,14 +2,21 @@ import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/live/danmu_info.dart';
-import 'package:PiliPlus/models/live/follow.dart';
-import 'package:PiliPlus/models/live/item.dart';
+import 'package:PiliPlus/models/common/live_search_type.dart';
+import 'package:PiliPlus/models/live/live_area_list/area_item.dart';
+import 'package:PiliPlus/models/live/live_area_list/area_list.dart';
 import 'package:PiliPlus/models/live/live_emoticons/data.dart';
 import 'package:PiliPlus/models/live/live_emoticons/datum.dart';
-import 'package:PiliPlus/models/live/room_info.dart';
-import 'package:PiliPlus/models/live/room_info_h5.dart';
+import 'package:PiliPlus/models/live/live_feed_index/data.dart';
+import 'package:PiliPlus/models/live/live_follow/data.dart';
+import 'package:PiliPlus/models/live/live_room/danmu_info.dart';
+import 'package:PiliPlus/models/live/live_room/item.dart';
+import 'package:PiliPlus/models/live/live_room/room_info.dart';
+import 'package:PiliPlus/models/live/live_room/room_info_h5.dart';
+import 'package:PiliPlus/models/live/live_search/data.dart';
+import 'package:PiliPlus/models/live/live_second_list/data.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/utils.dart';
 import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
 
@@ -150,31 +157,6 @@ class LiveHttp {
     }
   }
 
-  // 我的关注 正在直播
-  static Future liveFollowing({required int pn, required int ps}) async {
-    var res = await Request().get(
-      Api.getFollowingLive,
-      queryParameters: {
-        'page': pn,
-        'page_size': ps,
-        'platform': 'web',
-        'ignoreRecord': 1,
-        'hit_ab': true,
-      },
-    );
-    if (res.data['code'] == 0) {
-      return {
-        'status': true,
-        'data': LiveFollowingModel.fromJson(res.data['data'])
-      };
-    } else {
-      return {
-        'status': false,
-        'msg': res.data['message'],
-      };
-    }
-  }
-
   static Future<LoadingState<List<LiveEmoteDatum>?>> getLiveEmoticons(
       {required int roomId}) async {
     var res = await Request().get(
@@ -187,6 +169,307 @@ class LiveHttp {
     if (res.data['code'] == 0) {
       return LoadingState.success(
           LiveEmoteData.fromJson(res.data['data']).data);
+    } else {
+      return LoadingState.error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<LiveIndexData>> liveFeedIndex({
+    required int pn,
+    required bool isLogin,
+    bool? moduleSelect,
+  }) async {
+    final params = {
+      if (isLogin) 'access_key': Accounts.main.accessKey,
+      'appkey': Constants.appKey,
+      'actionKey': 'appkey',
+      'build': '8350200',
+      'c_locale': 'zh_CN',
+      'device': 'pad',
+      'device_name': 'vivo',
+      'device_type': '0',
+      'fnval': '912',
+      'disable_rcmd': '0',
+      'https_url_req': '1',
+      if (moduleSelect == true) 'module_select': '1',
+      'mobi_app': 'android_hd',
+      'network': 'wifi',
+      'page': pn,
+      'platform': 'android',
+      if (isLogin) 'relation_page': '1',
+      's_locale': 'zh_CN',
+      'scale': '2',
+      'statistics': Constants.statistics,
+      'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    };
+    Utils.appSign(
+      params,
+      Constants.appKey,
+      Constants.appSec,
+    );
+    var res = await Request().get(
+      Api.liveFeedIndex,
+      queryParameters: params,
+    );
+    if (res.data['code'] == 0) {
+      return LoadingState.success(LiveIndexData.fromJson(res.data['data']));
+    } else {
+      return LoadingState.error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<LiveFollowData>> liveFollow(int page) async {
+    var res = await Request().get(
+      Api.liveFollow,
+      queryParameters: {
+        'page': page,
+        'page_size': 9,
+        'ignoreRecord': 1,
+        'hit_ab': true,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return LoadingState.success(LiveFollowData.fromJson(res.data['data']));
+    } else {
+      return LoadingState.error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<LiveSecondData>> liveSecondList({
+    required int pn,
+    required bool isLogin,
+    required areaId,
+    required parentAreaId,
+    String? sortType,
+  }) async {
+    final params = {
+      if (isLogin) 'access_key': Accounts.main.accessKey,
+      'appkey': Constants.appKey,
+      'actionKey': 'appkey',
+      if (areaId != null) 'area_id': areaId,
+      if (parentAreaId != null) 'parent_area_id': parentAreaId,
+      'build': '8350200',
+      'c_locale': 'zh_CN',
+      'device': 'pad',
+      'device_name': 'vivo',
+      'device_type': '0',
+      'fnval': '912',
+      'disable_rcmd': '0',
+      'https_url_req': '1',
+      'mobi_app': 'android_hd',
+      'module_select': '0',
+      'network': 'wifi',
+      'page': pn,
+      'page_size': '20',
+      'platform': 'android',
+      'qn': '0',
+      if (sortType != null) 'sort_type': sortType,
+      'tag_version': '1',
+      's_locale': 'zh_CN',
+      'scale': '2',
+      'statistics': Constants.statistics,
+      'ts': (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString(),
+    };
+    Utils.appSign(
+      params,
+      Constants.appKey,
+      Constants.appSec,
+    );
+    var res = await Request().get(
+      Api.liveSecondList,
+      queryParameters: params,
+    );
+    if (res.data['code'] == 0) {
+      return LoadingState.success(LiveSecondData.fromJson(res.data['data']));
+    } else {
+      return LoadingState.error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<List<AreaList>?>> liveAreaList({
+    required bool isLogin,
+  }) async {
+    final params = {
+      if (isLogin) 'access_key': Accounts.main.accessKey,
+      'appkey': Constants.appKey,
+      'actionKey': 'appkey',
+      'build': '8350200',
+      'c_locale': 'zh_CN',
+      'device': 'pad',
+      'disable_rcmd': '0',
+      'mobi_app': 'android_hd',
+      'platform': 'android',
+      's_locale': 'zh_CN',
+      'statistics': Constants.statistics,
+      'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    };
+    Utils.appSign(
+      params,
+      Constants.appKey,
+      Constants.appSec,
+    );
+    var res = await Request().get(
+      Api.liveAreaList,
+      queryParameters: params,
+    );
+    if (res.data['code'] == 0) {
+      return LoadingState.success((res.data['data']?['list'] as List?)
+          ?.map((e) => AreaList.fromJson(e))
+          .toList());
+    } else {
+      return LoadingState.error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<List<AreaItem>>> getLiveFavTag({
+    required bool isLogin,
+  }) async {
+    final params = {
+      if (isLogin) 'access_key': Accounts.main.accessKey,
+      'appkey': Constants.appKey,
+      'actionKey': 'appkey',
+      'build': '8350200',
+      'c_locale': 'zh_CN',
+      'device': 'pad',
+      'disable_rcmd': '0',
+      'mobi_app': 'android_hd',
+      'platform': 'android',
+      's_locale': 'zh_CN',
+      'statistics': Constants.statistics,
+      'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    };
+    Utils.appSign(
+      params,
+      Constants.appKey,
+      Constants.appSec,
+    );
+    var res = await Request().get(
+      Api.getLiveFavTag,
+      queryParameters: params,
+    );
+
+    if (res.data['code'] == 0) {
+      return LoadingState.success((res.data['data']?['tags'] as List?)
+              ?.map((e) => AreaItem.fromJson(e))
+              .toList() ??
+          <AreaItem>[]);
+    } else {
+      return LoadingState.error(res.data['message']);
+    }
+  }
+
+  static Future setLiveFavTag({
+    required List ids,
+  }) async {
+    final data = {
+      'tags': ids.join(','),
+      'access_key': Accounts.main.accessKey,
+      'appkey': Constants.appKey,
+      'actionKey': 'appkey',
+      'build': '8350200',
+      'c_locale': 'zh_CN',
+      'device': 'pad',
+      'disable_rcmd': '0',
+      'mobi_app': 'android_hd',
+      'platform': 'android',
+      's_locale': 'zh_CN',
+      'statistics': Constants.statistics,
+      'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    };
+    Utils.appSign(
+      data,
+      Constants.appKey,
+      Constants.appSec,
+    );
+    var res = await Request().post(
+      Api.setLiveFavTag,
+      data: data,
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+      ),
+    );
+
+    if (res.data['code'] == 0) {
+      return {'status': true};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
+    }
+  }
+
+  static Future<LoadingState<List<AreaItem>?>> liveRoomAreaList({
+    required bool isLogin,
+    required parentid,
+  }) async {
+    final params = {
+      if (isLogin) 'access_key': Accounts.main.accessKey,
+      'appkey': Constants.appKey,
+      'actionKey': 'appkey',
+      'build': '8350200',
+      'c_locale': 'zh_CN',
+      'device': 'pad',
+      'disable_rcmd': '0',
+      'need_entrance': 1,
+      'parent_id': parentid,
+      'source_id': 2,
+      'mobi_app': 'android_hd',
+      'platform': 'android',
+      's_locale': 'zh_CN',
+      'statistics': Constants.statistics,
+      'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    };
+    Utils.appSign(
+      params,
+      Constants.appKey,
+      Constants.appSec,
+    );
+    var res = await Request().get(
+      Api.liveRoomAreaList,
+      queryParameters: params,
+    );
+    if (res.data['code'] == 0) {
+      return LoadingState.success((res.data['data'] as List?)
+          ?.map((e) => AreaItem.fromJson(e))
+          .toList());
+    } else {
+      return LoadingState.error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<LiveSearchData>> liveSearch({
+    required bool isLogin,
+    required int page,
+    required String keyword,
+    required LiveSearchType type,
+  }) async {
+    final params = {
+      if (isLogin) 'access_key': Accounts.main.accessKey,
+      'appkey': Constants.appKey,
+      'actionKey': 'appkey',
+      'build': '8350200',
+      'c_locale': 'zh_CN',
+      'device': 'pad',
+      'page': page,
+      'pagesize': 30,
+      'keyword': keyword,
+      'disable_rcmd': '0',
+      'mobi_app': 'android_hd',
+      'platform': 'android',
+      's_locale': 'zh_CN',
+      'statistics': Constants.statistics,
+      'ts': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      'type': type.name,
+    };
+    Utils.appSign(
+      params,
+      Constants.appKey,
+      Constants.appSec,
+    );
+    var res = await Request().get(
+      Api.liveSearch,
+      queryParameters: params,
+    );
+    if (res.data['code'] == 0) {
+      return LoadingState.success(LiveSearchData.fromJson(res.data['data']));
     } else {
       return LoadingState.error(res.data['message']);
     }

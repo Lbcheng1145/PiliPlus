@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/member.dart';
 import 'package:PiliPlus/http/video.dart';
+import 'package:PiliPlus/models/common/member/tab_type.dart';
 import 'package:PiliPlus/models/space/data.dart';
 import 'package:PiliPlus/models/space/item.dart';
 import 'package:PiliPlus/models/space/tab2.dart';
@@ -15,13 +16,7 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
-enum MemberTabType { none, home, dynamic, contribute, favorite, bangumi }
-
-extension MemberTabTypeExt on MemberTabType {
-  String get title => const ['默认', '首页', '动态', '投稿', '收藏', '番剧'][index];
-}
-
-class MemberController extends CommonDataController<SpaceData, dynamic>
+class MemberController extends CommonDataController<SpaceData, SpaceData?>
     with GetTickerProviderStateMixin {
   MemberController({required this.mid});
   int mid;
@@ -146,7 +141,7 @@ class MemberController extends CommonDataController<SpaceData, dynamic>
     );
     showUname.value = true;
     username = errMsg;
-    loadingState.value = LoadingState.success(null);
+    loadingState.value = LoadingState<SpaceData?>.success(null);
     return true;
   }
 
@@ -156,12 +151,12 @@ class MemberController extends CommonDataController<SpaceData, dynamic>
         fromViewAid: fromViewAid,
       );
 
-  Future blockUser(BuildContext context) async {
+  void blockUser(BuildContext context) {
     if (ownerMid == 0) {
       SmartDialog.showToast('账号未登录');
       return;
     }
-    await showDialog(
+    showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -176,7 +171,7 @@ class MemberController extends CommonDataController<SpaceData, dynamic>
               ),
             ),
             TextButton(
-              onPressed: () async {
+              onPressed: () {
                 Get.back();
                 _onBlock();
               },
@@ -203,7 +198,7 @@ class MemberController extends CommonDataController<SpaceData, dynamic>
     }
   }
 
-  Future<void> onFollow(BuildContext context) async {
+  void onFollow(BuildContext context) {
     if (mid == ownerMid) {
       Get.toNamed('/editProfile');
     } else if (relation.value == 128) {
@@ -230,7 +225,7 @@ class MemberController extends CommonDataController<SpaceData, dynamic>
     super.onClose();
   }
 
-  Future onRemoveFan() async {
+  Future<void> onRemoveFan() async {
     final res = await VideoHttp.relationMod(
       mid: mid,
       act: 7,

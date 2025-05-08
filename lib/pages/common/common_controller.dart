@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -11,6 +12,17 @@ abstract mixin class ScrollOrRefreshMixin {
   void animateToTop() => scrollController.animToTop();
 
   Future<void> onRefresh();
+
+  void toTopOrRefresh() {
+    if (scrollController.hasClients) {
+      if (scrollController.position.pixels == 0) {
+        EasyThrottle.throttle(
+            'topOrRefresh', const Duration(milliseconds: 500), onRefresh);
+      } else {
+        animateToTop();
+      }
+    }
+  }
 }
 
 abstract class CommonController<R, T> extends GetxController
@@ -42,7 +54,7 @@ abstract class CommonController<R, T> extends GetxController
 
   void checkIsEnd(int length) {}
 
-  Future queryData([bool isRefresh = true]) async {
+  Future<void> queryData([bool isRefresh = true]) async {
     if (isLoading || (isRefresh.not && isEnd)) return;
     isLoading = true;
     LoadingState<R> response = await customGetData();
@@ -80,19 +92,19 @@ abstract class CommonController<R, T> extends GetxController
   }
 
   @override
-  Future<void> onRefresh() async {
+  Future<void> onRefresh() {
     currentPage = 1;
     isEnd = false;
-    await queryData();
+    return queryData();
   }
 
-  Future onLoadMore() async {
-    await queryData(false);
+  Future<void> onLoadMore() {
+    return queryData(false);
   }
 
-  Future onReload() async {
+  Future<void> onReload() {
     loadingState.value = LoadingState.loading();
-    await onRefresh();
+    return onRefresh();
   }
 
   @override

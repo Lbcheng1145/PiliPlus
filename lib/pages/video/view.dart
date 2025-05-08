@@ -11,7 +11,8 @@ import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/main.dart';
 import 'package:PiliPlus/models/bangumi/info.dart' as bangumi;
 import 'package:PiliPlus/models/bangumi/info.dart';
-import 'package:PiliPlus/models/common/reply_type.dart';
+import 'package:PiliPlus/models/common/episode_panel_type.dart';
+import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/models/common/search_type.dart';
 import 'package:PiliPlus/models/video_detail_res.dart' as video;
 import 'package:PiliPlus/pages/danmaku/view.dart';
@@ -304,7 +305,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   }
 
   // 继续播放或重新播放
-  Future<void> continuePlay() async {
+  void continuePlay() {
     plPlayerController!.play();
   }
 
@@ -1748,9 +1749,10 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                   return Align(
                     alignment: Alignment.bottomCenter,
                     child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: plPlayerController?.showControls.value == true
+                      padding: EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        bottom: plPlayerController?.showControls.value == true
                             ? 75
                             : 16,
                       ),

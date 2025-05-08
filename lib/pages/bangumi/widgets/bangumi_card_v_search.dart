@@ -24,7 +24,7 @@ class BangumiCardVSearch extends StatelessWidget {
           title: item.title?.map((e) => e['text']).join(),
           cover: item.cover,
         ),
-        onTap: () async {
+        onTap: () {
           PageUtils.viewBangumi(seasonId: item.seasonId);
         },
         child: Column(
@@ -52,29 +52,18 @@ class BangumiCardVSearch extends StatelessWidget {
                 );
               }),
             ),
-            bagumiContent(context)
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget bagumiContent(context) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(4, 5, 0, 3),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              item.title!.map((e) => e['text']).join(),
-              textAlign: TextAlign.start,
-              style: const TextStyle(
-                letterSpacing: 0.3,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 5, 0, 3),
+              child: Text(
+                item.title!.map((e) => e['text']).join(),
+                textAlign: TextAlign.start,
+                style: const TextStyle(
+                  letterSpacing: 0.3,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
+            )
           ],
         ),
       ),

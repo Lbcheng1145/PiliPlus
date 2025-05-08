@@ -2,6 +2,9 @@ import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/common/dynamic/dynamics_type.dart';
+import 'package:PiliPlus/models/dynamics/dyn_topic_feed/topic_card_list.dart';
+import 'package:PiliPlus/models/dynamics/dyn_topic_top/top_details.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/models/dynamics/up.dart';
 import 'package:PiliPlus/models/dynamics/vote_model.dart';
@@ -13,20 +16,20 @@ import 'package:dio/dio.dart';
 
 class DynamicsHttp {
   static Future<LoadingState<DynamicsDataModel>> followDynamic({
-    String? type,
+    DynamicsTabType type = DynamicsTabType.all,
     String? offset,
     int? mid,
   }) async {
     Map<String, dynamic> data = {
-      'type': type ?? 'all',
-      'timezone_offset': '-480',
+      if (type == DynamicsTabType.up)
+        'host_mid': mid
+      else ...{
+        'type': type.name,
+        'timezone_offset': '-480',
+      },
       'offset': offset,
-      'features': 'itemOpusStyle,listOnlyfans'
+      'features': 'itemOpusStyle,listOnlyfans',
     };
-    if (mid != -1) {
-      data['host_mid'] = mid;
-      data.remove('timezone_offset');
-    }
     var res = await Request().get(Api.followDynamic, queryParameters: data);
     if (res.data['code'] == 0) {
       try {
@@ -238,7 +241,7 @@ class DynamicsHttp {
   }) async {
     final csrf = Accounts.main.csrf;
     final data = {
-      'vote_id': 15141778,
+      'vote_id': voteId,
       'votes': votes,
       'voter_uid': Accounts.main.mid,
       'status': anonymity ? 1 : 0,
@@ -255,5 +258,50 @@ class DynamicsHttp {
     return res.data['code'] == 0
         ? LoadingState.success(VoteInfo.fromJson(res.data['data']['vote_info']))
         : LoadingState.error(res.data['message']);
+  }
+
+  static Future<LoadingState<TopDetails?>> topicTop({required topicId}) async {
+    final res = await Request().get(
+      Api.topicTop,
+      queryParameters: {
+        'topic_id': topicId,
+        'source': 'Web',
+      },
+    );
+    if (res.data['code'] == 0) {
+      TopDetails? data = res.data['data']?['top_details'] == null
+          ? null
+          : TopDetails.fromJson(res.data['data']['top_details']);
+      return LoadingState.success(data);
+    } else {
+      return LoadingState.error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<TopicCardList?>> topicFeed({
+    required topicId,
+    required String offset,
+    required int sortBy,
+  }) async {
+    final res = await Request().get(
+      Api.topicFeed,
+      queryParameters: {
+        'topic_id': topicId,
+        'sort_by': sortBy,
+        'offset': offset,
+        'page_size': 20,
+        'source': 'Web',
+        // itemOpusStyle,listOnlyfans,opusBigCover,onlyfansVote,decorationCard
+        'features': 'itemOpusStyle,listOnlyfans',
+      },
+    );
+    if (res.data['code'] == 0) {
+      TopicCardList? data = res.data['data']?['topic_card_list'] == null
+          ? null
+          : TopicCardList.fromJson(res.data['data']['topic_card_list']);
+      return LoadingState.success(data);
+    } else {
+      return LoadingState.error(res.data['message']);
+    }
   }
 }

@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:PiliPlus/grpc/grpc_repo.dart';
 import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/init.dart';
-import 'package:PiliPlus/models/common/dynamic_badge_mode.dart';
+import 'package:PiliPlus/models/common/dynamic/dynamic_badge_mode.dart';
+import 'package:PiliPlus/models/common/msg/msg_unread_type.dart';
 import 'package:PiliPlus/models/common/nav_bar_config.dart';
 import 'package:PiliPlus/pages/dynamics/view.dart';
 import 'package:PiliPlus/pages/home/view.dart';
@@ -77,7 +78,7 @@ class MainController extends GetxController {
     }
   }
 
-  Future queryUnreadMsg() async {
+  Future<void> queryUnreadMsg() async {
     if (isLogin.value.not || homeIndex == -1 || msgUnReadTypes.isEmpty) {
       msgUnReadCount.value = '';
       return;
@@ -201,7 +202,7 @@ class MainController extends GetxController {
     }
   }
 
-  Future<void> setNavBarConfig() async {
+  void setNavBarConfig() {
     List defaultNavTabs = [...defaultNavigationBars];
     List navBarSort =
         GStorage.setting.get(SettingBoxKey.navBarSort, defaultValue: [0, 1, 2]);

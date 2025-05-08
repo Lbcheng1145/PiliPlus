@@ -1,14 +1,17 @@
 import 'dart:math';
 
 import 'package:PiliPlus/common/skeleton/video_reply.dart';
+import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
     show ReplyInfo;
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/common/reply_sort_type.dart';
-import 'package:PiliPlus/models/common/reply_type.dart';
+import 'package:PiliPlus/models/common/badge_type.dart';
+import 'package:PiliPlus/models/common/image_preview_type.dart';
+import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
+import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart' show DynamicStat;
 import 'package:PiliPlus/pages/article/controller.dart';
 import 'package:PiliPlus/pages/article/widgets/html_render.dart';
@@ -22,6 +25,7 @@ import 'package:PiliPlus/utils/grid.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -304,9 +308,7 @@ class _ArticlePageState extends State<ArticlePage>
                           key: _key,
                           backgroundColor: Colors.transparent,
                           body: refreshIndicator(
-                            onRefresh: () async {
-                              await _articleCtr.onRefresh();
-                            },
+                            onRefresh: _articleCtr.onRefresh,
                             child: Padding(
                               padding: EdgeInsets.only(right: padding / 4),
                               child: CustomScrollView(
@@ -390,6 +392,76 @@ class _ArticlePageState extends State<ArticlePage>
                       _articleCtr.articleData?.publishTime;
               return SliverMainAxisGroup(
                 slivers: [
+                  if (_articleCtr.type != 'read' &&
+                      _articleCtr.opusData?.modules.moduleTop?.display?.album
+                              ?.pics?.isNotEmpty ==
+                          true)
+                    SliverToBoxAdapter(
+                      child: Builder(
+                        builder: (context) {
+                          final pics = _articleCtr.opusData!.modules.moduleTop!
+                              .display!.album!.pics!;
+                          final length = pics.length;
+                          final first = pics.first;
+                          double height;
+                          double paddingRight;
+                          if (first.height != null && first.width != null) {
+                            final ratio = first.height! / first.width!;
+                            height = min(maxWidth * ratio, Get.height * 0.55);
+                            paddingRight = (maxWidth - height / ratio) / 2 + 12;
+                          } else {
+                            height = Get.height * 0.55;
+                            paddingRight = 12;
+                          }
+                          return Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                height: height,
+                                width: maxWidth,
+                                margin: const EdgeInsets.only(bottom: 10),
+                                child: PageView.builder(
+                                  physics: const ClampingScrollPhysics(),
+                                  onPageChanged: (value) {
+                                    _articleCtr.topIndex.value = value;
+                                  },
+                                  itemCount: length,
+                                  itemBuilder: (context, index) {
+                                    final url = pics[0].url!;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        context.imageView(
+                                          imgList: pics
+                                              .map((e) =>
+                                                  SourceModel(url: e.url!))
+                                              .toList(),
+                                          initialPage: index,
+                                        );
+                                      },
+                                      child: Hero(
+                                        tag: url,
+                                        child: CachedNetworkImage(
+                                          imageUrl:
+                                              Utils.thumbnailImgUrl(url, 60),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              Obx(
+                                () => PBadge(
+                                    top: 12,
+                                    right: paddingRight,
+                                    type: PBadgeType.gray,
+                                    text:
+                                        '${_articleCtr.topIndex.value + 1}/$length'),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
                   if (_articleCtr.summary.title != null)
                     SliverToBoxAdapter(
                       child: Text(
@@ -581,11 +653,11 @@ class _ArticlePageState extends State<ArticlePage>
                           min: 1,
                           max: 100,
                           value: _ratio.first,
-                          onChanged: (value) async {
+                          onChanged: (value) {
                             if (value >= 10 && value <= 90) {
                               _ratio[0] = value;
                               _ratio[1] = 100 - value;
-                              await GStorage.setting.put(
+                              GStorage.setting.put(
                                 SettingBoxKey.dynamicDetailRatio,
                                 _ratio,
                               );

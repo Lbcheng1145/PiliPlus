@@ -3,8 +3,8 @@ import 'dart:math';
 import 'package:PiliPlus/grpc/grpc_repo.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/user.dart';
-import 'package:PiliPlus/models/common/dynamics_type.dart';
-import 'package:PiliPlus/models/common/tab_type.dart' hide tabsConfig;
+import 'package:PiliPlus/models/common/dynamic/dynamics_type.dart';
+import 'package:PiliPlus/models/common/home_tab_type.dart';
 import 'package:PiliPlus/models/user/info.dart';
 import 'package:PiliPlus/models/user/stat.dart';
 import 'package:PiliPlus/pages/bangumi/controller.dart';
@@ -25,7 +25,7 @@ import 'package:webview_cookie_manager/webview_cookie_manager.dart';
 class LoginUtils {
   static final random = Random();
 
-  static Future onLoginMain() async {
+  static Future<void> onLoginMain() async {
     final account = Accounts.main;
     GrpcRepo.updateHeaders(account.accessKey);
     try {
@@ -71,10 +71,9 @@ class LoginUtils {
           ..onRefresh();
       } catch (_) {}
 
-      for (int i = 0; i < tabsConfig.length; i++) {
+      for (var item in DynamicsTabType.values) {
         try {
-          Get.find<DynamicsTabController>(tag: tabsConfig[i]['tag'])
-              .onRefresh();
+          Get.find<DynamicsTabController>(tag: item.name).onRefresh();
         } catch (_) {}
       }
 
@@ -87,18 +86,18 @@ class LoginUtils {
       try {
         Get.find<LiveController>()
           ..isLogin.value = true
-          ..fetchLiveFollowing();
+          ..onRefresh();
       } catch (_) {}
 
       try {
-        Get.find<BangumiController>(tag: TabType.bangumi.name)
+        Get.find<BangumiController>(tag: HomeTabType.bangumi.name)
           ..isLogin.value = true
           ..mid = data.mid
           ..queryBangumiFollow();
       } catch (_) {}
 
       try {
-        Get.find<BangumiController>(tag: TabType.cinema.name)
+        Get.find<BangumiController>(tag: HomeTabType.cinema.name)
           ..isLogin.value = true
           ..mid = data.mid
           ..queryBangumiFollow();
@@ -112,7 +111,7 @@ class LoginUtils {
     }
   }
 
-  static Future onLogoutMain() async {
+  static Future<void> onLogoutMain() async {
     GrpcRepo.updateHeaders(null);
 
     await Future.wait([
@@ -154,24 +153,24 @@ class LoginUtils {
     try {
       Get.find<LiveController>()
         ..isLogin.value = false
-        ..followListState.value = LoadingState.loading();
+        ..onRefresh();
     } catch (_) {}
 
-    for (int i = 0; i < tabsConfig.length; i++) {
+    for (var item in DynamicsTabType.values) {
       try {
-        Get.find<DynamicsTabController>(tag: tabsConfig[i]['tag']).onRefresh();
+        Get.find<DynamicsTabController>(tag: item.name).onRefresh();
       } catch (_) {}
     }
 
     try {
-      Get.find<BangumiController>(tag: TabType.bangumi.name)
+      Get.find<BangumiController>(tag: HomeTabType.bangumi.name)
         ..mid = null
         ..isLogin.value = false
         ..followState.value = LoadingState.loading();
     } catch (_) {}
 
     try {
-      Get.find<BangumiController>(tag: TabType.cinema.name)
+      Get.find<BangumiController>(tag: HomeTabType.cinema.name)
         ..mid = null
         ..isLogin.value = false
         ..followState.value = LoadingState.loading();
