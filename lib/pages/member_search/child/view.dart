@@ -40,6 +40,7 @@ class _MemberSearchChildPageState extends State<MemberSearchChildPage>
     return refreshIndicator(
       onRefresh: _controller.onRefresh,
       child: CustomScrollView(
+        controller: _controller.scrollController,
         slivers: [
           SliverPadding(
             padding: EdgeInsets.only(
@@ -72,7 +73,7 @@ class _MemberSearchChildPageState extends State<MemberSearchChildPage>
   Widget _buildBody(LoadingState<List?> loadingState) {
     return switch (loadingState) {
       Loading() => _buildLoading,
-      Success() => loadingState.response?.isNotEmpty == true
+      Success(:var response) => response?.isNotEmpty == true
           ? Builder(
               builder: (context) {
                 return switch (widget.searchType) {
@@ -80,14 +81,14 @@ class _MemberSearchChildPageState extends State<MemberSearchChildPage>
                       gridDelegate: Grid.videoCardHDelegate(context),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
-                          if (index == loadingState.response!.length - 1) {
+                          if (index == response.length - 1) {
                             _controller.onLoadMore();
                           }
                           return VideoCardH(
-                            videoItem: loadingState.response![index],
+                            videoItem: response[index],
                           );
                         },
-                        childCount: loadingState.response!.length,
+                        childCount: response!.length,
                       ),
                     ),
                   MemberSearchType.dynamic => dynamicsWaterfallFlow
@@ -96,14 +97,14 @@ class _MemberSearchChildPageState extends State<MemberSearchChildPage>
                           crossAxisSpacing: StyleString.safeSpace,
                           mainAxisSpacing: StyleString.safeSpace,
                           lastChildLayoutTypeBuilder: (index) {
-                            if (index == loadingState.response!.length - 1) {
+                            if (index == response.length - 1) {
                               _controller.onLoadMore();
                             }
-                            return index == loadingState.response!.length
+                            return index == response.length
                                 ? LastChildLayoutType.foot
                                 : LastChildLayoutType.none;
                           },
-                          children: loadingState.response!
+                          children: response!
                               .map((item) => DynamicPanel(item: item))
                               .toList(),
                         )
@@ -114,15 +115,14 @@ class _MemberSearchChildPageState extends State<MemberSearchChildPage>
                               maxExtent: Grid.smallCardWidth * 2,
                               sliver: SliverList.builder(
                                 itemBuilder: (context, index) {
-                                  if (index ==
-                                      loadingState.response!.length - 1) {
+                                  if (index == response.length - 1) {
                                     _controller.onLoadMore();
                                   }
                                   return DynamicPanel(
-                                    item: loadingState.response![index],
+                                    item: response[index],
                                   );
                                 },
-                                itemCount: loadingState.response!.length,
+                                itemCount: response!.length,
                               ),
                             ),
                             const SliverFillRemaining(),
@@ -134,8 +134,8 @@ class _MemberSearchChildPageState extends State<MemberSearchChildPage>
           : HttpError(
               onReload: _controller.onReload,
             ),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: _controller.onReload,
         ),
     };

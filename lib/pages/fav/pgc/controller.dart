@@ -43,7 +43,7 @@ class FavPgcController
         mid: Accounts.main.mid,
         type: type,
         followStatus: followStatus,
-        pn: currentPage,
+        pn: page,
       );
 
   void onDisable() {
@@ -57,8 +57,9 @@ class FavPgcController
   Future<void> bangumiDel(index, seasonId) async {
     var result = await VideoHttp.bangumiDel(seasonId: seasonId);
     if (result['status']) {
-      loadingState.value.data!.removeAt(index);
-      loadingState.refresh();
+      loadingState
+        ..value.data!.removeAt(index)
+        ..refresh();
     }
     SmartDialog.showToast(result['msg']);
   }
@@ -75,7 +76,7 @@ class FavPgcController
     if (res['status']) {
       List<BangumiListItemModel> remainList =
           dataList.toSet().difference(updateList).toList();
-      loadingState.value = LoadingState.success(remainList);
+      loadingState.value = Success(remainList);
       enableMultiSelect.value = false;
       try {
         final ctr = Get.find<FavPgcController>(tag: '$type$followStatus');

@@ -24,14 +24,14 @@ class FavArticleController extends CommonListController {
   }
 
   @override
-  Future<LoadingState> customGetData() =>
-      UserHttp.favArticle(page: currentPage);
+  Future<LoadingState> customGetData() => UserHttp.favArticle(page: page);
 
   Future<void> onRemove(index, id) async {
     final res = await UserHttp.communityAction(opusId: id, action: 4);
     if (res['status']) {
-      loadingState.value.data!.removeAt(index);
-      loadingState.refresh();
+      loadingState
+        ..value.data!.removeAt(index)
+        ..refresh();
       SmartDialog.showToast('已取消收藏');
     } else {
       SmartDialog.showToast(res['msg']);

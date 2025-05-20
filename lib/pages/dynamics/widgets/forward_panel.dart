@@ -1,8 +1,10 @@
 // 转发
 import 'package:PiliPlus/common/widgets/badge.dart';
+import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/image_view.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/article/widgets/opus_content.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/additional_panel.dart';
@@ -91,7 +93,40 @@ Widget forWard(
                 ),
               ],
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 5),
+            if (item.modules.moduleDynamic?.topic != null) ...[
+              GestureDetector(
+                onTap: () {
+                  Get.toNamed(
+                    '/dynTopic',
+                    parameters: {
+                      'id': item.modules.moduleDynamic!.topic!.id!.toString(),
+                      'name': item.modules.moduleDynamic!.topic!.name!,
+                    },
+                  );
+                },
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.bottom,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Icon(
+                            size: 18,
+                            CustomIcon.topic_tag,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                      TextSpan(text: item.modules.moduleDynamic!.topic!.name),
+                    ],
+                  ),
+                  style: TextStyle(color: theme.colorScheme.primary),
+                ),
+              ),
+              const SizedBox(height: 5),
+            ],
             if (richNodes != null)
               Text.rich(
                 richNodes,
@@ -192,7 +227,7 @@ Widget forWard(
               },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-          color: theme.dividerColor.withOpacity(0.08),
+          color: theme.dividerColor.withValues(alpha: 0.08),
           child: forWard(theme, isSave, item.orig!, context, source, callback,
               floor: floor + 1),
         ),
@@ -312,11 +347,10 @@ Widget forWard(
           width: double.infinity,
           padding:
               const EdgeInsets.only(left: 12, top: 10, right: 12, bottom: 10),
-          color: theme.dividerColor.withOpacity(0.08),
+          color: theme.dividerColor.withValues(alpha: 0.08),
           child: Row(
             children: [
               NetworkImgLayer(
-                type: 'cover',
                 radius: 8,
                 width: 45,
                 height: 45,
@@ -362,11 +396,10 @@ Widget forWard(
           width: double.infinity,
           padding:
               const EdgeInsets.only(left: 12, top: 10, right: 12, bottom: 10),
-          color: theme.dividerColor.withOpacity(0.08),
+          color: theme.dividerColor.withValues(alpha: 0.08),
           child: Row(
             children: [
               NetworkImgLayer(
-                type: 'cover',
                 radius: 8,
                 width: 45,
                 height: 45,
@@ -416,7 +449,7 @@ Widget forWard(
                   NetworkImgLayer(
                     width: 28,
                     height: 28,
-                    type: 'avatar',
+                    type: ImageType.avatar,
                     src: item.modules.moduleAuthor!.face,
                   ),
                   const SizedBox(width: 10),

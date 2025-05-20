@@ -9,7 +9,6 @@ import 'package:PiliPlus/pages/common/common_slide_page.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/pages/video/reply_new/view.dart';
 import 'package:PiliPlus/pages/video/reply_reply/controller.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
@@ -21,6 +20,7 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 class VideoReplyReplyPanel extends CommonSlidePage {
   const VideoReplyReplyPanel({
     super.key,
+    super.enableSlide,
     this.id,
     required this.oid,
     required this.rpid,
@@ -37,7 +37,7 @@ class VideoReplyReplyPanel extends CommonSlidePage {
   final int oid;
   final int rpid;
   final int? dialog;
-  final dynamic firstFloor;
+  final ReplyInfo? firstFloor;
   final String? source;
   final ReplyType replyType;
   final bool isDialogue;
@@ -50,17 +50,16 @@ class VideoReplyReplyPanel extends CommonSlidePage {
 }
 
 class _VideoReplyReplyPanelState
-    extends CommonSlidePageState<VideoReplyReplyPanel>
-    with TickerProviderStateMixin {
+    extends CommonSlidePageState<VideoReplyReplyPanel> {
   late VideoReplyReplyController _videoReplyReplyController;
-  late final _savedReplies = {};
+  late final _savedReplies = <int, String>{};
   late final itemPositionsListener = ItemPositionsListener.create();
   late final _key = GlobalKey<ScaffoldState>();
   late final _listKey = GlobalKey();
   late final _tag =
       Utils.makeHeroTag('${widget.rpid}${widget.dialog}${widget.isDialogue}');
 
-  dynamic get firstFloor =>
+  ReplyInfo? get firstFloor =>
       widget.firstFloor ?? _videoReplyReplyController.firstFloor;
 
   bool get _horizontalPreview =>
@@ -127,7 +126,7 @@ class _VideoReplyReplyPanelState
                     border: Border(
                       bottom: BorderSide(
                         width: 1,
-                        color: theme.dividerColor.withOpacity(0.1),
+                        color: theme.dividerColor.withValues(alpha: 0.1),
                       ),
                     ),
                   ),
@@ -146,7 +145,7 @@ class _VideoReplyReplyPanelState
                 )
               : Divider(
                   height: 1,
-                  color: theme.dividerColor.withOpacity(0.1),
+                  color: theme.dividerColor.withValues(alpha: 0.1),
                 ),
           Expanded(
             child: enableSlide ? slideList(theme) : buildList(theme),
@@ -179,11 +178,11 @@ class _VideoReplyReplyPanelState
                   } else if (firstFloor != null) {
                     if (index == 0) {
                       return ReplyItemGrpc(
-                        replyItem: firstFloor,
+                        replyItem: firstFloor!,
                         replyLevel: '2',
                         needDivider: false,
                         onReply: () {
-                          _onReply(firstFloor, -1);
+                          _onReply(firstFloor!, -1);
                         },
                         upMid: _videoReplyReplyController.upMid,
                         onViewImage: widget.onViewImage,
@@ -203,7 +202,7 @@ class _VideoReplyReplyPanelState
                     } else if (index == 1) {
                       return Divider(
                         height: 20,
-                        color: theme.dividerColor.withOpacity(0.1),
+                        color: theme.dividerColor.withValues(alpha: 0.1),
                         thickness: 6,
                       );
                     } else if (index == 2) {
@@ -256,7 +255,7 @@ class _VideoReplyReplyPanelState
             Obx(
               () => _videoReplyReplyController.count.value != -1
                   ? Text(
-                      '相关回复共${_videoReplyReplyController.count.value}条',
+                      '相关回复共${Utils.numFormat(_videoReplyReplyController.count.value)}条',
                       style: const TextStyle(fontSize: 13),
                     )
                   : const SizedBox.shrink(),
@@ -287,41 +286,40 @@ class _VideoReplyReplyPanelState
         ),
       );
 
-  Function(dynamic imgList, dynamic index)? get _getImageCallback =>
-      _horizontalPreview
-          ? (imgList, index) {
-              final ctr = AnimationController(
-                vsync: this,
-                duration: const Duration(milliseconds: 200),
-              )..forward();
-              PageUtils.onHorizontalPreview(
-                _key,
-                AnimationController(
-                  vsync: this,
-                  duration: Duration.zero,
-                ),
-                ctr,
-                imgList,
-                index,
-                (value) async {
-                  if (value == false) {
-                    await ctr.reverse();
-                  }
-                  try {
-                    ctr.dispose();
-                  } catch (_) {}
-                  if (value == false) {
-                    Get.back();
-                  }
-                },
-              );
-            }
-          : null;
+  Function(List<String>, int)? get _getImageCallback => _horizontalPreview
+      ? (imgList, index) {
+          final ctr = AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 200),
+          )..forward();
+          PageUtils.onHorizontalPreview(
+            _key,
+            AnimationController(
+              vsync: this,
+              duration: Duration.zero,
+            ),
+            ctr,
+            imgList,
+            index,
+            (value) async {
+              if (value == false) {
+                await ctr.reverse();
+              }
+              try {
+                ctr.dispose();
+              } catch (_) {}
+              if (value == false) {
+                Get.back();
+              }
+            },
+          );
+        }
+      : null;
 
-  void _onReply(dynamic item, int index) {
-    dynamic oid = item?.oid.toInt();
-    dynamic root = item?.id.toInt();
-    dynamic key = oid + root;
+  void _onReply(ReplyInfo item, int index) {
+    final oid = item.oid.toInt();
+    final root = item.id.toInt();
+    final key = oid + root;
 
     Navigator.of(context)
         .push(
@@ -357,52 +355,34 @@ class _VideoReplyReplyPanelState
     )
         .then((res) {
       if (res != null) {
-        _savedReplies[key] = null;
+        _savedReplies.remove(key);
         ReplyInfo replyInfo = RequestUtils.replyCast(res);
         _videoReplyReplyController.loadingState.value.dataOrNull
             ?.insert(index + 1, replyInfo);
         _videoReplyReplyController.count.value += 1;
         _videoReplyReplyController.loadingState.refresh();
         if (_videoReplyReplyController.enableCommAntifraud && mounted) {
-          _videoReplyReplyController.checkReply(
-            context: context,
-            oid: oid,
-            rpid: root,
-            replyType: widget.replyType.index,
-            replyId: replyInfo.id.toInt(),
-            message: replyInfo.content.message,
-            //
-            root: replyInfo.root.toInt(),
-            parent: replyInfo.parent.toInt(),
-            ctime: replyInfo.ctime.toInt(),
-            pictures: replyInfo.content.pictures
-                .map((item) => item.toProto3Json())
-                .toList(),
-            mid: replyInfo.mid.toInt(),
-          );
+          _videoReplyReplyController.onCheckReply(context, replyInfo);
         }
       }
     });
   }
 
-  Widget _buildBody(ThemeData theme, LoadingState loadingState, int index) {
+  Widget _buildBody(
+      ThemeData theme, LoadingState<List<ReplyInfo>?> loadingState, int index) {
     return switch (loadingState) {
       Loading() => IgnorePointer(
-          child: CustomScrollView(
+          child: ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            slivers: [
-              SliverList.builder(
-                itemBuilder: (context, index) {
-                  return const VideoReplySkeleton();
-                },
-                itemCount: 8,
-              )
-            ],
+            itemBuilder: (context, index) {
+              return const VideoReplySkeleton();
+            },
+            itemCount: 8,
           ),
         ),
-      Success() => () {
-          if (index == loadingState.response.length) {
+      Success(:var response) => () {
+          if (index == response!.length) {
             _videoReplyReplyController.onLoadMore();
             return Container(
               alignment: Alignment.center,
@@ -410,11 +390,7 @@ class _VideoReplyReplyPanelState
                   bottom: MediaQuery.of(context).padding.bottom),
               height: 125,
               child: Text(
-                _videoReplyReplyController.isEnd.not
-                    ? '加载中...'
-                    : loadingState.response.isEmpty
-                        ? '还没有评论'
-                        : '没有更多了',
+                _videoReplyReplyController.isEnd ? '没有更多了' : '加载中...',
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.colorScheme.outline,
@@ -434,22 +410,22 @@ class _VideoReplyReplyPanelState
                   return ColoredBox(
                     color: colorAnimation!.value ??
                         theme.colorScheme.onInverseSurface,
-                    child: _replyItem(loadingState.response[index], index),
+                    child: _replyItem(response[index], index),
                   );
                 },
               );
             }
-            return _replyItem(loadingState.response[index], index);
+            return _replyItem(response[index], index);
           }
         }(),
-      Error() => errorWidget(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => errorWidget(
+          errMsg: errMsg,
           onReload: _videoReplyReplyController.onReload,
         ),
     };
   }
 
-  Widget _replyItem(replyItem, index) {
+  Widget _replyItem(ReplyInfo replyItem, int index) {
     return ReplyItemGrpc(
       replyItem: replyItem,
       replyLevel: widget.isDialogue ? '3' : '2',
@@ -457,9 +433,7 @@ class _VideoReplyReplyPanelState
         _onReply(replyItem, index);
       },
       onDelete: (subIndex) {
-        _videoReplyReplyController.loadingState.value.data!.removeAt(index);
-        _videoReplyReplyController.count.value -= 1;
-        _videoReplyReplyController.loadingState.refresh();
+        _videoReplyReplyController.onRemove(index, null);
       },
       upMid: _videoReplyReplyController.upMid,
       showDialogue: () {
@@ -490,18 +464,14 @@ class _VideoReplyReplyPanelState
     );
   }
 
-  int _itemCount(LoadingState loadingState) {
+  int _itemCount(LoadingState<List<ReplyInfo>?> loadingState) {
     if (widget.isDialogue) {
-      return (loadingState is Success ? loadingState.response.length : 0) + 1;
+      return (loadingState.dataOrNull?.length ?? 0) + 1;
     }
     int itemCount = 0;
     if (firstFloor != null) {
       itemCount = 2;
     }
-    if (loadingState is Success) {
-      return loadingState.response.length + itemCount + 2;
-    } else {
-      return itemCount + 2;
-    }
+    return (loadingState.dataOrNull?.length ?? 0) + itemCount + 2;
   }
 }

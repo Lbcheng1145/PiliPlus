@@ -1,81 +1,101 @@
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/models/common/dynamic/up_panel_position.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/dynamics/up.dart';
 import 'package:PiliPlus/pages/dynamics/controller.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class UpPanel extends StatefulWidget {
-  final DynamicsController dynamicsController;
   const UpPanel({
     required this.dynamicsController,
     super.key,
   });
+  final DynamicsController dynamicsController;
 
   @override
   State<UpPanel> createState() => _UpPanelState();
 }
 
 class _UpPanelState extends State<UpPanel> {
-  List<UpItem> get upList =>
-      widget.dynamicsController.upData.value.upList ?? <UpItem>[];
-  List<LiveUserItem> get liveList =>
-      widget.dynamicsController.upData.value.liveUsers?.items ??
-      <LiveUserItem>[];
+  List<UpItem>? get upList => widget.dynamicsController.upData.value.upList;
+  List<LiveUserItem>? get liveList =>
+      widget.dynamicsController.upData.value.liveUsers?.items;
+  late final isTop =
+      widget.dynamicsController.upPanelPosition == UpPanelPosition.top;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (widget.dynamicsController.isLogin.value.not) {
+    if (!widget.dynamicsController.isLogin.value) {
       return const SizedBox.shrink();
     }
     return CustomScrollView(
+      scrollDirection: isTop ? Axis.horizontal : Axis.vertical,
       physics: const AlwaysScrollableScrollPhysics(),
       controller: widget.dynamicsController.scrollController,
       slivers: [
         SliverToBoxAdapter(
-          child: SizedBox(
-            height: 45,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  Text(
-                    'Live(${liveList.length})',
-                    style: const TextStyle(
-                      fontSize: 13,
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                widget.dynamicsController.showLiveItems =
+                    !widget.dynamicsController.showLiveItems;
+              });
+            },
+            child: Container(
+              alignment: Alignment.center,
+              height: isTop ? 76 : 60,
+              padding: isTop ? const EdgeInsets.only(left: 12, right: 6) : null,
+              child: Text.rich(
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: theme.colorScheme.primary,
+                ),
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text:
+                          'Live(${widget.dynamicsController.upData.value.liveUsers?.count})', // checked
                     ),
-                    semanticsLabel:
-                        '${widget.dynamicsController.showLiveItems ? '展开' : '收起'}直播中的${liveList.length}个Up',
-                  ),
-                  Icon(
-                    widget.dynamicsController.showLiveItems
-                        ? Icons.expand_less
-                        : Icons.expand_more,
-                    size: 12,
-                  ),
-                ],
+                    if (!isTop) ...[
+                      const TextSpan(text: '\n'),
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Icon(
+                          widget.dynamicsController.showLiveItems
+                              ? Icons.expand_less
+                              : Icons.expand_more,
+                          size: 12,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ] else
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Icon(
+                          widget.dynamicsController.showLiveItems
+                              ? Icons.keyboard_arrow_right
+                              : Icons.keyboard_arrow_left,
+                          color: theme.colorScheme.primary,
+                          size: 14,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-              onPressed: () {
-                setState(() {
-                  widget.dynamicsController.showLiveItems =
-                      !widget.dynamicsController.showLiveItems;
-                });
-              },
             ),
           ),
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 10)),
-        if (widget.dynamicsController.showLiveItems && liveList.isNotEmpty)
+        if (widget.dynamicsController.showLiveItems &&
+            liveList?.isNotEmpty == true)
           SliverList.builder(
-            itemCount: liveList.length,
+            itemCount: liveList!.length,
             itemBuilder: (context, index) {
-              return upItemBuild(theme, liveList[index]);
+              return upItemBuild(theme, liveList![index]);
             },
           ),
         SliverToBoxAdapter(
@@ -91,14 +111,14 @@ class _UpPanelState extends State<UpPanel> {
             ),
           ),
         ),
-        if (upList.isNotEmpty)
+        if (upList?.isNotEmpty == true)
           SliverList.builder(
-            itemCount: upList.length,
+            itemCount: upList!.length,
             itemBuilder: (context, index) {
-              return upItemBuild(theme, upList[index]);
+              return upItemBuild(theme, upList![index]);
             },
           ),
-        const SliverToBoxAdapter(child: SizedBox(height: 200)),
+        if (!isTop) const SliverToBoxAdapter(child: SizedBox(height: 200)),
       ],
     );
   }
@@ -108,6 +128,7 @@ class _UpPanelState extends State<UpPanel> {
         widget.dynamicsController.currentMid == -1;
     return SizedBox(
       height: 76,
+      width: isTop ? 70 : null,
       child: InkWell(
         onTap: () {
           feedBack();
@@ -150,7 +171,7 @@ class _UpPanelState extends State<UpPanel> {
                             width: 38,
                             height: 38,
                             src: data.face,
-                            type: 'avatar',
+                            type: ImageType.avatar,
                           )
                         : const CircleAvatar(
                             backgroundColor: Color(0xFF5CB67B),
@@ -160,7 +181,7 @@ class _UpPanelState extends State<UpPanel> {
                           ),
                   ),
                   Positioned(
-                    top: data.type == 'live' ? -5 : 0,
+                    top: data.type == 'live' && !isTop ? -5 : 0,
                     right: data.type == 'live' ? -6 : 4,
                     child: Badge(
                       smallSize: 8,
@@ -171,20 +192,18 @@ class _UpPanelState extends State<UpPanel> {
                           (data.type == 'up' && (data.hasUpdate ?? false)),
                       backgroundColor: data.type == 'live'
                           ? theme.colorScheme.secondaryContainer
-                              .withOpacity(0.75)
+                              .withValues(alpha: 0.75)
                           : theme.colorScheme.primary,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 4),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
-                  data.uname,
-                  overflow: TextOverflow.clip,
+                  isTop ? '${data.uname}\n' : data.uname,
                   maxLines: 2,
-                  softWrap: true,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: widget.dynamicsController.currentMid == data.mid

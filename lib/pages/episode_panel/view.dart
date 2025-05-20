@@ -74,8 +74,7 @@ class EpisodePanel extends CommonSlidePage {
   State<EpisodePanel> createState() => _EpisodePanelState();
 }
 
-class _EpisodePanelState extends CommonSlidePageState<EpisodePanel>
-    with SingleTickerProviderStateMixin {
+class _EpisodePanelState extends CommonSlidePageState<EpisodePanel> {
   // tab
   late final TabController _tabController = TabController(
     initialIndex: widget.initialTabIndex,
@@ -152,8 +151,7 @@ class _EpisodePanelState extends CommonSlidePageState<EpisodePanel>
       VideoHttp.videoRelation(bvid: widget.bvid).then((result) {
         if (result['status']) {
           if (result['data']?['season_fav'] is bool) {
-            _favState!.value =
-                LoadingState.success(result['data']['season_fav']);
+            _favState!.value = Success(result['data']['season_fav']);
           }
         }
       });
@@ -210,7 +208,7 @@ class _EpisodePanelState extends CommonSlidePageState<EpisodePanel>
               isScrollable: true,
               tabs: widget.list.map((item) => Tab(text: item.title)).toList(),
               dividerHeight: 1,
-              dividerColor: theme.dividerColor.withOpacity(0.1),
+              dividerColor: theme.dividerColor.withValues(alpha: 0.1),
             ),
             Expanded(
               child: Material(
@@ -411,7 +409,7 @@ class _EpisodePanelState extends CommonSlidePageState<EpisodePanel>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                if (cover?.isNotEmpty == true)
+                if (cover?.isNotEmpty == true) ...[
                   AspectRatio(
                     aspectRatio: StyleString.aspectRatio,
                     child: LayoutBuilder(
@@ -431,19 +429,32 @@ class _EpisodePanelState extends CommonSlidePageState<EpisodePanel>
                                 bottom: 6.0,
                                 type: PBadgeType.gray,
                               ),
+                            if (episode.badge != null)
+                              PBadge(
+                                text: episode.badge,
+                                top: 6,
+                                right: 6,
+                                type: switch (episode.badge) {
+                                  '会员' => PBadgeType.primary,
+                                  '限免' => PBadgeType.free,
+                                  _ => PBadgeType.gray,
+                                },
+                              ),
                           ],
                         );
                       },
                     ),
-                  )
-                else if (isCurrentIndex)
+                  ),
+                  const SizedBox(width: 10),
+                ] else if (isCurrentIndex) ...[
                   Image.asset(
                     'assets/images/live.png',
                     color: primary,
                     height: 12,
                     semanticLabel: "正在播放：",
                   ),
-                const SizedBox(width: 10),
+                  const SizedBox(width: 10),
+                ],
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -498,17 +509,6 @@ class _EpisodePanelState extends CommonSlidePageState<EpisodePanel>
                     ],
                   ),
                 ),
-                if (episode.badge != null) ...[
-                  if (episode.badge == '会员')
-                    Image.asset(
-                      'assets/images/big-vip.png',
-                      height: 20,
-                      semanticLabel: "大会员",
-                    )
-                  else
-                    Text(episode.badge),
-                  const SizedBox(width: 10),
-                ],
               ],
             ),
           ),
@@ -519,19 +519,19 @@ class _EpisodePanelState extends CommonSlidePageState<EpisodePanel>
 
   Widget _buildFavBtn(LoadingState loadingState) {
     return switch (loadingState) {
-      Success() => mediumButton(
-          tooltip: loadingState.response ? '取消订阅' : '订阅',
-          icon: loadingState.response
+      Success(:var response) => mediumButton(
+          tooltip: response ? '取消订阅' : '订阅',
+          icon: response
               ? Icons.notifications_off_outlined
               : Icons.notifications_active_outlined,
           onPressed: () async {
             dynamic result = await VideoHttp.seasonFav(
-              isFav: loadingState.response,
+              isFav: response,
               seasonId: widget.seasonId,
             );
             if (result['status']) {
-              SmartDialog.showToast('${loadingState.response ? '取消' : ''}订阅成功');
-              _favState!.value = LoadingState.success(!loadingState.response);
+              SmartDialog.showToast('${response ? '取消' : ''}订阅成功');
+              _favState!.value = Success(!response);
             } else {
               SmartDialog.showToast(result['msg']);
             }
@@ -558,7 +558,7 @@ class _EpisodePanelState extends CommonSlidePageState<EpisodePanel>
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: theme.dividerColor.withOpacity(0.1),
+              color: theme.dividerColor.withValues(alpha: 0.1),
             ),
           ),
         ),

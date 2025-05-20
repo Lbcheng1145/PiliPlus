@@ -33,7 +33,7 @@ class _SearchPageState extends State<SearchPage> {
       appBar: AppBar(
         shape: Border(
           bottom: BorderSide(
-            color: theme.dividerColor.withOpacity(0.08),
+            color: theme.dividerColor.withValues(alpha: 0.08),
             width: 1,
           ),
         ),
@@ -338,22 +338,22 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Icon historyIcon(ThemeData theme) => Icon(Icons.history,
-      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.8));
+      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8));
 
   Widget _buildHotKey(
       LoadingState<SearchKeywordData> loadingState, bool isHot) {
     return switch (loadingState) {
-      Success() => loadingState.response.list?.isNotEmpty == true
+      Success(:var response) => response.list?.isNotEmpty == true
           ? LayoutBuilder(
               builder: (context, constraints) => HotKeyword(
                 width: constraints.maxWidth,
-                hotSearchList: loadingState.response.list!,
+                hotSearchList: response.list!,
                 onClick: _searchController.onClickKeyword,
               ),
             )
           : const SizedBox.shrink(),
-      Error() => errorWidget(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => errorWidget(
+          errMsg: errMsg,
           onReload: isHot
               ? _searchController.queryHotSearchList
               : _searchController.queryRecommendList,

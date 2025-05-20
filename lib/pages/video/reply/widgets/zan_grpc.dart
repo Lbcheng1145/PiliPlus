@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
     show ReplyInfo;
 import 'package:PiliPlus/http/reply.dart';
@@ -24,13 +22,16 @@ class ZanButtonGrpc extends StatefulWidget {
 }
 
 class _ZanButtonGrpcState extends State<ZanButtonGrpc> {
+  bool get isLike => widget.replyItem.replyControl.action == $fixnum.Int64.ONE;
+  bool get isDislike =>
+      widget.replyItem.replyControl.action == $fixnum.Int64.TWO;
+
   Future<void> onHateReply() async {
     feedBack();
     final int oid = widget.replyItem.oid.toInt();
     final int rpid = widget.replyItem.id.toInt();
     // 1 已点赞 2 不喜欢 0 未操作
-    final int action =
-        widget.replyItem.replyControl.action.toInt() != 2 ? 2 : 0;
+    final int action = isDislike ? 0 : 2;
     final res = await ReplyHttp.hateReply(
       type: widget.replyItem.type.toInt(),
       action: action == 2 ? 1 : 0,
@@ -39,18 +40,16 @@ class _ZanButtonGrpcState extends State<ZanButtonGrpc> {
     );
     // SmartDialog.dismiss();
     if (res['status']) {
-      SmartDialog.showToast(
-          widget.replyItem.replyControl.action.toInt() != 2 ? '点踩成功' : '取消踩');
+      SmartDialog.showToast(isDislike ? '取消踩' : '点踩成功');
       if (action == 2) {
-        if (widget.replyItem.replyControl.action.toInt() == 1) {
-          widget.replyItem.like =
-              $fixnum.Int64(widget.replyItem.like.toInt() - 1);
-        }
-        widget.replyItem.replyControl.action = $fixnum.Int64(2);
+        if (isLike) widget.replyItem.like -= $fixnum.Int64.ONE;
+        widget.replyItem.replyControl.action = $fixnum.Int64.TWO;
       } else {
-        widget.replyItem.replyControl.action = $fixnum.Int64(0);
+        widget.replyItem.replyControl.action = $fixnum.Int64.ZERO;
       }
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     } else {
       SmartDialog.showToast(res['msg']);
     }
@@ -62,8 +61,7 @@ class _ZanButtonGrpcState extends State<ZanButtonGrpc> {
     final int oid = widget.replyItem.oid.toInt();
     final int rpid = widget.replyItem.id.toInt();
     // 1 已点赞 2 不喜欢 0 未操作
-    final int action =
-        widget.replyItem.replyControl.action.toInt() != 1 ? 1 : 0;
+    final int action = isLike ? 0 : 1;
     final res = await ReplyHttp.likeReply(
       type: widget.replyItem.type.toInt(),
       oid: oid,
@@ -71,18 +69,17 @@ class _ZanButtonGrpcState extends State<ZanButtonGrpc> {
       action: action,
     );
     if (res['status']) {
-      SmartDialog.showToast(
-          widget.replyItem.replyControl.action.toInt() != 1 ? '点赞成功' : '取消赞');
+      SmartDialog.showToast(isLike ? '取消赞' : '点赞成功');
       if (action == 1) {
-        widget.replyItem.like =
-            $fixnum.Int64(widget.replyItem.like.toInt() + 1);
-        widget.replyItem.replyControl.action = $fixnum.Int64(1);
+        widget.replyItem.like += $fixnum.Int64.ONE;
+        widget.replyItem.replyControl.action = $fixnum.Int64.ONE;
       } else {
-        widget.replyItem.like =
-            $fixnum.Int64(widget.replyItem.like.toInt() - 1);
-        widget.replyItem.replyControl.action = $fixnum.Int64(0);
+        widget.replyItem.like -= $fixnum.Int64.ONE;
+        widget.replyItem.replyControl.action = $fixnum.Int64.ZERO;
       }
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     } else {
       SmartDialog.showToast(res['msg']);
     }
@@ -117,16 +114,12 @@ class _ZanButtonGrpcState extends State<ZanButtonGrpc> {
             style: _style,
             onPressed: () => handleState(onHateReply),
             child: Icon(
-              widget.replyItem.replyControl.action.toInt() == 2
+              isDislike
                   ? FontAwesomeIcons.solidThumbsDown
                   : FontAwesomeIcons.thumbsDown,
               size: 16,
-              color: widget.replyItem.replyControl.action.toInt() == 2
-                  ? primary
-                  : color,
-              semanticLabel: widget.replyItem.replyControl.action.toInt() == 2
-                  ? '已踩'
-                  : '点踩',
+              color: isDislike ? primary : color,
+              semanticLabel: isDislike ? '已踩' : '点踩',
             ),
           ),
         ),
@@ -138,17 +131,12 @@ class _ZanButtonGrpcState extends State<ZanButtonGrpc> {
             child: Row(
               children: [
                 Icon(
-                  widget.replyItem.replyControl.action.toInt() == 1
+                  isLike
                       ? FontAwesomeIcons.solidThumbsUp
                       : FontAwesomeIcons.thumbsUp,
                   size: 16,
-                  color: widget.replyItem.replyControl.action.toInt() == 1
-                      ? primary
-                      : color,
-                  semanticLabel:
-                      widget.replyItem.replyControl.action.toInt() == 1
-                          ? '已赞'
-                          : '点赞',
+                  color: isLike ? primary : color,
+                  semanticLabel: isLike ? '已赞' : '点赞',
                 ),
                 const SizedBox(width: 4),
                 AnimatedSwitcher(
@@ -160,9 +148,7 @@ class _ZanButtonGrpcState extends State<ZanButtonGrpc> {
                   child: Text(
                     Utils.numFormat(widget.replyItem.like.toInt()),
                     style: TextStyle(
-                      color: widget.replyItem.replyControl.action.toInt() == 1
-                          ? primary
-                          : color,
+                      color: isLike ? primary : color,
                       fontSize: theme.textTheme.labelSmall!.fontSize,
                     ),
                   ),

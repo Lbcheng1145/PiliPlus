@@ -1,9 +1,17 @@
+import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/interactiveviewer_gallery/hero_dialog_route.dart';
 import 'package:PiliPlus/common/widgets/interactiveviewer_gallery/interactiveviewer_gallery.dart';
+import 'package:PiliPlus/grpc/bilibili/app/im/v1.pbenum.dart'
+    show IMSettingType, ThreeDotItemType;
 import 'package:PiliPlus/models/common/image_preview_type.dart';
+import 'package:PiliPlus/pages/common/common_whisper_controller.dart';
+import 'package:PiliPlus/pages/contact/view.dart';
+import 'package:PiliPlus/pages/whisper_settings/view.dart';
 import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 extension ImageExtension on num? {
   int? cacheSize(BuildContext context) {
@@ -49,23 +57,6 @@ extension ListExt<T> on List<T>? {
   T getOrElse(int index, {required T Function() orElse}) {
     return getOrNull(index) ?? orElse();
   }
-
-  bool eq(List<T>? other) {
-    if (this == null) {
-      return other == null;
-    }
-    if (other == null || this!.length != other.length) {
-      return false;
-    }
-    for (int index = 0; index < this!.length; index += 1) {
-      if (this![index] != other[index]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  bool ne(List<T>? other) => !eq(other);
 }
 
 final _regExp = RegExp("^(http:)?//", caseSensitive: false);
@@ -120,17 +111,6 @@ extension ColorExtension on Color {
     assert(amount >= 0 && amount <= 1, 'Amount must be between 0 and 1');
     return Color.lerp(this, Colors.black, amount)!;
   }
-
-  Color blend(Color color, [double fraction = 0.5]) {
-    assert(fraction >= 0 && fraction <= 1, 'Fraction must be between 0 and 1');
-    final blendedRed = (red * (1 - fraction) + color.red * fraction).toInt();
-    final blendedGreen =
-        (green * (1 - fraction) + color.green * fraction).toInt();
-    final blendedBlue = (blue * (1 - fraction) + color.blue * fraction).toInt();
-    final blendedAlpha =
-        (alpha * (1 - fraction) + color.alpha * fraction).toInt();
-    return Color.fromARGB(blendedAlpha, blendedRed, blendedGreen, blendedBlue);
-  }
 }
 
 extension BrightnessExt on Brightness {
@@ -148,5 +128,63 @@ extension RationalExt on Rational {
     const min = 1 / 2.39;
     const max = 2.39;
     return (min <= aspectRatio) && (aspectRatio <= max);
+  }
+}
+
+extension ThreeDotItemTypeExt on ThreeDotItemType {
+  Icon get icon => switch (this) {
+        ThreeDotItemType.THREE_DOT_ITEM_TYPE_MSG_SETTING =>
+          const Icon(Icons.settings, size: 20),
+        ThreeDotItemType.THREE_DOT_ITEM_TYPE_READ_ALL =>
+          const Icon(Icons.cleaning_services, size: 20),
+        ThreeDotItemType.THREE_DOT_ITEM_TYPE_CLEAR_LIST =>
+          const Icon(Icons.delete_forever_outlined, size: 20),
+        ThreeDotItemType.THREE_DOT_ITEM_TYPE_UP_HELPER =>
+          const Icon(Icons.live_tv, size: 20),
+        ThreeDotItemType.THREE_DOT_ITEM_TYPE_CONTACTS =>
+          const Icon(Icons.account_box_outlined, size: 20),
+        ThreeDotItemType.THREE_DOT_ITEM_TYPE_FANS_GROUP_HELPER =>
+          const Icon(Icons.notifications_none, size: 20),
+        _ => const Icon(MdiIcons.circleMedium, size: 20),
+      };
+
+  void action({
+    required BuildContext context,
+    required CommonWhisperController controller,
+  }) {
+    switch (this) {
+      case ThreeDotItemType.THREE_DOT_ITEM_TYPE_READ_ALL:
+        showConfirmDialog(
+          context: context,
+          title: '一键已读',
+          content: '是否清除全部新消息提醒？',
+          onConfirm: controller.onClearUnread,
+        );
+      case ThreeDotItemType.THREE_DOT_ITEM_TYPE_CLEAR_LIST:
+        showConfirmDialog(
+          context: context,
+          title: '清空列表',
+          content: '清空后所有消息将被删除，无法恢复',
+          onConfirm: controller.onDeleteList,
+        );
+      case ThreeDotItemType.THREE_DOT_ITEM_TYPE_MSG_SETTING:
+        Get.to(const WhisperSettingsPage(
+          imSettingType: IMSettingType.SETTING_TYPE_NEED_ALL,
+        ));
+      case ThreeDotItemType.THREE_DOT_ITEM_TYPE_UP_HELPER:
+        Get.toNamed(
+          '/whisperDetail',
+          arguments: {
+            'talkerId': 844424930131966,
+            'name': 'UP主小助手',
+            'face':
+                'https://message.biliimg.com/bfs/im/489a63efadfb202366c2f88853d2217b5ddc7a13.png',
+          },
+        );
+      case ThreeDotItemType.THREE_DOT_ITEM_TYPE_CONTACTS:
+        Get.to(const ContactPage(isFromSelect: false));
+      default:
+        SmartDialog.showToast('TODO: $name');
+    }
   }
 }

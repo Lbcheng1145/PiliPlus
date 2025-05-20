@@ -3,11 +3,14 @@ import 'dart:convert';
 import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/pendant_avatar.dart';
 import 'package:PiliPlus/grpc/bilibili/app/im/v1.pb.dart'
-    show Session, UnreadStyle;
+    show Session, SessionId, SessionPageType, SessionType, UnreadStyle;
 import 'package:PiliPlus/models/common/badge_type.dart';
+import 'package:PiliPlus/pages/whisper_secondary/view.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
 class WhisperSessionItem extends StatelessWidget {
@@ -15,14 +18,14 @@ class WhisperSessionItem extends StatelessWidget {
     super.key,
     required this.item,
     required this.onSetTop,
+    required this.onSetMute,
     required this.onRemove,
-    required this.onTap,
   });
 
   final Session item;
-  final Function(bool isTop, int? talkerId) onSetTop;
+  final Function(bool isTop, SessionId id) onSetTop;
+  final Function(bool isMuted, Int64 talkerUid) onSetMute;
   final ValueChanged<int?> onRemove;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +36,7 @@ class WhisperSessionItem extends StatelessWidget {
     return ListTile(
       tileColor: item.isPinned
           ? theme.colorScheme.onInverseSurface
-              .withOpacity(Get.isDarkMode ? 0.4 : 0.8)
+              .withValues(alpha: Get.isDarkMode ? 0.4 : 0.8)
           : null,
       onLongPress: () {
         showDialog(
@@ -42,53 +45,99 @@ class WhisperSessionItem extends StatelessWidget {
             return AlertDialog(
               clipBehavior: Clip.hardEdge,
               contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    dense: true,
-                    onTap: () {
-                      Get.back();
-                      onSetTop(
-                        item.isPinned,
-                        item.id.privateId.talkerUid.toInt(),
-                      );
-                    },
-                    title: Text(
-                      item.isPinned ? '移除置顶' : '置顶',
-                      style: const TextStyle(fontSize: 14),
+              content: DefaultTextStyle(
+                style: const TextStyle(fontSize: 14),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      dense: true,
+                      onTap: () {
+                        Get.back();
+                        onSetTop(item.isPinned, item.id);
+                      },
+                      title: Text(item.isPinned ? '移除置顶' : '置顶'),
                     ),
-                  ),
-                  ListTile(
-                    dense: true,
-                    onTap: () {
-                      Get.back();
-                      onRemove(item.id.privateId.talkerUid.toInt());
-                    },
-                    title: const Text(
-                      '删除',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ],
+                    if (item.id.privateId.hasTalkerUid())
+                      ListTile(
+                        dense: true,
+                        onTap: () {
+                          Get.back();
+                          onSetMute(item.isMuted, item.id.privateId.talkerUid);
+                        },
+                        title: Text('${item.isMuted ? '关闭' : '开启'}免打扰'),
+                      ),
+                    if (item.id.privateId.hasTalkerUid())
+                      ListTile(
+                        dense: true,
+                        onTap: () {
+                          Get.back();
+                          onRemove(item.id.privateId.talkerUid.toInt());
+                        },
+                        title: const Text('删除'),
+                      ),
+                  ],
+                ),
               ),
             );
           },
         );
       },
       onTap: () {
-        onTap();
-        Get.toNamed(
-          '/whisperDetail',
-          parameters: {
-            'talkerId': item.id.privateId.talkerUid.toString(),
-            'name': item.sessionInfo.sessionName,
-            'face': item.sessionInfo.avatar.fallbackLayers.layers.first.resource
-                .resImage.imageSrc.remote.url,
-            if (item.sessionInfo.avatar.hasMid())
-              'mid': item.sessionInfo.avatar.mid.toString(),
-          },
-        );
+        if (item.hasUnread()) {
+          item.clearUnread();
+          if (context.mounted) {
+            (context as Element).markNeedsBuild();
+          }
+        }
+        if (item.id.privateId.hasTalkerUid()) {
+          Get.toNamed(
+            '/whisperDetail',
+            arguments: {
+              'talkerId': item.id.privateId.talkerUid.toInt(),
+              'name': item.sessionInfo.sessionName,
+              'face': item.sessionInfo.avatar.fallbackLayers.layers.first
+                  .resource.resImage.imageSrc.remote.url,
+              if (item.sessionInfo.avatar.hasMid())
+                'mid': item.sessionInfo.avatar.mid.toInt(),
+            },
+          );
+          return;
+        }
+
+        if (item.id.foldId.hasType()) {
+          SessionPageType? sessionPageType = switch (item.id.foldId.type) {
+            SessionType.SESSION_TYPE_UNKNOWN =>
+              SessionPageType.SESSION_PAGE_TYPE_UNKNOWN,
+            SessionType.SESSION_TYPE_GROUP =>
+              SessionPageType.SESSION_PAGE_TYPE_GROUP,
+            SessionType.SESSION_TYPE_GROUP_FOLD =>
+              SessionPageType.SESSION_PAGE_TYPE_GROUP,
+            SessionType.SESSION_TYPE_UNFOLLOWED =>
+              SessionPageType.SESSION_PAGE_TYPE_UNFOLLOWED,
+            SessionType.SESSION_TYPE_STRANGER =>
+              SessionPageType.SESSION_PAGE_TYPE_STRANGER,
+            SessionType.SESSION_TYPE_DUSTBIN =>
+              SessionPageType.SESSION_PAGE_TYPE_DUSTBIN,
+            SessionType.SESSION_TYPE_CUSTOMER_FOLD =>
+              SessionPageType.SESSION_PAGE_TYPE_CUSTOMER,
+            SessionType.SESSION_TYPE_AI_FOLD =>
+              SessionPageType.SESSION_PAGE_TYPE_AI,
+            SessionType.SESSION_TYPE_CUSTOMER_ACCOUNT =>
+              SessionPageType.SESSION_PAGE_TYPE_CUSTOMER,
+            _ => null,
+          };
+          if (sessionPageType != null) {
+            Get.to(
+              WhisperSecPage(
+                name: item.sessionInfo.sessionName,
+                sessionPageType: sessionPageType,
+              ),
+            );
+          } else {
+            SmartDialog.showToast(item.id.foldId.type.name);
+          }
+        }
       },
       leading: Builder(
         builder: (context) {
@@ -176,16 +225,28 @@ class WhisperSessionItem extends StatelessWidget {
         style: theme.textTheme.labelMedium!
             .copyWith(color: theme.colorScheme.outline),
       ),
-      trailing: item.hasTimestamp()
-          ? Text(
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (item.isMuted) ...[
+            Icon(
+              size: 16,
+              Icons.notifications_off,
+              color: theme.colorScheme.outline,
+            ),
+            if (item.hasTimestamp()) const SizedBox(width: 4),
+          ],
+          if (item.hasTimestamp())
+            Text(
               Utils.dateFormat((item.timestamp ~/ 1000000).toInt(),
                   formatType: "day"),
               style: TextStyle(
                 fontSize: 12,
                 color: theme.colorScheme.outline,
               ),
-            )
-          : null,
+            ),
+        ],
+      ),
     );
   }
 }

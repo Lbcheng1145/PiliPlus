@@ -1,11 +1,11 @@
 import 'package:PiliPlus/common/skeleton/whisper_item.dart';
-import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/grpc/bilibili/app/im/v1.pb.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/pages/whisper/controller.dart';
 import 'package:PiliPlus/pages/whisper/widgets/item.dart';
+import 'package:PiliPlus/utils/extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -18,7 +18,7 @@ class WhisperPage extends StatefulWidget {
 }
 
 class _WhisperPageState extends State<WhisperPage> {
-  final _whisperController = Get.put(WhisperController());
+  final _controller = Get.put(WhisperController());
 
   @override
   Widget build(BuildContext context) {
@@ -26,31 +26,63 @@ class _WhisperPageState extends State<WhisperPage> {
       appBar: AppBar(
         title: const Text('消息'),
         actions: [
-          IconButton(
-            tooltip: '一键已读',
-            onPressed: () {
-              showConfirmDialog(
-                context: context,
-                title: '一键已读',
-                content: '是否清除全部新消息提醒？',
-                onConfirm: _whisperController.onClearUnread,
+          Obx(() {
+            if (_controller.outsideItem.value?.isNotEmpty == true) {
+              return Row(
+                  children: _controller.outsideItem.value!.map((e) {
+                return IconButton(
+                  tooltip: e.hasTitle() ? e.title : null,
+                  onPressed: () {
+                    e.type.action(
+                      context: context,
+                      controller: _controller,
+                    );
+                  },
+                  icon: e.type.icon,
+                );
+              }).toList());
+            }
+            return const SizedBox.shrink();
+          }),
+          Obx(() {
+            if (_controller.threeDotItems.value?.isNotEmpty == true) {
+              return PopupMenuButton(
+                itemBuilder: (context) {
+                  return _controller.threeDotItems.value!
+                      .map((e) => PopupMenuItem(
+                            onTap: () {
+                              e.type.action(
+                                context: context,
+                                controller: _controller,
+                              );
+                            },
+                            child: Row(
+                              children: [
+                                e.type.icon,
+                                Text('  ${e.title}'),
+                              ],
+                            ),
+                          ))
+                      .toList();
+                },
               );
-            },
-            icon: const Icon(
-              size: 20,
-              Icons.cleaning_services,
-            ),
-          ),
-          const SizedBox(width: 16),
+            }
+            return const SizedBox.shrink();
+          }),
         ],
       ),
       body: refreshIndicator(
-        onRefresh: _whisperController.onRefresh,
+        onRefresh: _controller.onRefresh,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             _buildTopItems,
-            Obx(() => _buildBody(_whisperController.loadingState.value)),
+            SliverPadding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.paddingOf(context).bottom + 100,
+              ),
+              sliver: Obx(() => _buildBody(_controller.loadingState.value)),
+            ),
           ],
         ),
       ),
@@ -65,40 +97,35 @@ class _WhisperPageState extends State<WhisperPage> {
             return const WhisperItemSkeleton();
           },
         ),
-      Success() => loadingState.response?.isNotEmpty == true
-          ? SliverPadding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.paddingOf(context).bottom + 100,
-              ),
-              sliver: SliverList.separated(
-                itemCount: loadingState.response!.length,
-                itemBuilder: (context, index) {
-                  if (index == loadingState.response!.length - 1) {
-                    _whisperController.onLoadMore();
-                  }
-                  return WhisperSessionItem(
-                    item: loadingState.response![index],
-                    onSetTop: (isTop, talkerId) =>
-                        _whisperController.onSetTop(index, isTop, talkerId),
-                    onRemove: (talkerId) =>
-                        _whisperController.onRemove(index, talkerId),
-                    onTap: () => _whisperController.onTap(index),
-                  );
-                },
-                separatorBuilder: (context, index) => Divider(
-                  indent: 72,
-                  endIndent: 20,
-                  height: 1,
-                  color: Colors.grey.withOpacity(0.1),
-                ),
+      Success(:var response) => response?.isNotEmpty == true
+          ? SliverList.separated(
+              itemCount: response!.length,
+              itemBuilder: (context, index) {
+                if (index == response.length - 1) {
+                  _controller.onLoadMore();
+                }
+                return WhisperSessionItem(
+                  item: response[index],
+                  onSetTop: (isTop, id) =>
+                      _controller.onSetTop(index, isTop, id),
+                  onSetMute: (isMuted, talkerUid) =>
+                      _controller.onSetMute(index, isMuted, talkerUid),
+                  onRemove: (talkerId) => _controller.onRemove(index, talkerId),
+                );
+              },
+              separatorBuilder: (context, index) => Divider(
+                indent: 72,
+                endIndent: 20,
+                height: 1,
+                color: Colors.grey.withValues(alpha: 0.1),
               ),
             )
           : HttpError(
-              onReload: _whisperController.onReload,
+              onReload: _controller.onReload,
             ),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
-          onReload: _whisperController.onReload,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
+          onReload: _controller.onReload,
         ),
     };
   }
@@ -109,8 +136,8 @@ class _WhisperPageState extends State<WhisperPage> {
         sliver: SliverToBoxAdapter(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(_whisperController.msgFeedTopItems.length,
-                (index) {
+            children:
+                List.generate(_controller.msgFeedTopItems.length, (index) {
               final ThemeData theme = Theme.of(context);
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -123,16 +150,14 @@ class _WhisperPageState extends State<WhisperPage> {
                     children: [
                       Obx(
                         () => Badge(
-                          isLabelVisible:
-                              _whisperController.unreadCounts[index] > 0,
-                          label: Text(
-                              " ${_whisperController.unreadCounts[index]} "),
+                          isLabelVisible: _controller.unreadCounts[index] > 0,
+                          label: Text(" ${_controller.unreadCounts[index]} "),
                           alignment: Alignment.topRight,
                           child: CircleAvatar(
                             radius: 22,
                             backgroundColor: theme.colorScheme.onInverseSurface,
                             child: Icon(
-                              _whisperController.msgFeedTopItems[index]['icon'],
+                              _controller.msgFeedTopItems[index].icon,
                               size: 20,
                               color: theme.colorScheme.primary,
                             ),
@@ -141,20 +166,20 @@ class _WhisperPageState extends State<WhisperPage> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        _whisperController.msgFeedTopItems[index]['name'],
+                        _controller.msgFeedTopItems[index].name,
                         style: const TextStyle(fontSize: 13),
                       ),
                     ],
                   ),
                 ),
                 onTap: () {
-                  if (!_whisperController.msgFeedTopItems[index]['enabled']) {
+                  if (!_controller.msgFeedTopItems[index].enabled) {
                     SmartDialog.showToast('已禁用');
                     return;
                   }
-                  _whisperController.unreadCounts[index] = 0;
+                  _controller.unreadCounts[index] = 0;
                   Get.toNamed(
-                    _whisperController.msgFeedTopItems[index]['route'],
+                    _controller.msgFeedTopItems[index].route,
                   );
                 },
               );

@@ -190,7 +190,7 @@ class HistoryItem extends StatelessWidget {
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   borderRadius: StyleString.mdRadius,
-                                  color: Colors.black.withOpacity(0.6),
+                                  color: Colors.black.withValues(alpha: 0.6),
                                 ),
                                 child: SizedBox(
                                   width: 34,
@@ -208,7 +208,7 @@ class HistoryItem extends StatelessWidget {
                                             WidgetStateProperty.resolveWith(
                                           (states) {
                                             return theme.colorScheme.surface
-                                                .withOpacity(0.8);
+                                                .withValues(alpha: 0.8);
                                           },
                                         ),
                                       ),
@@ -264,7 +264,7 @@ class HistoryItem extends StatelessWidget {
                       height: 35,
                       child: Row(
                         children: [
-                          Icon(MdiIcons.accountCircleOutline, size: 16),
+                          const Icon(MdiIcons.accountCircleOutline, size: 16),
                           const SizedBox(width: 6),
                           Text(
                             '访问：${videoItem.authorName}',

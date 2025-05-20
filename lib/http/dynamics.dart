@@ -3,6 +3,7 @@ import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/dynamic/dynamics_type.dart';
+import 'package:PiliPlus/models/dynamics/article_list/data.dart';
 import 'package:PiliPlus/models/dynamics/dyn_topic_feed/topic_card_list.dart';
 import 'package:PiliPlus/models/dynamics/dyn_topic_top/top_details.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
@@ -15,6 +16,9 @@ import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
 
 class DynamicsHttp {
+  static RegExp banWordForDyn =
+      RegExp(GStorage.banWordForDyn, caseSensitive: false);
+
   static Future<LoadingState<DynamicsDataModel>> followDynamic({
     DynamicsTabType type = DynamicsTabType.all,
     String? offset,
@@ -34,21 +38,36 @@ class DynamicsHttp {
     if (res.data['code'] == 0) {
       try {
         DynamicsDataModel data = DynamicsDataModel.fromJson(res.data['data']);
-        if (GStorage.antiGoodsDyn) {
-          data.items?.removeWhere(
-            (item) =>
-                item.orig?.modules.moduleDynamic?.additional?.type ==
-                    'ADDITIONAL_TYPE_GOODS' ||
-                item.modules.moduleDynamic?.additional?.type ==
-                    'ADDITIONAL_TYPE_GOODS',
-          );
-        }
-        return LoadingState.success(data);
+        final antiGoodsDyn = GStorage.antiGoodsDyn;
+        final filterWord = banWordForDyn.pattern.isNotEmpty;
+
+        data.items?.removeWhere(
+          (item) =>
+              (antiGoodsDyn &&
+                  (item.orig?.modules.moduleDynamic?.additional?.type ==
+                          'ADDITIONAL_TYPE_GOODS' ||
+                      item.modules.moduleDynamic?.additional?.type ==
+                          'ADDITIONAL_TYPE_GOODS')) ||
+              (filterWord &&
+                  (item.orig?.modules.moduleDynamic?.major?.opus?.summary?.text
+                              ?.contains(banWordForDyn) ==
+                          true ||
+                      item.modules.moduleDynamic?.major?.opus?.summary?.text
+                              ?.contains(banWordForDyn) ==
+                          true ||
+                      item.orig?.modules.moduleDynamic?.desc?.text
+                              ?.contains(banWordForDyn) ==
+                          true ||
+                      item.modules.moduleDynamic?.desc?.text
+                              ?.contains(banWordForDyn) ==
+                          true)),
+        );
+        return Success(data);
       } catch (err) {
-        return LoadingState.error(err.toString());
+        return Error(err.toString());
       }
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -129,7 +148,12 @@ class DynamicsHttp {
         if (id != null) 'id': id,
         if (rid != null) 'rid': rid,
         if (type != null) 'type': type,
-        'features': 'itemOpusStyle,listOnlyfans',
+        'features': 'itemOpusStyle',
+        'gaia_source': 'Athena',
+        'web_location': '333.1330',
+        'x-bili-device-req-json':
+            '{"platform":"web","device":"pc","spmid":"333.1330"}',
+        if (Accounts.main.isLogin) 'csrf': Accounts.main.csrf,
       },
       options:
           clearCookie ? Options(extra: {'account': AnonymousAccount()}) : null,
@@ -202,10 +226,11 @@ class DynamicsHttp {
         'web_location': '333.976',
       }),
     );
-
-    return res.data['code'] == 0
-        ? LoadingState.success(SpaceArticleItem.fromJson(res.data['data']))
-        : LoadingState.error(res.data['message']);
+    if (res.data['code'] == 0) {
+      return Success(SpaceArticleItem.fromJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
+    }
   }
 
   static Future<LoadingState<DynamicItemModel>> opusDetail(
@@ -218,19 +243,21 @@ class DynamicsHttp {
         'id': opusId,
       }),
     );
-
-    return res.data['code'] == 0
-        ? LoadingState.success(DynamicItemModel.fromOpusJson(res.data['data']))
-        : LoadingState.error(res.data['message']);
+    if (res.data['code'] == 0) {
+      return Success(DynamicItemModel.fromOpusJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
+    }
   }
 
   static Future<LoadingState<VoteInfo>> voteInfo(dynamic voteId) async {
     final res =
         await Request().get(Api.voteInfo, queryParameters: {'vote_id': voteId});
-
-    return res.data['code'] == 0
-        ? LoadingState.success(VoteInfo.fromSeparatedJson(res.data['data']))
-        : LoadingState.error(res.data['message']);
+    if (res.data['code'] == 0) {
+      return Success(VoteInfo.fromSeparatedJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
+    }
   }
 
   static Future<LoadingState<VoteInfo>> doVote({
@@ -254,10 +281,11 @@ class DynamicsHttp {
         queryParameters: {'csrf': csrf},
         data: data,
         options: Options(contentType: Headers.jsonContentType));
-
-    return res.data['code'] == 0
-        ? LoadingState.success(VoteInfo.fromJson(res.data['data']['vote_info']))
-        : LoadingState.error(res.data['message']);
+    if (res.data['code'] == 0) {
+      return Success(VoteInfo.fromJson(res.data['data']['vote_info']));
+    } else {
+      return Error(res.data['message']);
+    }
   }
 
   static Future<LoadingState<TopDetails?>> topicTop({required topicId}) async {
@@ -272,9 +300,9 @@ class DynamicsHttp {
       TopDetails? data = res.data['data']?['top_details'] == null
           ? null
           : TopDetails.fromJson(res.data['data']['top_details']);
-      return LoadingState.success(data);
+      return Success(data);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -299,9 +327,51 @@ class DynamicsHttp {
       TopicCardList? data = res.data['data']?['topic_card_list'] == null
           ? null
           : TopicCardList.fromJson(res.data['data']['topic_card_list']);
-      return LoadingState.success(data);
+      return Success(data);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<ArticleListData>> articleList({
+    required id,
+  }) async {
+    final res = await Request().get(
+      Api.articleList,
+      queryParameters: {
+        'id': id,
+        'web_location': 333.1400,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return Success(ArticleListData.fromJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future dynReserve({
+    required reserveId,
+    required curBtnStatus,
+    required dynamicIdStr,
+    required reserveTotal,
+  }) async {
+    var res = await Request().post(
+      Api.dynReserve,
+      queryParameters: {
+        'csrf': Accounts.main.csrf,
+      },
+      data: {
+        'reserve_id': reserveId,
+        'cur_btn_status': curBtnStatus,
+        'dynamic_id_str': dynamicIdStr,
+        'reserve_total': reserveTotal,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return {'status': true, 'data': res.data['data']};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
     }
   }
 }

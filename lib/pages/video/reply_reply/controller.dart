@@ -1,7 +1,7 @@
 import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
     show ReplyInfo, DetailListReply, Mode;
+import 'package:PiliPlus/grpc/reply.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/http/reply.dart';
 import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/pages/common/reply_controller.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
@@ -32,7 +32,7 @@ class VideoReplyReplyController extends ReplyController
   int rpid;
   ReplyType replyType; // = ReplyType.video;
 
-  dynamic firstFloor;
+  ReplyInfo? firstFloor;
 
   int? index;
   AnimationController? controller;
@@ -65,9 +65,9 @@ class VideoReplyReplyController extends ReplyController
   bool customHandleResponse(bool isRefresh, Success response) {
     final data = response.response;
 
-    upMid ??= data.subjectControl.upMid.toInt();
+    upMid ??= data.subjectControl.upMid;
     paginationReply = data.paginationReply;
-    isEnd = data.cursor?.isEnd ?? false;
+    isEnd = data.cursor.isEnd;
 
     // reply2Reply // isDialogue.not
     if (data is DetailListReply) {
@@ -107,7 +107,7 @@ class VideoReplyReplyController extends ReplyController
 
   @override
   Future<LoadingState> customGetData() => isDialogue
-      ? ReplyHttp.dialogList(
+      ? ReplyGrpc.dialogList(
           type: replyType.index,
           oid: oid,
           root: rpid,
@@ -115,7 +115,7 @@ class VideoReplyReplyController extends ReplyController
           offset: paginationReply?.nextOffset,
           antiGoodsReply: antiGoodsReply,
         )
-      : ReplyHttp.detailList(
+      : ReplyGrpc.detailList(
           type: replyType.index,
           oid: oid,
           root: rpid,

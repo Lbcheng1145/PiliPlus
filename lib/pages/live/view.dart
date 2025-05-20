@@ -7,6 +7,7 @@ import 'package:PiliPlus/common/widgets/pair.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/self_sized_horizontal_list.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/live/live_feed_index/card_data_list_item.dart';
 import 'package:PiliPlus/models/live/live_feed_index/card_list.dart';
 import 'package:PiliPlus/pages/common/common_page.dart';
@@ -147,7 +148,7 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
             childCount: 10,
           ),
         ),
-      Success() => SliverMainAxisGroup(
+      Success(:var response) => SliverMainAxisGroup(
           slivers: [
             if (controller.newTags?.isNotEmpty == true)
               SliverToBoxAdapter(
@@ -182,7 +183,7 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
                   itemCount: controller.newTags!.length,
                 ),
               ),
-            loadingState.response?.isNotEmpty == true
+            response?.isNotEmpty == true
                 ? SliverGrid(
                     gridDelegate: SliverGridDelegateWithExtentAndRatio(
                       mainAxisSpacing: StyleString.cardSpace,
@@ -194,10 +195,10 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        if (index == loadingState.response!.length - 1) {
+                        if (index == response.length - 1) {
                           controller.onLoadMore();
                         }
-                        final item = loadingState.response![index];
+                        final item = response[index];
                         if (item is LiveCardList) {
                           return LiveCardVApp(
                             item: item.cardData!.smallCardV1!,
@@ -205,14 +206,14 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
                         }
                         return LiveCardVApp(item: item);
                       },
-                      childCount: loadingState.response!.length,
+                      childCount: response!.length,
                     ),
                   )
                 : HttpError(onReload: controller.onReload),
           ],
         ),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: controller.onReload,
         ),
     };
@@ -311,7 +312,7 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
                       shape: BoxShape.circle,
                     ),
                     child: NetworkImgLayer(
-                      type: 'avatar',
+                      type: ImageType.avatar,
                       width: 45,
                       height: 45,
                       src: item.face,

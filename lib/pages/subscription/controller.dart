@@ -21,7 +21,7 @@ class SubController
   @override
   Future<void> queryData([bool isRefresh = true]) {
     if (mid == 0) {
-      loadingState.value = LoadingState.error('账号未登录');
+      loadingState.value = const Error('账号未登录');
       return Future.value();
     }
     return super.queryData(isRefresh);
@@ -49,8 +49,9 @@ class SubController
               var res = await UserHttp.cancelSub(
                   id: subFolderItem.id!, type: subFolderItem.type!);
               if (res['status']) {
-                loadingState.value.data!.remove(subFolderItem);
-                loadingState.refresh();
+                loadingState
+                  ..value.data!.remove(subFolderItem)
+                  ..refresh();
                 SmartDialog.showToast('取消订阅成功');
               } else {
                 SmartDialog.showToast(res['msg']);
@@ -67,7 +68,7 @@ class SubController
   @override
   Future<LoadingState<List<SubFolderItemData>?>> customGetData() =>
       UserHttp.userSubFolder(
-        pn: currentPage,
+        pn: page,
         ps: 20,
         mid: mid,
       );

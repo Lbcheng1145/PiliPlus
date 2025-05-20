@@ -18,6 +18,7 @@ import 'package:PiliPlus/models/space/data.dart';
 import 'package:PiliPlus/models/space_archive/data.dart';
 import 'package:PiliPlus/models/space_article/data.dart';
 import 'package:PiliPlus/models/space_fav/space_fav.dart';
+import 'package:PiliPlus/models/space_opus/data.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:PiliPlus/utils/wbi_sign.dart';
@@ -48,32 +49,20 @@ class MemberHttp {
     };
   }
 
-  // static Future<LoadingState> spaceDynamic({
-  //   required int mid,
-  //   required int page,
-  // }) async {
-  //   dynamic result = await GrpcRepo.dynSpace(uid: mid, page: page);
-  //   if (result['status']) {
-  //     return LoadingState.success(result['data']);
-  //   } else {
-  //     return LoadingState.error(result['msg']);
-  //   }
-  // }
-
   static Future<LoadingState<SpaceArticleData>> spaceArticle({
     required int mid,
     required int page,
   }) async {
     Map<String, String> data = {
-      'build': '1462100',
+      'build': '8430300',
       'c_locale': 'zh_CN',
-      'channel': 'yingyongbao',
-      'mobi_app': 'android_hd',
+      'channel': 'bili',
+      'mobi_app': 'android',
       'platform': 'android',
-      'pn': '$page',
+      'pn': page.toString(),
       'ps': '10',
       's_locale': 'zh_CN',
-      'statistics': Constants.statistics,
+      'statistics': Constants.statisticsApp,
       'vmid': mid.toString(),
     };
     dynamic res = await Request().get(
@@ -82,14 +71,14 @@ class MemberHttp {
       options: Options(
         headers: {
           'bili-http-engine': 'cronet',
-          'user-agent': Constants.userAgent,
+          'user-agent': Constants.userAgentApp,
         },
       ),
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(SpaceArticleData.fromJson(res.data['data']));
+      return Success(SpaceArticleData.fromJson(res.data['data']));
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -97,13 +86,13 @@ class MemberHttp {
     required int mid,
   }) async {
     Map<String, String> data = {
-      'build': '1462100',
+      'build': '8430300',
       'c_locale': 'zh_CN',
-      'channel': 'yingyongbao',
-      'mobi_app': 'android_hd',
+      'channel': 'bili',
+      'mobi_app': 'android',
       'platform': 'android',
       's_locale': 'zh_CN',
-      'statistics': Constants.statistics,
+      'statistics': Constants.statisticsApp,
       'up_mid': mid.toString(),
     };
     dynamic res = await Request().get(
@@ -112,14 +101,14 @@ class MemberHttp {
       options: Options(
         headers: {
           'bili-http-engine': 'cronet',
-          'user-agent': Constants.userAgent,
+          'user-agent': Constants.userAgentApp,
         },
       ),
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(SpaceFav.fromJson(res.data).data);
+      return Success(SpaceFav.fromJson(res.data).data);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -136,9 +125,9 @@ class MemberHttp {
       },
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(res.data['data']?['items_lists']);
+      return Success(res.data['data']?['items_lists']);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -156,10 +145,10 @@ class MemberHttp {
   }) async {
     Map<String, String> data = {
       if (aid != null) 'aid': aid.toString(),
-      'build': '1462100',
+      'build': '8430300',
       'c_locale': 'zh_CN',
-      'channel': 'yingyongbao',
-      'mobi_app': 'android_hd',
+      'channel': 'bili',
+      'mobi_app': 'android',
       'platform': 'android',
       's_locale': 'zh_CN',
       'ps': '20',
@@ -171,7 +160,7 @@ class MemberHttp {
       if (order != null) 'order': order,
       if (sort != null) 'sort': sort,
       if (includeCursor != null) 'include_cursor': includeCursor.toString(),
-      'statistics': Constants.statistics,
+      'statistics': Constants.statisticsApp,
       'vmid': mid.toString(),
     };
     dynamic res = await Request().get(
@@ -186,14 +175,14 @@ class MemberHttp {
       options: Options(
         headers: {
           'bili-http-engine': 'cronet',
-          'user-agent': Constants.userAgent,
+          'user-agent': Constants.userAgentApp,
         },
       ),
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(SpaceArchiveData.fromJson(res.data['data']));
+      return Success(SpaceArchiveData.fromJson(res.data['data']));
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -213,13 +202,13 @@ class MemberHttp {
       'cid': cid.toString(),
       'contain': contain.toString(),
       'index': index.toString(),
-      'build': '1462100',
+      'build': '8430300',
       'c_locale': 'zh_CN',
-      'channel': 'yingyongbao',
-      'mobi_app': 'android_hd',
+      'channel': 'bili',
+      'mobi_app': 'android',
       'platform': 'android',
       's_locale': 'zh_CN',
-      'statistics': Constants.statistics,
+      'statistics': Constants.statisticsApp,
       'vmid': mid.toString(),
     };
     dynamic res = await Request().get(
@@ -228,14 +217,14 @@ class MemberHttp {
       options: Options(
         headers: {
           'bili-http-engine': 'cronet',
-          'user-agent': Constants.userAgent,
+          'user-agent': Constants.userAgentApp,
         },
       ),
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(res.data['data']);
+      return Success(res.data['data']);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -244,14 +233,14 @@ class MemberHttp {
     dynamic fromViewAid,
   }) async {
     Map<String, String> data = {
-      'build': '1462100',
+      'build': '8430300',
       'c_locale': 'zh_CN',
-      'channel': 'yingyongbao',
-      'mobi_app': 'android_hd',
+      'channel': 'bili',
+      'mobi_app': 'android',
       'platform': 'android',
       's_locale': 'zh_CN',
       if (fromViewAid != null) 'from_view_aid': fromViewAid,
-      'statistics': Constants.statistics,
+      'statistics': Constants.statisticsApp,
       'vmid': mid.toString(),
     };
     dynamic res = await Request().get(
@@ -260,14 +249,14 @@ class MemberHttp {
       options: Options(
         headers: {
           'bili-http-engine': 'cronet',
-          'user-agent': Constants.userAgent,
+          'user-agent': Constants.userAgentApp,
         },
       ),
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(SpaceData.fromJson(res.data['data']));
+      return Success(SpaceData.fromJson(res.data['data']));
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -277,7 +266,7 @@ class MemberHttp {
   }) async {
     String dmImgStr = Utils.base64EncodeRandomString(16, 64);
     String dmCoverImgStr = Utils.base64EncodeRandomString(32, 128);
-    Map params = await WbiSign.makSign({
+    final params = await WbiSign.makSign({
       'mid': mid,
       'token': token,
       'platform': 'web',
@@ -334,7 +323,7 @@ class MemberHttp {
 
   static Future memberArchive({
     required int mid,
-    int ps = 25,
+    int ps = 30,
     int tid = 0,
     int? pn,
     String? keyword,
@@ -343,7 +332,7 @@ class MemberHttp {
   }) async {
     String dmImgStr = Utils.base64EncodeRandomString(16, 64);
     String dmCoverImgStr = Utils.base64EncodeRandomString(32, 128);
-    Map params = await WbiSign.makSign({
+    final params = await WbiSign.makSign({
       'mid': mid,
       'ps': ps,
       'tid': tid,
@@ -351,7 +340,7 @@ class MemberHttp {
       if (keyword != null) 'keyword': keyword,
       'order': order,
       'platform': 'web',
-      'web_location': '333.1387',
+      'web_location': '1550101',
       'order_avoided': orderAvoided,
       'dm_img_list': '[]',
       'dm_img_str': dmImgStr,
@@ -385,7 +374,7 @@ class MemberHttp {
 
   static Future<LoadingState> memberArchiveNew({
     required mid,
-    int ps = 25,
+    int ps = 30,
     int tid = 0,
     int? pn,
     String? keyword,
@@ -394,7 +383,7 @@ class MemberHttp {
   }) async {
     String dmImgStr = Utils.base64EncodeRandomString(16, 64);
     String dmCoverImgStr = Utils.base64EncodeRandomString(32, 128);
-    Map params = await WbiSign.makSign({
+    final params = await WbiSign.makSign({
       'mid': mid,
       'ps': ps,
       'tid': tid,
@@ -402,7 +391,7 @@ class MemberHttp {
       if (keyword != null) 'keyword': keyword,
       'order': order,
       'platform': 'web',
-      'web_location': '333.1387',
+      'web_location': '1550101',
       'order_avoided': orderAvoided,
       'dm_img_list': '[]',
       'dm_img_str': dmImgStr,
@@ -419,14 +408,12 @@ class MemberHttp {
       }),
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(
-          MemberArchiveDataModel.fromJson(res.data['data']));
+      return Success(MemberArchiveDataModel.fromJson(res.data['data']));
     } else {
       Map errMap = {
         -352: '风控校验失败，请检查登录状态',
       };
-      return LoadingState.error(
-          errMap[res.data['code']] ?? res.data['message']);
+      return Error(errMap[res.data['code']] ?? res.data['message']);
     }
   }
 
@@ -437,7 +424,7 @@ class MemberHttp {
   }) async {
     String dmImgStr = Utils.base64EncodeRandomString(16, 64);
     String dmCoverImgStr = Utils.base64EncodeRandomString(32, 128);
-    Map params = await WbiSign.makSign({
+    final params = await WbiSign.makSign({
       'offset': offset ?? '',
       'host_mid': mid,
       'timezone_offset': '-480',
@@ -461,13 +448,12 @@ class MemberHttp {
             item.modules.moduleDynamic?.additional?.type ==
                 'ADDITIONAL_TYPE_GOODS');
       }
-      return LoadingState.success(data);
+      return Success(data);
     } else {
       Map errMap = {
         -352: '风控校验失败，请检查登录状态',
       };
-      return LoadingState.error(
-          errMap[res.data['code']] ?? res.data['message']);
+      return Error(errMap[res.data['code']] ?? res.data['message']);
     }
   }
 
@@ -520,9 +506,9 @@ class MemberHttp {
       },
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(DynamicsDataModel.fromJson(res.data['data']));
+      return Success(DynamicsDataModel.fromJson(res.data['data']));
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -607,12 +593,12 @@ class MemberHttp {
       },
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(FollowDataModel(
+      return Success(FollowDataModel(
           list: (res.data['data'] as List?)
               ?.map<FollowItemModel>((e) => FollowItemModel.fromJson(e))
               .toList()));
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -737,9 +723,9 @@ class MemberHttp {
       List<MemberCoinsDataModel>? list = (res.data['data'] as List?)
           ?.map<MemberCoinsDataModel>((e) => MemberCoinsDataModel.fromJson(e))
           .toList();
-      return LoadingState.success(list);
+      return Success(list);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -765,9 +751,9 @@ class MemberHttp {
       List<MemberCoinsDataModel>? list = (res.data['data']?['list'] as List?)
           ?.map<MemberCoinsDataModel>((e) => MemberCoinsDataModel.fromJson(e))
           .toList();
-      return LoadingState.success(list);
+      return Success(list);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -838,9 +824,32 @@ class MemberHttp {
       'wts': params['wts'],
     });
     if (res.data['code'] == 0) {
-      return LoadingState.success(FollowDataModel.fromJson(res.data['data']));
+      return Success(FollowDataModel.fromJson(res.data['data']));
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<SpaceOpusData>> spaceOpus({
+    required int hostMid,
+    required int page,
+    String offset = '',
+    String type = 'all',
+  }) async {
+    var res = await Request().get(
+      Api.spaceOpus,
+      queryParameters: await WbiSign.makSign({
+        'host_mid': hostMid,
+        'page': page,
+        'offset': offset,
+        'type': type,
+        'web_location': 333.1387,
+      }),
+    );
+    if (res.data['code'] == 0) {
+      return Success(SpaceOpusData.fromJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
     }
   }
 }

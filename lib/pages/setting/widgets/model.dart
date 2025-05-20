@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/pendant_avatar.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart'
     show kDragContainerExtentPercentage, displacement;
+import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/reply.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/main.dart';
@@ -132,7 +134,7 @@ List<SettingsModel> get styleSettings => [
           subtitle: '启用横屏布局与逻辑，平板、折叠屏等可开启；建议全屏方向设为【不改变当前方向】',
           leading: const Icon(Icons.phonelink_outlined),
           setKey: SettingBoxKey.horizontalScreen,
-          defaultVal: false,
+          defaultVal: GStorage.horizontalScreen,
           onChanged: (value) {
             if (value) {
               autoScreen();
@@ -210,7 +212,7 @@ List<SettingsModel> get styleSettings => [
       SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: '优化平板导航栏',
-        leading: Icon(MdiIcons.soundbar),
+        leading: const Icon(MdiIcons.soundbar),
         setKey: SettingBoxKey.optTabletNav,
         defaultVal: true,
         needReboot: true,
@@ -283,7 +285,7 @@ List<SettingsModel> get styleSettings => [
         settingsType: SettingsType.normal,
         title: '动态页UP主显示位置',
         leading: const Icon(Icons.person_outlined),
-        getSubtitle: () => '当前：${GStorage.upPanelPosition.labels}',
+        getSubtitle: () => '当前：${GStorage.upPanelPosition.label}',
         onTap: (setState) async {
           UpPanelPosition? result = await showDialog(
             context: Get.context!,
@@ -292,7 +294,7 @@ List<SettingsModel> get styleSettings => [
                 title: '动态页UP主显示位置',
                 value: GStorage.upPanelPosition,
                 values: UpPanelPosition.values.map((e) {
-                  return (e, e.labels);
+                  return (e, e.label);
                 }).toList(),
               );
             },
@@ -381,7 +383,7 @@ List<SettingsModel> get styleSettings => [
           }
         },
         title: '消息未读标记',
-        leading: Icon(MdiIcons.bellBadgeOutline),
+        leading: const Icon(MdiIcons.bellBadgeOutline),
         getSubtitle: () => '当前标记样式：${GStorage.msgBadgeMode.description}',
       ),
       SettingsModel(
@@ -410,7 +412,7 @@ List<SettingsModel> get styleSettings => [
           }
         },
         title: '消息未读类型',
-        leading: Icon(MdiIcons.bellCogOutline),
+        leading: const Icon(MdiIcons.bellCogOutline),
         getSubtitle: () =>
             '当前消息类型：${GStorage.msgUnReadTypeV2.map((item) => item.title).join('、')}',
       ),
@@ -746,7 +748,7 @@ List<SettingsModel> get playSettings => [
         settingsType: SettingsType.sw1tch,
         title: '弹幕开关',
         subtitle: '是否展示弹幕',
-        leading: const Icon(Icons.subtitles_outlined),
+        leading: const Icon(CustomIcon.dm_settings),
         setKey: SettingBoxKey.enableShowDanmaku,
         defaultVal: true,
       ),
@@ -776,14 +778,14 @@ List<SettingsModel> get playSettings => [
       SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: '左右侧滑动调节亮度/音量',
-        leading: Icon(MdiIcons.tuneVerticalVariant),
+        leading: const Icon(MdiIcons.tuneVerticalVariant),
         setKey: SettingBoxKey.enableSlideVolumeBrightness,
         defaultVal: true,
       ),
       SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: '中间滑动进入/退出全屏',
-        leading: Icon(MdiIcons.panVertical),
+        leading: const Icon(MdiIcons.panVertical),
         setKey: SettingBoxKey.enableSlideFS,
         defaultVal: true,
       ),
@@ -1027,7 +1029,7 @@ List<SettingsModel> get videoSettings => [
       SettingsModel(
         settingsType: SettingsType.normal,
         title: 'CDN 设置',
-        leading: Icon(MdiIcons.cloudPlusOutline),
+        leading: const Icon(MdiIcons.cloudPlusOutline),
         getSubtitle: () =>
             '当前使用：${CDNService.fromCode(GStorage.defaultCDNService).description}，部分 CDN 可能失效，如无法播放请尝试切换',
         onTap: (setState) async {
@@ -1055,7 +1057,7 @@ List<SettingsModel> get videoSettings => [
         settingsType: SettingsType.sw1tch,
         title: '音频不跟随 CDN 设置',
         subtitle: '直接采用备用 URL，可解决部分视频无声',
-        leading: Icon(MdiIcons.musicNotePlus),
+        leading: const Icon(MdiIcons.musicNotePlus),
         setKey: SettingBoxKey.disableAudioCDN,
         defaultVal: true,
       ),
@@ -1064,7 +1066,7 @@ List<SettingsModel> get videoSettings => [
         title: '默认画质',
         leading: const Icon(Icons.video_settings_outlined),
         getSubtitle: () =>
-            '当前画质：${VideoQualityExt.fromCode(GStorage.defaultVideoQa)!.description}',
+            '当前画质：${VideoQuality.fromCode(GStorage.defaultVideoQa).description}',
         onTap: (setState) async {
           int? result = await showDialog(
             context: Get.context!,
@@ -1089,7 +1091,7 @@ List<SettingsModel> get videoSettings => [
         title: '蜂窝网络画质',
         leading: const Icon(Icons.video_settings_outlined),
         getSubtitle: () =>
-            '当前画质：${VideoQualityExt.fromCode(GStorage.defaultVideoQaCellular)!.description}',
+            '当前画质：${VideoQuality.fromCode(GStorage.defaultVideoQaCellular).description}',
         onTap: (setState) async {
           int? result = await showDialog(
             context: Get.context!,
@@ -1115,7 +1117,7 @@ List<SettingsModel> get videoSettings => [
         title: '默认音质',
         leading: const Icon(Icons.music_video_outlined),
         getSubtitle: () =>
-            '当前音质：${AudioQualityExt.fromCode(GStorage.defaultAudioQa)!.description}',
+            '当前音质：${AudioQuality.fromCode(GStorage.defaultAudioQa).description}',
         onTap: (setState) async {
           int? result = await showDialog(
             context: Get.context!,
@@ -1140,7 +1142,7 @@ List<SettingsModel> get videoSettings => [
         title: '蜂窝网络音质',
         leading: const Icon(Icons.music_video_outlined),
         getSubtitle: () =>
-            '当前音质：${AudioQualityExt.fromCode(GStorage.defaultAudioQaCellular)!.description}',
+            '当前音质：${AudioQuality.fromCode(GStorage.defaultAudioQaCellular).description}',
         onTap: (setState) async {
           int? result = await showDialog(
             context: Get.context!,
@@ -1434,7 +1436,9 @@ List<SettingsModel> get recommendSettings => [
         leading: const Icon(Icons.favorite_border_outlined),
         setKey: SettingBoxKey.exemptFilterForFollowed,
         defaultVal: true,
-        onChanged: (_) => {RecommendFilter.update},
+        onChanged: (value) {
+          RecommendFilter.exemptFilterForFollowed = value;
+        },
       ),
       SettingsModel(
         settingsType: SettingsType.sw1tch,
@@ -1443,7 +1447,9 @@ List<SettingsModel> get recommendSettings => [
         leading: const Icon(Icons.explore_outlined),
         setKey: SettingBoxKey.applyFilterToRelatedVideos,
         defaultVal: true,
-        onChanged: (_) => {RecommendFilter.update},
+        onChanged: (value) {
+          RecommendFilter.applyFilterToRelatedVideos = value;
+        },
       ),
     ];
 
@@ -1579,7 +1585,7 @@ List<SettingsModel> get extraSettings => [
         title: '显示视频分段信息',
         leading: Transform.rotate(
           angle: pi / 2,
-          child: Icon(MdiIcons.viewHeadline),
+          child: const Icon(MdiIcons.viewHeadline),
         ),
         setKey: SettingBoxKey.showViewPoints,
         defaultVal: true,
@@ -1587,21 +1593,21 @@ List<SettingsModel> get extraSettings => [
       SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: '视频页显示相关视频',
-        leading: Icon(MdiIcons.motionPlayOutline),
+        leading: const Icon(MdiIcons.motionPlayOutline),
         setKey: SettingBoxKey.showRelatedVideo,
         defaultVal: true,
       ),
       SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: '显示视频评论',
-        leading: Icon(MdiIcons.commentTextOutline),
+        leading: const Icon(MdiIcons.commentTextOutline),
         setKey: SettingBoxKey.showVideoReply,
         defaultVal: true,
       ),
       SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: '显示番剧评论',
-        leading: Icon(MdiIcons.commentTextOutline),
+        leading: const Icon(MdiIcons.commentTextOutline),
         setKey: SettingBoxKey.showBangumiReply,
         defaultVal: true,
       ),
@@ -1762,7 +1768,7 @@ List<SettingsModel> get extraSettings => [
         settingsType: SettingsType.sw1tch,
         title: '分P/合集：倒序播放从首集开始播放',
         subtitle: '开启则自动切换为倒序首集，否则保持当前集',
-        leading: Icon(MdiIcons.sort),
+        leading: const Icon(MdiIcons.sort),
         setKey: SettingBoxKey.reverseFromFirst,
         defaultVal: true,
       ),
@@ -1794,6 +1800,14 @@ List<SettingsModel> get extraSettings => [
         key: SettingBoxKey.banWordForReply,
         callback: (value) {
           ReplyHttp.replyRegExp = value;
+        },
+      ),
+      _getBanwordModel(
+        context: Get.context!,
+        title: '动态关键词过滤',
+        key: SettingBoxKey.banWordForDyn,
+        callback: (value) {
+          DynamicsHttp.banWordForDyn = value;
         },
       ),
       SettingsModel(
@@ -1864,14 +1878,14 @@ List<SettingsModel> get extraSettings => [
       SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: '显示会员彩色弹幕',
-        leading: Icon(MdiIcons.gradientHorizontal),
+        leading: const Icon(MdiIcons.gradientHorizontal),
         setKey: SettingBoxKey.showVipDanmaku,
         defaultVal: true,
       ),
       SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: '显示高级弹幕',
-        leading: Icon(MdiIcons.paletteAdvanced),
+        leading: const Icon(MdiIcons.paletteAdvanced),
         setKey: SettingBoxKey.showSpecialDanmaku,
         defaultVal: false,
       ),
@@ -2035,7 +2049,7 @@ List<SettingsModel> get extraSettings => [
       SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: '展示头像/评论/动态装饰',
-        leading: Icon(MdiIcons.stickerCircleOutline),
+        leading: const Icon(MdiIcons.stickerCircleOutline),
         setKey: SettingBoxKey.showDynDecorate,
         defaultVal: true,
         onChanged: (value) => PendantAvatar.showDynDecorate = value,
@@ -2151,7 +2165,7 @@ List<SettingsModel> get extraSettings => [
       SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: '全屏展示点赞/投币/收藏等操作按钮',
-        leading: Icon(MdiIcons.dotsHorizontalCircleOutline),
+        leading: const Icon(MdiIcons.dotsHorizontalCircleOutline),
         setKey: SettingBoxKey.showFSActionItem,
         defaultVal: true,
       ),
@@ -2172,14 +2186,14 @@ List<SettingsModel> get extraSettings => [
       SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: '启用拖拽字幕调整底部边距',
-        leading: Icon(MdiIcons.dragVariant),
+        leading: const Icon(MdiIcons.dragVariant),
         setKey: SettingBoxKey.enableDragSubtitle,
         defaultVal: false,
       ),
       SettingsModel(
         settingsType: SettingsType.sw1tch,
         title: '展示追番时间表',
-        leading: Icon(MdiIcons.chartTimelineVariantShimmer),
+        leading: const Icon(MdiIcons.chartTimelineVariantShimmer),
         setKey: SettingBoxKey.showPgcTimeline,
         defaultVal: true,
         needReboot: true,
@@ -2651,7 +2665,7 @@ SettingsModel _getVideoFilterSelectModel({
       );
       if (result != null) {
         if (result == -1 && context.mounted) {
-          showDialog(
+          await showDialog(
             context: context,
             builder: (context) {
               String valueStr = '';

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -8,21 +10,41 @@ abstract class CommonSlidePage extends StatefulWidget {
   final bool? enableSlide;
 }
 
-abstract class CommonSlidePageState<T extends CommonSlidePage>
-    extends State<T> {
+abstract class CommonSlidePageState<T extends CommonSlidePage> extends State<T>
+    with TickerProviderStateMixin {
   Offset? downPos;
   bool? isSliding;
-  late double padding = 0.0;
 
-  late final enableSlide =
-      widget.enableSlide != false && GStorage.slideDismissReplyPage;
+  late final bool enableSlide;
+  AnimationController? _animController;
+  Animation<Offset>? _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    enableSlide = widget.enableSlide != false && GStorage.slideDismissReplyPage;
+    if (enableSlide) {
+      _animController = AnimationController(
+        vsync: this,
+        reverseDuration: const Duration(milliseconds: 500),
+      );
+      _anim = Tween<Offset>(begin: Offset.zero, end: const Offset(0, 1))
+          .animate(_animController!);
+    }
+  }
+
+  @override
+  void dispose() {
+    _animController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return enableSlide
-        ? Padding(
-            padding: EdgeInsets.only(top: padding),
+        ? SlideTransition(
+            position: _anim!,
             child: buildPage(theme),
           )
         : buildPage(theme);
@@ -32,61 +54,64 @@ abstract class CommonSlidePageState<T extends CommonSlidePage>
 
   Widget buildList(ThemeData theme) => throw UnimplementedError();
 
-  Widget slideList(ThemeData theme, [Widget? buildList]) => GestureDetector(
-        onPanDown: (event) {
-          if (event.localPosition.dx > 30) {
-            isSliding = false;
-          } else {
-            downPos = event.localPosition;
-          }
-        },
-        onPanUpdate: (event) {
-          if (isSliding == false) {
-            return;
-          } else if (isSliding == null) {
-            if (downPos != null) {
-              Offset cumulativeDelta = event.localPosition - downPos!;
-              if (cumulativeDelta.dx.abs() >= cumulativeDelta.dy.abs()) {
-                isSliding = true;
-                setState(() {
-                  padding = event.localPosition.dx.abs();
-                });
+  Widget slideList(ThemeData theme, [Widget? buildList]) => LayoutBuilder(
+        builder: (_, constrains) {
+          final maxWidth = constrains.maxWidth;
+
+          void onDismiss() {
+            if (isSliding == true) {
+              if (_animController!.value * maxWidth + downPos!.dx >= 100) {
+                Get.back();
               } else {
-                isSliding = false;
+                _animController!.reverse();
               }
             }
-          } else if (isSliding == true) {
-            setState(() {
-              padding = event.localPosition.dx.abs();
-            });
+            downPos = null;
+            isSliding = null;
           }
-        },
-        onPanCancel: () {
-          if (isSliding == true) {
-            if (padding >= 100) {
-              Get.back();
-            } else {
-              setState(() {
-                padding = 0;
-              });
+
+          void onPan(Offset localPosition) {
+            if (isSliding == false) {
+              return;
+            } else if (isSliding == null) {
+              if (downPos != null) {
+                Offset cumulativeDelta = localPosition - downPos!;
+                if (cumulativeDelta.dx.abs() >= cumulativeDelta.dy.abs()) {
+                  downPos = localPosition;
+                  isSliding = true;
+                } else {
+                  isSliding = false;
+                }
+              }
+            } else if (isSliding == true) {
+              if (localPosition.dx < 0) {
+                return;
+              }
+              _animController!.value =
+                  max(0, (localPosition.dx - downPos!.dx)) / maxWidth;
             }
           }
-          downPos = null;
-          isSliding = null;
+
+          return GestureDetector(
+            onPanDown: (details) {
+              if (details.localPosition.dx > 30) {
+                isSliding = false;
+              } else {
+                downPos = details.localPosition;
+              }
+            },
+            onPanStart: (details) {
+              onPan(details.localPosition);
+            },
+            onPanUpdate: (details) {
+              onPan(details.localPosition);
+            },
+            onPanCancel: onDismiss,
+            onPanEnd: (_) {
+              onDismiss();
+            },
+            child: buildList ?? this.buildList(theme),
+          );
         },
-        onPanEnd: (event) {
-          if (isSliding == true) {
-            if (padding >= 100) {
-              Get.back();
-            } else {
-              setState(() {
-                padding = 0;
-              });
-            }
-          }
-          downPos = null;
-          isSliding = null;
-        },
-        child: buildList ?? this.buildList(theme),
       );
 }

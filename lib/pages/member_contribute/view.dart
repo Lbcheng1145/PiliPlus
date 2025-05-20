@@ -2,6 +2,7 @@ import 'package:PiliPlus/models/common/member/contribute_type.dart';
 import 'package:PiliPlus/pages/member_article/view.dart';
 import 'package:PiliPlus/pages/member_audio/view.dart';
 import 'package:PiliPlus/pages/member_contribute/controller.dart';
+import 'package:PiliPlus/pages/member_opus/view.dart';
 import 'package:PiliPlus/pages/member_season_series/view.dart';
 import 'package:PiliPlus/pages/member_video/view.dart';
 import 'package:flutter/material.dart';
@@ -94,6 +95,7 @@ class _MemberContributeState extends State<MemberContribute>
           heroTag: widget.heroTag,
           mid: widget.mid,
           title: item.title,
+          isSingle: _controller.tabs == null,
         ),
       'charging_video' => MemberVideo(
           type: ContributeType.charging,
@@ -102,6 +104,11 @@ class _MemberContributeState extends State<MemberContribute>
           title: item.title,
         ),
       'article' => MemberArticle(
+          heroTag: widget.heroTag,
+          mid: widget.mid,
+        ),
+      'opus' => MemberOpus(
+          isSingle: _controller.tabs == null,
           heroTag: widget.heroTag,
           mid: widget.mid,
         ),

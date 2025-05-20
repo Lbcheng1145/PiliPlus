@@ -476,11 +476,11 @@ class Api {
 
   // 获取未读私信数
   // https://api.vc.bilibili.com/session_svr/v1/session_svr/single_unread
-  static const String msgUnread =
-      '${HttpString.tUrl}/session_svr/v1/session_svr/single_unread';
+  // static const String msgUnread =
+  //     '${HttpString.tUrl}/session_svr/v1/session_svr/single_unread';
 
   // 获取消息中心未读信息
-  static const String msgFeedUnread = '/x/msgfeed/unread';
+  // static const String msgFeedUnread = '/x/msgfeed/unread';
   //https://api.bilibili.com/x/msgfeed/reply?platform=web&build=0&mobi_app=web
   static const String msgFeedReply = '/x/msgfeed/reply';
   //https://api.bilibili.com/x/msgfeed/at?platform=web&build=0&mobi_app=web
@@ -827,4 +827,32 @@ class Api {
       '${HttpString.appBaseUrl}/x/topic/web/details/top';
 
   static const String topicFeed = '/x/polymer/web-dynamic/v1/feed/topic';
+
+  static const String spaceOpus = '/x/polymer/web-dynamic/v1/opus/feed/space';
+
+  static const String articleList = '/x/article/list/web/articles';
+
+  static const String setMsgDnd =
+      '${HttpString.tUrl}/link_setting/v1/link_setting/set_msg_dnd';
+
+  static const String imUserInfos = '${HttpString.tUrl}/x/im/user_infos';
+
+  static const String getSessionSs =
+      '${HttpString.tUrl}/link_setting/v1/link_setting/get_session_ss';
+
+  static const String getMsgDnd =
+      '${HttpString.tUrl}/link_setting/v1/link_setting/get_msg_dnd';
+
+  static const String setPushSs =
+      '${HttpString.tUrl}/link_setting/v1/link_setting/set_push_ss';
+
+  static const String dynReserve = '/x/dynamic/feed/reserve/click';
+
+  static const String favTopicList = '/x/topic/web/fav/list';
+
+  static const String addFavTopic = '/x/topic/fav/sub/add';
+
+  static const String delFavTopic = '/x/topic/fav/sub/cancel';
+
+  static const String likeTopic = '/x/topic/like';
 }

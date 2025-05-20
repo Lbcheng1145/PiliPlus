@@ -2,6 +2,7 @@ import 'package:PiliPlus/common/widgets/button/icon_button.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/live/live_area_list/area_item.dart';
 import 'package:PiliPlus/pages/live_area_detail/child/view.dart';
 import 'package:PiliPlus/pages/live_area_detail/controller.dart';
@@ -57,10 +58,10 @@ class _LiveAreaDetailPageState extends State<LiveAreaDetailPage> {
       ThemeData theme, LoadingState<List<AreaItem>?> loadingState) {
     return switch (loadingState) {
       Loading() => const SizedBox.shrink(),
-      Success() => loadingState.response?.isNotEmpty == true
+      Success(:var response) => response?.isNotEmpty == true
           ? DefaultTabController(
               initialIndex: _controller.initialIndex,
-              length: loadingState.response!.length,
+              length: response!.length,
               child: Builder(
                 builder: (context) {
                   return Column(
@@ -74,7 +75,7 @@ class _LiveAreaDetailPageState extends State<LiveAreaDetailPage> {
                               dividerColor: Colors.transparent,
                               isScrollable: true,
                               tabAlignment: TabAlignment.start,
-                              tabs: loadingState.response!
+                              tabs: response
                                   .map((e) => Tab(text: e.name ?? ''))
                                   .toList(),
                             ),
@@ -84,7 +85,7 @@ class _LiveAreaDetailPageState extends State<LiveAreaDetailPage> {
                             icon: Icons.menu,
                             bgColor: Colors.transparent,
                             onPressed: () {
-                              _showTags(context, theme, loadingState.response!);
+                              _showTags(context, theme, response);
                             },
                           ),
                         ],
@@ -92,7 +93,7 @@ class _LiveAreaDetailPageState extends State<LiveAreaDetailPage> {
                       const Divider(height: 1),
                       Expanded(
                         child: tabBarView(
-                          children: loadingState.response!
+                          children: response
                               .map((e) => LiveAreaChildPage(
                                     areaId: e.id,
                                     parentAreaId: e.parentId,
@@ -131,7 +132,7 @@ class _LiveAreaDetailPageState extends State<LiveAreaDetailPage> {
             width: 45,
             height: 45,
             src: item.pic,
-            type: 'emote',
+            type: ImageType.emote,
           ),
           const SizedBox(height: 4),
           Text(

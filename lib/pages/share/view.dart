@@ -1,6 +1,7 @@
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/self_sized_horizontal_list.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/pages/contact/view.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
@@ -130,7 +131,7 @@ class _SharePanelState extends State<SharePanel> {
                                     width: 40,
                                     height: 40,
                                     src: _userList[index].avatar,
-                                    type: 'avatar',
+                                    type: ImageType.avatar,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -148,7 +149,7 @@ class _SharePanelState extends State<SharePanel> {
                                 height: 50,
                                 decoration: BoxDecoration(
                                   color: theme.colorScheme.primary
-                                      .withOpacity(0.3),
+                                      .withValues(alpha: 0.3),
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     width: 1.5,

@@ -4,6 +4,7 @@ import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/fans/result.dart';
 import 'package:PiliPlus/pages/fan/controller.dart';
 import 'package:PiliPlus/pages/share/view.dart' show UserModel;
@@ -49,7 +50,7 @@ class _FansPageState extends State<FansPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.onSelect != null
+      appBar: widget.mid != null
           ? null
           : AppBar(title: Text(isOwner ? '我的粉丝' : '$name的粉丝')),
       body: SafeArea(
@@ -60,7 +61,12 @@ class _FansPageState extends State<FansPage> {
             physics: const AlwaysScrollableScrollPhysics(),
             controller: _fansController.scrollController,
             slivers: [
-              Obx(() => _buildBody(_fansController.loadingState.value)),
+              SliverPadding(
+                padding: EdgeInsets.only(
+                    bottom: MediaQuery.paddingOf(context).bottom + 80),
+                sliver:
+                    Obx(() => _buildBody(_fansController.loadingState.value)),
+              ),
             ],
           ),
         ),
@@ -82,82 +88,78 @@ class _FansPageState extends State<FansPage> {
             childCount: 16,
           ),
         ),
-      Success() => loadingState.response?.isNotEmpty == true
-          ? SliverPadding(
-              padding: EdgeInsets.only(
-                  bottom: MediaQuery.paddingOf(context).bottom + 80),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: Grid.smallCardWidth * 2,
-                  mainAxisExtent: 66,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    if (index == loadingState.response!.length - 1) {
-                      _fansController.onLoadMore();
-                    }
-                    final item = loadingState.response![index];
-                    String heroTag = Utils.makeHeroTag(item.mid);
-                    return ListTile(
-                      onTap: () {
-                        if (widget.onSelect != null) {
-                          widget.onSelect!(UserModel(
-                            mid: item.mid!,
-                            name: item.uname!,
-                            avatar: item.face!,
-                          ));
-                          return;
-                        }
-                        Get.toNamed(
-                          '/member?mid=${item.mid}',
-                          arguments: {'face': item.face, 'heroTag': heroTag},
-                        );
-                      },
-                      onLongPress: widget.onSelect != null
-                          ? null
-                          : isOwner
-                              ? () {
-                                  showConfirmDialog(
-                                    context: context,
-                                    title: '确定移除 ${item.uname} ？',
-                                    onConfirm: () {
-                                      _fansController.onRemoveFan(
-                                          index, item.mid!);
-                                    },
-                                  );
-                                }
-                              : null,
-                      leading: Hero(
-                        tag: heroTag,
-                        child: NetworkImgLayer(
-                          width: 45,
-                          height: 45,
-                          type: 'avatar',
-                          src: item.face,
-                        ),
+      Success(:var response) => response?.isNotEmpty == true
+          ? SliverGrid(
+              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: Grid.smallCardWidth * 2,
+                mainAxisExtent: 66,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (BuildContext context, int index) {
+                  if (index == response.length - 1) {
+                    _fansController.onLoadMore();
+                  }
+                  final item = response[index];
+                  String heroTag = Utils.makeHeroTag(item.mid);
+                  return ListTile(
+                    onTap: () {
+                      if (widget.onSelect != null) {
+                        widget.onSelect!(UserModel(
+                          mid: item.mid!,
+                          name: item.uname!,
+                          avatar: item.face!,
+                        ));
+                        return;
+                      }
+                      Get.toNamed(
+                        '/member?mid=${item.mid}',
+                        arguments: {'face': item.face, 'heroTag': heroTag},
+                      );
+                    },
+                    onLongPress: widget.onSelect != null
+                        ? null
+                        : isOwner
+                            ? () {
+                                showConfirmDialog(
+                                  context: context,
+                                  title: '确定移除 ${item.uname} ？',
+                                  onConfirm: () {
+                                    _fansController.onRemoveFan(
+                                        index, item.mid!);
+                                  },
+                                );
+                              }
+                            : null,
+                    leading: Hero(
+                      tag: heroTag,
+                      child: NetworkImgLayer(
+                        width: 45,
+                        height: 45,
+                        type: ImageType.avatar,
+                        src: item.face,
                       ),
-                      title: Text(
-                        item.uname!,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      subtitle: Text(
-                        item.sign ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      dense: true,
-                      trailing: const SizedBox(width: 6),
-                    );
-                  },
-                  childCount: loadingState.response!.length,
-                ),
+                    ),
+                    title: Text(
+                      item.uname!,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    subtitle: Text(
+                      item.sign ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    dense: true,
+                    trailing: const SizedBox(width: 6),
+                  );
+                },
+                childCount: response!.length,
               ),
             )
           : HttpError(
               onReload: _fansController.onReload,
             ),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: _fansController.onReload,
         ),
     };

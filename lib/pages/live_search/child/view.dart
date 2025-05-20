@@ -2,7 +2,6 @@ import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/skeleton/msg_feed_top.dart';
 import 'package:PiliPlus/common/skeleton/video_card_v.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
-import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/live_search_type.dart';
 import 'package:PiliPlus/pages/live_search/child/controller.dart';
@@ -37,7 +36,7 @@ class _LiveSearchChildPageState extends State<LiveSearchChildPage>
   Widget build(BuildContext context) {
     super.build(context);
     double padding = widget.searchType == LiveSearchType.room ? 12 : 0;
-    return refreshIndicator(
+    return RefreshIndicator(
       onRefresh: _controller.onRefresh,
       child: CustomScrollView(
         controller: _controller.scrollController,
@@ -91,7 +90,7 @@ class _LiveSearchChildPageState extends State<LiveSearchChildPage>
   Widget _buildBody(LoadingState<List?> loadingState) {
     return switch (loadingState) {
       Loading() => _buildLoading,
-      Success() => loadingState.response?.isNotEmpty == true
+      Success(:var response) => response?.isNotEmpty == true
           ? Builder(
               builder: (context) {
                 return switch (widget.searchType) {
@@ -106,14 +105,14 @@ class _LiveSearchChildPageState extends State<LiveSearchChildPage>
                       ),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
-                          if (index == loadingState.response!.length - 1) {
+                          if (index == response.length - 1) {
                             _controller.onLoadMore();
                           }
                           return LiveCardVSearch(
-                            item: loadingState.response![index],
+                            item: response[index],
                           );
                         },
-                        childCount: loadingState.response!.length,
+                        childCount: response!.length,
                       ),
                     ),
                   LiveSearchType.user => SliverGrid(
@@ -123,14 +122,14 @@ class _LiveSearchChildPageState extends State<LiveSearchChildPage>
                       ),
                       delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
-                          if (index == loadingState.response!.length - 1) {
+                          if (index == response.length - 1) {
                             _controller.onLoadMore();
                           }
                           return LiveSearchUserItem(
-                            item: loadingState.response![index],
+                            item: response[index],
                           );
                         },
-                        childCount: loadingState.response!.length,
+                        childCount: response!.length,
                       ),
                     ),
                 };
@@ -139,8 +138,8 @@ class _LiveSearchChildPageState extends State<LiveSearchChildPage>
           : HttpError(
               onReload: _controller.onReload,
             ),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: _controller.onReload,
         ),
     };

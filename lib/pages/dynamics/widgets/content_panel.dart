@@ -1,4 +1,5 @@
 // 内容
+import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/image/image_view.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/rich_node_panel.dart';
@@ -44,7 +45,7 @@ Widget content(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (item.modules.moduleDynamic?.topic != null) ...[
+        if (item.modules.moduleDynamic?.topic != null)
           GestureDetector(
             onTap: () {
               Get.toNamed(
@@ -55,19 +56,36 @@ Widget content(
                 },
               );
             },
-            child: Text(
-              '#${item.modules.moduleDynamic!.topic!.name}',
-              style: TextStyle(color: theme.colorScheme.primary),
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.bottom,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        size: 18,
+                        CustomIcon.topic_tag,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  TextSpan(text: item.modules.moduleDynamic!.topic!.name),
+                ],
+              ),
+              style: TextStyle(
+                fontSize: source == 'detail' && !isSave ? 16 : 15,
+                color: theme.colorScheme.primary,
+              ),
             ),
           ),
-        ],
         if (richNodes != null)
           source == 'detail'
               ? SelectableText.rich(
                   richNodes,
-                  style: !isSave
-                      ? const TextStyle(fontSize: 16)
-                      : const TextStyle(fontSize: 15),
+                  style: isSave
+                      ? const TextStyle(fontSize: 15)
+                      : const TextStyle(fontSize: 16),
                 )
               : Text.rich(
                   style: const TextStyle(fontSize: 15),

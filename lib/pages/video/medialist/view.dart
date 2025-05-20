@@ -112,7 +112,7 @@ class _MediaListPanelState
           ),
           Divider(
             height: 1,
-            color: theme.colorScheme.outline.withOpacity(0.1),
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
           ),
           Expanded(
             child: enableSlide ? slideList(theme) : buildList(theme),
@@ -155,7 +155,7 @@ class _MediaListPanelState
                 widget.loadMoreMedia();
               }
               return SizedBox(
-                key: ValueKey('${item.aid}'),
+                // key: ValueKey('${item.aid}'),
                 height: 98,
                 child: InkWell(
                   onTap: () async {

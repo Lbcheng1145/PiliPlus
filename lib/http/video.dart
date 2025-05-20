@@ -60,9 +60,9 @@ class VideoHttp {
           }
         }
       }
-      return LoadingState.success(list);
+      return Success(list);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -137,9 +137,9 @@ class VideoHttp {
           }
         }
       }
-      return LoadingState.success(list);
+      return Success(list);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -166,27 +166,11 @@ class VideoHttp {
           list.add(HotVideoItemModel.fromJson(i));
         }
       }
-      return LoadingState.success(list);
+      return Success(list);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
-
-  // static Future<LoadingState> hotVideoListGrpc({required int idx}) async {
-  //   dynamic res = await GrpcRepo.popular(idx);
-  //   if (res['status']) {
-  //     List<card.Card> list = <card.Card>[];
-  //     Set<int> blackMids = GStorage.blackMids;
-  //     for (card.Card item in res['data']) {
-  //       if (!blackMids.contains(item.smallCoverV5.up.id.toInt())) {
-  //         list.add(item);
-  //       }
-  //     }
-  //     return LoadingState.success(list);
-  //   } else {
-  //     return LoadingState.error(res['msg']);
-  //   }
-  // }
 
   // 视频流
   static Future videoUrl({
@@ -198,7 +182,7 @@ class VideoHttp {
     dynamic seasonId,
     bool? forcePgcApi,
   }) async {
-    Map<String, dynamic> data = {
+    final params = await WbiSign.makSign({
       if (avid != null) 'avid': avid,
       if (bvid != null) 'bvid': bvid,
       if (epid != null) 'ep_id': epid,
@@ -213,15 +197,11 @@ class VideoHttp {
       'gaia_source': 'pre-load',
       'isGaiaAvoided': true,
       'web_location': 1315873,
-    };
-
-    // 免登录查看1080p
-    if (!Accounts.get(AccountType.video).isLogin &&
-        GStorage.setting.get(SettingBoxKey.p1080, defaultValue: true)) {
-      data['try_look'] = 1;
-    }
-
-    Map params = await WbiSign.makSign(data);
+      // 免登录查看1080p
+      if (!Accounts.get(AccountType.video).isLogin &&
+          GStorage.setting.get(SettingBoxKey.p1080, defaultValue: true))
+        'try_look': 1,
+    });
 
     late final usePgcApi =
         forcePgcApi == true || Accounts.get(AccountType.video).isLogin;
@@ -264,7 +244,7 @@ class VideoHttp {
         };
       }
     } catch (err) {
-      return {'status': false, 'msg': err};
+      return {'status': false, 'msg': err.toString()};
     }
   }
 
@@ -355,9 +335,9 @@ class VideoHttp {
       final list = RecommendFilter.applyFilterToRelatedVideos
           ? items?.where((i) => !RecommendFilter.filterAll(i)).toList()
           : items?.toList();
-      return LoadingState.success(list);
+      return Success(list);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -896,7 +876,7 @@ class VideoHttp {
     int? cid,
     int? upMid,
   }) async {
-    Map params = await WbiSign.makSign({
+    final params = await WbiSign.makSign({
       'bvid': bvid,
       'cid': cid,
       'up_mid': upMid,
@@ -992,9 +972,9 @@ class VideoHttp {
           list.add(HotVideoItemModel.fromJson(i));
         }
       }
-      return LoadingState.success(list);
+      return Success(list);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -1009,11 +989,11 @@ class VideoHttp {
       }),
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success((res.data['result']?['list'] as List?)
+      return Success((res.data['result']?['list'] as List?)
           ?.map((e) => PgcRankItemModel.fromJson(e))
           .toList());
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -1028,11 +1008,11 @@ class VideoHttp {
       }),
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success((res.data['data']?['list'] as List?)
+      return Success((res.data['data']?['list'] as List?)
           ?.map((e) => PgcRankItemModel.fromJson(e))
           .toList());
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -1053,9 +1033,9 @@ class VideoHttp {
       },
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(res.data['data']);
+      return Success(res.data['data']);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -1074,9 +1054,9 @@ class VideoHttp {
       List<FavArticleModel>? list = (res.data['data']?['list'] as List?)
           ?.map((e) => FavArticleModel.fromJson(e))
           .toList();
-      return LoadingState.success(list);
+      return Success(list);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -1095,9 +1075,9 @@ class VideoHttp {
       List<FavArticleModel>? list = (res.data['data']?['list'] as List?)
           ?.map((e) => FavArticleModel.fromJson(e))
           .toList();
-      return LoadingState.success(list);
+      return Success(list);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -1143,9 +1123,9 @@ class VideoHttp {
       ),
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(res.data['data']?['list']);
+      return Success(res.data['data']?['list']);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 

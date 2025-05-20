@@ -4,6 +4,7 @@ import 'package:PiliPlus/common/widgets/keep_alive_wrapper.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/live/live_area_list/area_item.dart';
 import 'package:PiliPlus/models/live/live_area_list/area_list.dart';
 import 'package:PiliPlus/pages/live_area/controller.dart';
@@ -67,22 +68,20 @@ class _LiveAreaPageState extends State<LiveAreaPage> {
       ThemeData theme, LoadingState<List<AreaList>?> loadingState) {
     return switch (loadingState) {
       Loading() => const SizedBox.shrink(),
-      Success() => loadingState.response?.isNotEmpty == true
+      Success(:var response) => response?.isNotEmpty == true
           ? DefaultTabController(
-              length: loadingState.response!.length,
+              length: response!.length,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TabBar(
                     isScrollable: true,
                     tabAlignment: TabAlignment.start,
-                    tabs: loadingState.response!
-                        .map((e) => Tab(text: e.name))
-                        .toList(),
+                    tabs: response.map((e) => Tab(text: e.name)).toList(),
                   ),
                   Expanded(
                     child: tabBarView(
-                        children: loadingState.response!
+                        children: response
                             .map(
                               (e) => KeepAliveWrapper(
                                 builder: (context) {
@@ -143,8 +142,8 @@ class _LiveAreaPageState extends State<LiveAreaPage> {
               ),
             )
           : scrollErrorWidget(onReload: _controller.onReload),
-      Error() => scrollErrorWidget(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => scrollErrorWidget(
+          errMsg: errMsg,
           onReload: _controller.onReload,
         ),
     };
@@ -235,7 +234,9 @@ class _LiveAreaPageState extends State<LiveAreaPage> {
       behavior: HitTestBehavior.opaque,
       onTap: () {
         if (_controller.isEditing.value) {
-          onPressed();
+          if (item.id != 0) {
+            onPressed();
+          }
           return;
         }
 
@@ -258,7 +259,7 @@ class _LiveAreaPageState extends State<LiveAreaPage> {
                 width: 45,
                 height: 45,
                 src: item.pic,
-                type: 'emote',
+                type: ImageType.emote,
               ),
               const SizedBox(height: 4),
               Text(
@@ -269,35 +270,38 @@ class _LiveAreaPageState extends State<LiveAreaPage> {
               ),
             ],
           ),
-          Positioned(
-            top: 0,
-            right: 16,
-            child: Obx(() {
-              if (_controller.isEditing.value &&
-                  _controller.favState.value is Success) {
-                // init isFav
-                item.isFav ??= _controller.favState.value.data.contains(item);
+          if (item.id != 0)
+            Positioned(
+              top: 0,
+              right: 16,
+              child: Obx(() {
+                if (_controller.isEditing.value &&
+                    _controller.favState.value is Success) {
+                  // init isFav
+                  item.isFav ??= _controller.favState.value.data.contains(item);
 
-                return Builder(
-                  builder: (context) {
-                    return iconButton(
-                      size: 17,
-                      iconSize: 13,
-                      context: context,
-                      icon: item.isFav == true ? MdiIcons.check : MdiIcons.plus,
-                      bgColor: item.isFav == true
-                          ? theme.colorScheme.onInverseSurface
-                          : null,
-                      iconColor:
-                          item.isFav == true ? theme.colorScheme.outline : null,
-                      onPressed: onPressed,
-                    );
-                  },
-                );
-              }
-              return const SizedBox.shrink();
-            }),
-          ),
+                  return Builder(
+                    builder: (context) {
+                      return iconButton(
+                        size: 17,
+                        iconSize: 13,
+                        context: context,
+                        icon:
+                            item.isFav == true ? MdiIcons.check : MdiIcons.plus,
+                        bgColor: item.isFav == true
+                            ? theme.colorScheme.onInverseSurface
+                            : null,
+                        iconColor: item.isFav == true
+                            ? theme.colorScheme.outline
+                            : null,
+                        onPressed: onPressed,
+                      );
+                    },
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
+            ),
         ],
       ),
     );

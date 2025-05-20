@@ -82,16 +82,14 @@ class _RepostPanelState extends CommonPublishPageState<RepostPanel> {
         children: [
           SizedBox(height: _isMax ? 16 : 10),
           _buildAppBar(theme),
-          if (_isMax)
-            Expanded(child: _buildEditPanel(theme))
-          else
-            _buildEditPanel(theme),
-          if (_isMax.not)
-            ..._biuldDismiss(theme)
-          else ...[
+          if (_isMax) ...[
+            Expanded(child: _buildEditPanel(theme)),
             _buildToolbar,
             buildPanelContainer(Colors.transparent),
-          ]
+          ] else ...[
+            _buildEditPanel(theme),
+            ..._biuldDismiss(theme),
+          ],
         ],
       ),
     );
@@ -140,7 +138,7 @@ class _RepostPanelState extends CommonPublishPageState<RepostPanel> {
           children: [
             if (_pic != null) ...[
               NetworkImgLayer(
-                radius: 8,
+                radius: 6,
                 width: 40,
                 height: 40,
                 src: _pic,
@@ -323,7 +321,7 @@ class _RepostPanelState extends CommonPublishPageState<RepostPanel> {
         const SizedBox(height: 10),
         Divider(
           height: 1,
-          color: theme.colorScheme.outline.withOpacity(0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
         ),
         ListTile(
           dense: true,

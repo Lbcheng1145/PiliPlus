@@ -1,6 +1,7 @@
 import 'package:PiliPlus/common/widgets/image/image_view.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/http/search.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/vote.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
@@ -18,7 +19,7 @@ TextSpan? richNode(
   BuildContext context,
 ) {
   try {
-    late final authorStyle = TextStyle(color: theme.colorScheme.primary);
+    late final style = TextStyle(color: theme.colorScheme.primary);
     List<InlineSpan> spanChildren = [];
 
     List<RichTextNodeItem>? richTextNodes;
@@ -56,7 +57,7 @@ TextSpan? richNode(
             spanChildren.add(
               TextSpan(
                 text: ' ${i.text}',
-                style: authorStyle,
+                style: style,
                 recognizer: TapGestureRecognizer()
                   ..onTap = () {
                     Get.toNamed('/member?mid=${i.rid}');
@@ -69,7 +70,7 @@ TextSpan? richNode(
             spanChildren.add(
               TextSpan(
                 text: i.origText!,
-                style: authorStyle,
+                style: style,
                 recognizer: TapGestureRecognizer()
                   ..onTap = () {
                     Get.toNamed(
@@ -99,7 +100,7 @@ TextSpan? richNode(
               ..add(
                 TextSpan(
                   text: i.text ?? '',
-                  style: authorStyle,
+                  style: style,
                   recognizer: TapGestureRecognizer()
                     ..onTap = () {
                       String? url = i.origText;
@@ -114,31 +115,41 @@ TextSpan? richNode(
             break;
           // 投票
           case 'RICH_TEXT_NODE_TYPE_VOTE':
-            spanChildren.add(
-              TextSpan(
-                text: '投票：${i.text}',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
+            spanChildren
+              ..add(
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: Icon(
+                    size: 20,
+                    Icons.bar_chart_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
-                recognizer: TapGestureRecognizer()
-                  ..onTap = () {
-                    final dynIdStr = item.basic?.commentIdStr;
-                    final dynId =
-                        dynIdStr != null ? int.tryParse(dynIdStr) : null;
-                    showVoteDialog(context, int.parse(i.rid!), dynId);
-                  },
-              ),
-            );
+              )
+              ..add(
+                TextSpan(
+                  text: '投票：${i.text}',
+                  style: style,
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () {
+                      final dynIdStr = item.basic?.commentIdStr;
+                      final dynId =
+                          dynIdStr != null ? int.tryParse(dynIdStr) : null;
+                      showVoteDialog(context, int.parse(i.rid!), dynId);
+                    },
+                ),
+              );
             break;
           // 表情
           case 'RICH_TEXT_NODE_TYPE_EMOJI' when (i.emoji != null):
+            final size = i.emoji!.size * 20.0;
             spanChildren.add(
               WidgetSpan(
                 child: NetworkImgLayer(
-                  src: i.emoji!.webpUrl ?? i.emoji!.gifUrl ?? i.emoji!.iconUrl,
-                  type: 'emote',
-                  width: (i.emoji!.size ?? 1) * 20,
-                  height: (i.emoji!.size ?? 1) * 20,
+                  src: i.emoji!.url,
+                  type: ImageType.emote,
+                  width: size,
+                  height: size,
                 ),
               ),
             );
@@ -159,7 +170,7 @@ TextSpan? richNode(
               ..add(
                 TextSpan(
                   text: '${i.origText} ',
-                  style: authorStyle,
+                  style: style,
                   recognizer: TapGestureRecognizer()
                     ..onTap = () {
                       Get.toNamed(
@@ -174,7 +185,6 @@ TextSpan? richNode(
               );
             break;
 
-          /// TODO 商品
           case 'RICH_TEXT_NODE_TYPE_GOODS':
             spanChildren
               ..add(
@@ -190,7 +200,13 @@ TextSpan? richNode(
               ..add(
                 TextSpan(
                   text: '${i.text} ',
-                  style: authorStyle,
+                  style: style,
+                  recognizer: i.jumpUrl == null
+                      ? null
+                      : (TapGestureRecognizer()
+                        ..onTap = () {
+                          PiliScheme.routePushFromUrl(i.jumpUrl!);
+                        }),
                 ),
               );
             break;
@@ -210,7 +226,7 @@ TextSpan? richNode(
               ..add(
                 TextSpan(
                   text: '${i.text} ',
-                  style: authorStyle,
+                  style: style,
                   recognizer: TapGestureRecognizer()
                     ..onTap = () async {
                       try {
@@ -255,7 +271,7 @@ TextSpan? richNode(
             spanChildren.add(
               TextSpan(
                 text: '${i.text}',
-                style: authorStyle,
+                style: style,
               ),
             );
             break;

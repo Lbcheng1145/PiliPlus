@@ -98,6 +98,7 @@ class ItemModulesModel {
 
   // 专栏
   ModuleTop? moduleTop;
+  ModuleCollection? moduleCollection;
   List<ModuleTag>? moduleExtend; // opus的tag
   List<ArticleContentModel>? moduleContent;
   ModuleBlocked? moduleBlocked;
@@ -133,6 +134,11 @@ class ItemModulesModel {
               ? null
               : ModuleTag.fromJson(i['module_title']);
           break;
+        case 'MODULE_TYPE_COLLECTION':
+          moduleCollection = i['module_collection'] == null
+              ? null
+              : ModuleCollection.fromJson(i['module_collection']);
+          break;
         case 'MODULE_TYPE_AUTHOR':
           moduleAuthor = i['module_author'] == null
               ? null
@@ -164,6 +170,20 @@ class ItemModulesModel {
         //   debugPrint('unknown type: ${i}');
       }
     }
+  }
+}
+
+class ModuleCollection {
+  String? count;
+  int? id;
+  String? name;
+  String? title;
+
+  ModuleCollection.fromJson(Map<String, dynamic> json) {
+    count = json['count'];
+    id = json['id'];
+    name = json['name'];
+    title = json['title'];
   }
 }
 
@@ -376,8 +396,10 @@ class Vote {
   int? type;
   int? uid;
   int? voteId;
+  String? desc;
 
   Vote.fromJson(Map<String, dynamic> json) {
+    desc = json['desc'];
     choiceCnt = json['choice_cnt'];
     share = json['share'];
     defaultShare = json['default_share'];
@@ -439,9 +461,9 @@ class Reserve {
     this.upMid,
   });
 
-  Map? button;
-  Map? desc1;
-  Map? desc2;
+  ReserveBtn? button;
+  Desc? desc1;
+  Desc? desc2;
   String? jumpUrl;
   int? reserveTotal;
   int? rid;
@@ -451,9 +473,10 @@ class Reserve {
   int? upMid;
 
   Reserve.fromJson(Map<String, dynamic> json) {
-    button = json['button'];
-    desc1 = json['desc1'];
-    desc2 = json['desc2'];
+    button =
+        json['button'] == null ? null : ReserveBtn.fromJson(json['button']);
+    desc1 = json['desc1'] == null ? null : Desc.fromJson(json['desc1']);
+    desc2 = json['desc2'] == null ? null : Desc.fromJson(json['desc2']);
     jumpUrl = json['jump_url'];
     reserveTotal = json['reserve_total'];
     rid = json['rid'];
@@ -462,6 +485,51 @@ class Reserve {
     stype = json['stype'];
     title = json['title'];
     upMid = json['up_mid'];
+  }
+}
+
+class ReserveBtn {
+  ReserveBtn({
+    this.status,
+    this.type,
+    this.checkText,
+    this.uncheckText,
+  });
+
+  int? status;
+  int? type;
+  String? checkText;
+  String? uncheckText;
+  int? disable;
+  String? jumpText;
+  String? jumpUrl;
+
+  ReserveBtn.fromJson(Map<String, dynamic> json) {
+    status = json['status'];
+    type = json['type'];
+    checkText = json['check']?['text'] ?? '已预约';
+    uncheckText = json['uncheck']?['text'] ?? '预约';
+    disable = json['uncheck']?['disable'];
+    jumpText = json['jump_style']?['text'];
+    jumpUrl = json['jump_url'];
+  }
+}
+
+class Desc {
+  Desc({
+    this.style,
+    this.text,
+    this.visible,
+  });
+
+  int? style;
+  String? text;
+  bool? visible;
+
+  Desc.fromJson(Map<String, dynamic> json) {
+    style = json['style'];
+    text = json['text'];
+    visible = json['visible'];
   }
 }
 
@@ -739,6 +807,7 @@ class RichTextNodeItem {
   String? type;
   String? rid;
   List<OpusPicsModel>? pics;
+  String? jumpUrl;
 
   RichTextNodeItem.fromJson(Map<String, dynamic> json) {
     emoji = json['emoji'] != null ? Emoji.fromJson(json['emoji']) : null;
@@ -751,28 +820,25 @@ class RichTextNodeItem {
         : (json['pics'] as List?)
             ?.map((e) => OpusPicsModel.fromJson(e))
             .toList();
+    jumpUrl = json['jump_url'];
   }
 }
 
 class Emoji {
-  Emoji({
-    this.iconUrl,
-    this.size,
-    this.text,
-    this.type,
-  });
-
-  String? iconUrl;
-  String? webpUrl;
-  String? gifUrl;
-  double? size;
+  // String? iconUrl;
+  // String? webpUrl;
+  // String? gifUrl;
+  String? url;
+  late num size;
   String? text;
-  int? type;
+  num? type;
+
   Emoji.fromJson(Map<String, dynamic> json) {
-    iconUrl = json['icon_url'];
-    webpUrl = json['webp_url'];
-    gifUrl = json['gif_url'];
-    size = json['size'].toDouble();
+    // iconUrl = json['icon_url'];
+    // webpUrl = json['webp_url'];
+    // gifUrl = json['gif_url'];
+    url = json['webp_url'] ?? json['gif_url'] ?? json['icon_url'];
+    size = json['size'] ?? 1;
     text = json['text'];
     type = json['type'];
   }

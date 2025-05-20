@@ -46,8 +46,6 @@ class SpaceItem {
   bool? state;
   String? bvid;
   int? videos;
-  // @JsonKey(name: 'three_point')
-  // List<ThreePoint>? threePoint;
   @JsonKey(name: 'first_cid')
   int? firstCid;
   @JsonKey(name: 'view_content')
@@ -87,7 +85,6 @@ class SpaceItem {
     this.state,
     this.bvid,
     this.videos,
-    // this.threePoint,
     this.firstCid,
     this.viewContent,
     this.iconType,

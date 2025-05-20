@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/tabs.dart';
 import 'package:PiliPlus/models/common/dynamic/dynamic_badge_mode.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/pages/dynamics/controller.dart';
 import 'package:PiliPlus/pages/dynamics/view.dart';
 import 'package:PiliPlus/pages/home/controller.dart';
@@ -300,7 +301,7 @@ class _MainAppState extends State<MainApp>
                   width: 1,
                   indent: MediaQuery.of(context).padding.top,
                   endIndent: MediaQuery.of(context).padding.bottom,
-                  color: theme.colorScheme.outline.withOpacity(0.06),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.06),
                 ),
               ],
               Expanded(
@@ -435,7 +436,7 @@ class _MainAppState extends State<MainApp>
                     clipBehavior: Clip.none,
                     children: [
                       NetworkImgLayer(
-                        type: 'avatar',
+                        type: ImageType.avatar,
                         width: 34,
                         height: 34,
                         src: _homeController.userFace.value,
@@ -447,7 +448,7 @@ class _MainAppState extends State<MainApp>
                             onTap: () =>
                                 _homeController.showUserInfoDialog(context),
                             splashColor: theme.colorScheme.primaryContainer
-                                .withOpacity(0.3),
+                                .withValues(alpha: 0.3),
                             borderRadius: const BorderRadius.all(
                               Radius.circular(50),
                             ),

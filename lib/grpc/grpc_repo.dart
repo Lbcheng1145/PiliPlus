@@ -1,30 +1,25 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:PiliPlus/build_config.dart';
 import 'package:PiliPlus/common/constants.dart';
-import 'package:PiliPlus/grpc/bilibili/app/dynamic/v1.pb.dart';
-import 'package:PiliPlus/grpc/bilibili/app/im/v1.pb.dart';
-import 'package:PiliPlus/grpc/bilibili/community/service/dm/v1.pb.dart';
-import 'package:PiliPlus/grpc/bilibili/im/interfaces/v1.pb.dart';
-import 'package:PiliPlus/grpc/bilibili/im/type.pb.dart';
-import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart';
 import 'package:PiliPlus/grpc/bilibili/metadata.pb.dart';
 import 'package:PiliPlus/grpc/bilibili/metadata/device.pb.dart';
 import 'package:PiliPlus/grpc/bilibili/metadata/fawkes.pb.dart';
 import 'package:PiliPlus/grpc/bilibili/metadata/locale.pb.dart';
 import 'package:PiliPlus/grpc/bilibili/metadata/network.pb.dart' as network;
 import 'package:PiliPlus/grpc/bilibili/metadata/restriction.pb.dart';
-import 'package:PiliPlus/grpc/bilibili/pagination.pb.dart';
+import 'package:PiliPlus/grpc/google/rpc/status.pb.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/init.dart';
+import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/utils/login_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:archive/archive.dart';
 import 'package:dio/dio.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:protobuf/protobuf.dart' show GeneratedMessage, PbMap;
-import 'package:uuid/uuid.dart';
+import 'package:protobuf/protobuf.dart' show GeneratedMessage;
 
 class GrpcUrl {
   // static const playerOnline =
@@ -32,8 +27,12 @@ class GrpcUrl {
   // static const popular = '/bilibili.app.show.v1.Popular/Index';
 
   // dynamic
-  static const dynRed = '/bilibili.app.dynamic.v1.Dynamic/DynRed';
-  // static const dynSpace = '/bilibili.app.dynamic.v2.Dynamic/DynSpace';
+  static const dynV1 = '/bilibili.app.dynamic.v1.Dynamic';
+  static const dynV2 = '/bilibili.app.dynamic.v2.Dynamic';
+  static const opusV2 = '/bilibili.app.dynamic.v2.Opus';
+  static const dynRed = '$dynV1/DynRed';
+  static const opusSpaceFlow = '$opusV2/OpusSpaceFlow';
+  // static const dynSpace = '$dynV2/DynSpace';
 
   // danmaku
   static const dmSegMobile = '/bilibili.community.service.dm.v1.DM/DmSegMobile';
@@ -51,7 +50,23 @@ class GrpcUrl {
   static const sendMsg = '$im/SendMsg';
   static const shareList = '$im/ShareList';
   static const sessionMain = '$im2/SessionMain';
+  static const sessionSecondary = '$im2/SessionSecondary';
   static const clearUnread = '$im2/ClearUnread';
+  static const sessionUpdate = '$im2/SessionUpdate';
+  static const pinSession = '$im2/PinSession';
+  static const unpinSession = '$im2/UnpinSession';
+  static const deleteSessionList = '$im2/DeleteSessionList';
+  static const getImSettings = '$im2/GetImSettings';
+  static const setImSettings = '$im2/SetImSettings';
+  static const keywordBlockingList = '$im2/KeywordBlockingList';
+  static const keywordBlockingAdd = '$im2/KeywordBlockingAdd';
+  static const keywordBlockingDelete = '$im2/KeywordBlockingDelete';
+  static const syncFetchSessionMsgs = '$im/SyncFetchSessionMsgs';
+  static const getTotalUnread = '$im/GetTotalUnread';
+
+  // view
+  static const viewunite = '/bilibili.app.viewunite.v1.View';
+  static const view = '$viewunite/View';
 }
 
 class GrpcRepo {
@@ -146,7 +161,7 @@ class GrpcRepo {
     'x-bili-exps-bin': '',
   };
 
-  static final unprintableRegExp = RegExp(r"[^\u4e00-\u9fa5，。；！？UP]");
+  static final _unprintableRegExp = RegExp(r"[^\u4e00-\u9fa5，。；！？UP]");
 
   static Uint8List compressProtobuf(Uint8List proto) {
     proto = const GZipEncoder().encodeBytes(proto);
@@ -167,15 +182,14 @@ class GrpcRepo {
     }
   }
 
-  static Future<Map<String, dynamic>> _request(
-      url, GeneratedMessage request, Function grpcParser,
-      {Function? onSuccess}) async {
+  static Future<LoadingState<T>> request<T>(String url,
+      GeneratedMessage request, T Function(Uint8List) grpcParser) async {
     final response = await Request().post(HttpString.appBaseUrl + url,
         data: compressProtobuf(request.writeToBuffer()),
         options: Options(headers: headers, responseType: ResponseType.bytes));
 
     if (response.data is Map) {
-      return {'status': false, 'msg': response.data['message']};
+      return Error(response.data['message']);
     }
 
     if (response.headers.value('Grpc-Status') == '0') {
@@ -183,27 +197,35 @@ class GrpcRepo {
         Uint8List data = response.data;
         data = decompressProtobuf(data);
         final grpcResponse = grpcParser(data);
-        return {
-          'status': true,
-          'data': onSuccess == null ? grpcResponse : onSuccess(grpcResponse),
-        };
+        return Success(grpcResponse);
       } catch (e) {
-        return {'status': false, 'msg': e.toString()};
+        return Error(e.toString());
       }
     } else {
       try {
         String msg = response.headers.value('Grpc-Status-Details-Bin') ?? '';
-        if (msg != '') {
+        if (msg.isNotEmpty) {
           while (msg.length % 4 != 0) {
             msg += '=';
           }
-          msg = utf8
-              .decode(base64Decode(msg), allowMalformed: true)
-              .replaceAll(unprintableRegExp, '');
+          final msgBytes = base64Decode(msg);
+          try {
+            final grpcMsg = Status.fromBuffer(msgBytes);
+            // UNKNOWN : -400 : msg
+            final errMsg =
+                grpcMsg.details.map((e) => e.status.message).join('\n');
+            msg = BuildConfig.isDebug
+                ? 'CODE: ${grpcMsg.code}(${grpcMsg.message})\nMSG: $errMsg'
+                : errMsg;
+          } catch (e) {
+            msg = utf8
+                .decode(msgBytes, allowMalformed: true)
+                .replaceAll(_unprintableRegExp, '');
+          }
         }
-        return {'status': false, 'msg': msg};
+        return Error(msg);
       } catch (e) {
-        return {'status': false, 'msg': e.toString()};
+        return Error(e.toString());
       }
     }
   }
@@ -226,175 +248,4 @@ class GrpcRepo {
   //     return {'status': true, 'data': response.items};
   //   });
   // }
-
-  // static Future replyInfo({required int rpid}) {
-  //   return _request(
-  //     GrpcUrl.replyInfo,
-  //     ReplyInfoReq(rpid: Int64(rpid)),
-  //     ReplyInfoReply.fromBuffer,
-  //     onSuccess: (response) => response.reply,
-  //   );
-  // }
-
-  // static Future dynSpace({
-  //   required int uid,
-  //   required int page,
-  // }) {
-  //   return _request(
-  //     GrpcUrl.dynSpace,
-  //     DynSpaceReq(
-  //       hostUid: Int64(uid),
-  //       localTime: 8,
-  //       page: Int64(page),
-  //       from: 'space',
-  //     ),
-  //     DynSpaceRsp.fromBuffer,
-  //   );
-  // }
-
-  static Future mainList({
-    int type = 1,
-    required int oid,
-    required Mode mode,
-    required String? offset,
-    required Int64? cursorNext,
-  }) {
-    return _request(
-      GrpcUrl.mainList,
-      MainListReq(
-        oid: Int64(oid),
-        type: Int64(type),
-        rpid: Int64(0),
-        cursor: CursorReq(
-          mode: mode,
-          next: cursorNext,
-        ),
-        // pagination: FeedPagination(offset: offset ?? ''),
-      ),
-      MainListReply.fromBuffer,
-    );
-  }
-
-  static Future detailList({
-    int type = 1,
-    required int oid,
-    required int root,
-    required int rpid,
-    required Mode mode,
-    required String? offset,
-  }) {
-    return _request(
-      GrpcUrl.detailList,
-      DetailListReq(
-        oid: Int64(oid),
-        type: Int64(type),
-        root: Int64(root),
-        rpid: Int64(rpid),
-        scene: DetailListScene.REPLY,
-        mode: mode,
-        pagination: FeedPagination(offset: offset ?? ''),
-      ),
-      DetailListReply.fromBuffer,
-    );
-  }
-
-  static Future dialogList({
-    int type = 1,
-    required int oid,
-    required int root,
-    required int dialog,
-    required String? offset,
-  }) {
-    return _request(
-      GrpcUrl.dialogList,
-      DialogListReq(
-        oid: Int64(oid),
-        type: Int64(type),
-        root: Int64(root),
-        dialog: Int64(dialog),
-        pagination: FeedPagination(offset: offset ?? ''),
-      ),
-      DialogListReply.fromBuffer,
-    );
-  }
-
-  static Future dynRed() {
-    return _request(
-      GrpcUrl.dynRed,
-      DynRedReq(tabOffset: [TabOffset(tab: 1)]),
-      DynRedReply.fromBuffer,
-      onSuccess: (response) => response.dynRedItem.count.toInt(),
-    );
-  }
-
-  static Future dmSegMobile(
-      {required int cid, required int segmentIndex, int type = 1}) {
-    return _request(
-      GrpcUrl.dmSegMobile,
-      DmSegMobileReq(
-        oid: Int64(cid),
-        segmentIndex: Int64(segmentIndex),
-        type: type,
-      ),
-      DmSegMobileReply.fromBuffer,
-    );
-  }
-
-  static Future sendMsg({
-    required int senderUid,
-    required int receiverId,
-    required String content,
-    MsgType msgType = MsgType.EN_MSG_TYPE_TEXT,
-  }) {
-    final devId = const Uuid().v4();
-    return _request(
-      GrpcUrl.sendMsg,
-      ReqSendMsg(
-        msg: Msg(
-          senderUid: Int64(senderUid),
-          receiverType: 1,
-          receiverId: Int64(receiverId),
-          msgType: msgType.value,
-          content: content,
-          timestamp: Int64(DateTime.now().millisecondsSinceEpoch ~/ 1000),
-          msgStatus: 0,
-          newFaceVersion: 1,
-        ),
-        devId: devId,
-      ),
-      RspSendMsg.fromBuffer,
-    );
-  }
-
-  static Future shareList({int size = 10}) {
-    return _request(
-      GrpcUrl.shareList,
-      ReqShareList(size: size),
-      RspShareList.fromBuffer,
-    );
-  }
-
-  static Future sessionMain({PbMap<int, Offset>? offset}) {
-    return _request(
-      GrpcUrl.sessionMain,
-      SessionMainReq(
-        paginationParams: PaginationParams(offsets: offset),
-      ),
-      SessionMainReply.fromBuffer,
-    );
-  }
-
-  static Future clearUnread({
-    SessionPageType? pageType,
-    SessionId? sessionId,
-  }) {
-    return _request(
-      GrpcUrl.clearUnread,
-      ClearUnreadReq(
-        pageType: pageType,
-        sessionId: sessionId,
-      ),
-      ClearUnreadReply.fromBuffer,
-    );
-  }
 }

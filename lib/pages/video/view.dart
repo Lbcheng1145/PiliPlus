@@ -4,13 +4,13 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:PiliPlus/common/constants.dart';
+import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
     show ReplyInfo;
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/main.dart';
 import 'package:PiliPlus/models/bangumi/info.dart' as bangumi;
-import 'package:PiliPlus/models/bangumi/info.dart';
 import 'package:PiliPlus/models/common/episode_panel_type.dart';
 import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/models/common/search_type.dart';
@@ -57,7 +57,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
@@ -103,8 +102,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
       videoDetailController.plPlayerController.horizontalPreview;
 
   StreamSubscription? _listenerDetail;
-  StreamSubscription? _listenerLoadingState;
-  StreamSubscription? _listenerCid;
   StreamSubscription? _listenerFS;
 
   Box get setting => GStorage.setting;
@@ -137,23 +134,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     });
     if (videoDetailController.videoType == SearchType.media_bangumi) {
       bangumiIntroController = Get.put(BangumiIntroController(), tag: heroTag);
-      _listenerLoadingState =
-          bangumiIntroController.loadingState.listen((value) {
-        if (!context.mounted) return;
-        if (value is Success<BangumiInfoModel>) {
-          videoPlayerServiceHandler.onVideoDetailChange(
-              value.response, videoDetailController.cid.value, heroTag);
-        }
-      });
-      _listenerCid = videoDetailController.cid.listen((p0) {
-        if (!context.mounted) return;
-        if (bangumiIntroController.loadingState.value is Success) {
-          videoPlayerServiceHandler.onVideoDetailChange(
-              (bangumiIntroController.loadingState.value as Success).response,
-              p0,
-              heroTag);
-        }
-      });
     }
     autoExitFullscreen =
         setting.get(SettingBoxKey.enableAutoExit, defaultValue: true);
@@ -337,8 +317,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   @override
   void dispose() {
     _listenerDetail?.cancel();
-    _listenerLoadingState?.cancel();
-    _listenerCid?.cancel();
     _listenerFS?.cancel();
 
     videoDetailController.skipTimer?.cancel();
@@ -578,8 +556,9 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                           if (shouldShow)
                             AppBar(
                               backgroundColor: themeData.colorScheme.surface
-                                  .withOpacity(
-                                      videoDetailController.scrollRatio.value),
+                                  .withValues(
+                                      alpha: videoDetailController
+                                          .scrollRatio.value),
                               toolbarHeight: 0,
                               systemOverlayStyle: Platform.isAndroid
                                   ? SystemUiOverlayStyle(
@@ -781,6 +760,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                                                   null
                                               ? PopupMenuButton<String>(
                                                   icon: Icon(
+                                                    size: 22,
                                                     Icons.more_vert,
                                                     color: themeData
                                                         .colorScheme.onSurface,
@@ -946,11 +926,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                 children: [
                   buildTabbar(
                     showReply: videoDetailController.showReply,
-                    onTap: () {
-                      videoDetailController
-                          .scrollKey.currentState?.outerController
-                          .animToTop();
-                    },
+                    onTap: videoDetailController.animToTop,
                   ),
                   Expanded(
                     child: videoTabBarView(
@@ -1336,6 +1312,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                   actions: [
                     PopupMenuButton<String>(
                       icon: const Icon(
+                        size: 22,
                         Icons.more_vert,
                         color: Colors.white,
                         shadows: [
@@ -1565,7 +1542,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
         border: Border(
           bottom: BorderSide(
             width: 1,
-            color: themeData.dividerColor.withOpacity(0.1),
+            color: themeData.dividerColor.withValues(alpha: 0.1),
           ),
         ),
       ),
@@ -1615,18 +1592,16 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                               videoDetailController
                                   .plPlayerController.isOpenDanmu.value);
                         },
-                        icon: SvgPicture.asset(
+                        icon: Icon(
+                          size: 22,
                           videoDetailController
                                   .plPlayerController.isOpenDanmu.value
-                              ? 'assets/images/video/danmu_open.svg'
-                              : 'assets/images/video/danmu_close.svg',
-                          colorFilter: ColorFilter.mode(
-                            videoDetailController
-                                    .plPlayerController.isOpenDanmu.value
-                                ? themeData.colorScheme.secondary
-                                : themeData.colorScheme.outline,
-                            BlendMode.srcIn,
-                          ),
+                              ? CustomIcon.dm_on
+                              : CustomIcon.dm_off,
+                          color: videoDetailController
+                                  .plPlayerController.isOpenDanmu.value
+                              ? themeData.colorScheme.secondary
+                              : themeData.colorScheme.outline,
                         ),
                       ),
                     ),
@@ -1770,7 +1745,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                               ),
                               backgroundColor: themeData
                                   .colorScheme.secondaryContainer
-                                  .withOpacity(0.8),
+                                  .withValues(alpha: 0.8),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 15,
                                 vertical: 10,
@@ -1840,7 +1815,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                         height: 1,
                         indent: 12,
                         endIndent: 12,
-                        color: themeData.colorScheme.outline.withOpacity(0.08),
+                        color: themeData.colorScheme.outline
+                            .withValues(alpha: 0.08),
                       ),
                     ),
                   ),
@@ -1895,7 +1871,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
                     color: themeData.colorScheme.secondaryContainer
-                        .withOpacity(0.95),
+                        .withValues(alpha: 0.95),
                     borderRadius: const BorderRadius.all(Radius.circular(14)),
                   ),
                   child: Row(
@@ -1975,7 +1951,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
               const SizedBox(height: 8),
               Divider(
                 height: 1,
-                color: themeData.colorScheme.outline.withOpacity(0.1),
+                color: themeData.colorScheme.outline.withValues(alpha: 0.1),
               ),
             ],
             Padding(

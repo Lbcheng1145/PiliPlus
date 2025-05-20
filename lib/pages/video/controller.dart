@@ -131,6 +131,16 @@ class VideoDetailController extends GetxController
       max(max(Get.height, Get.width) * 0.65, min(Get.height, Get.width));
   late double videoHeight = minVideoHeight;
 
+  void animToTop() {
+    if (scrollKey.currentState?.outerController.hasClients == true) {
+      scrollKey.currentState!.outerController.animateTo(
+        scrollKey.currentState!.outerController.offset,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   void setVideoHeight() {
     String direction = firstVideo.width != null && firstVideo.height != null
         ? firstVideo.width! > firstVideo.height!
@@ -220,11 +230,11 @@ class VideoDetailController extends GetxController
   late RxList<MediaVideoItemModel> mediaList = <MediaVideoItemModel>[].obs;
   late String watchLaterTitle = '';
   bool get isPlayAll =>
-      const ['watchLater', 'fav', 'archive'].contains(sourceType);
+      const ['watchLater', 'fav', 'archive', 'playlist'].contains(sourceType);
   int get _mediaType => switch (sourceType) {
         'archive' => 1,
         'watchLater' => 2,
-        'fav' => 3,
+        'fav' || 'playlist' => 3,
         _ => -1,
       };
 
@@ -638,7 +648,7 @@ class VideoDetailController extends GetxController
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.7),
+                                    .withValues(alpha: 0.7),
                               ),
                             ),
                           )
@@ -856,7 +866,7 @@ class VideoDetailController extends GetxController
               bgColor: Theme.of(Get.context!)
                   .colorScheme
                   .secondaryContainer
-                  .withOpacity(0.8),
+                  .withValues(alpha: 0.8),
               textColor:
                   Theme.of(Get.context!).colorScheme.onSecondaryContainer,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1092,7 +1102,7 @@ class VideoDetailController extends GetxController
       subType: videoType == SearchType.media_bangumi ? subType : null,
       callback: () {
         if (videoState.value is! Success) {
-          videoState.value = LoadingState.success(null);
+          videoState.value = const Success(null);
         }
         setSubtitle(vttSubtitlesIndex.value);
       },
@@ -1149,7 +1159,7 @@ class VideoDetailController extends GetxController
         _querySponsorBlock();
       }
 
-      if (data.acceptDesc!.isNotEmpty && data.acceptDesc!.contains('试看')) {
+      if (data.acceptDesc?.contains('试看') == true) {
         SmartDialog.showToast(
           '该视频为专属视频，仅提供试看',
           displayTime: const Duration(seconds: 3),
@@ -1169,10 +1179,10 @@ class VideoDetailController extends GetxController
             id: data.quality!,
             baseUrl: videoUrl,
             codecs: 'avc1',
-            quality: VideoQualityExt.fromCode(data.quality!)!);
+            quality: VideoQuality.fromCode(data.quality!));
         setVideoHeight();
         currentDecodeFormats = VideoDecodeFormatTypeExt.fromString('avc1')!;
-        currentVideoQa = VideoQualityExt.fromCode(data.quality!)!;
+        currentVideoQa = VideoQuality.fromCode(data.quality!);
         if (autoPlay.value) {
           isShowCover.value = false;
           await playerInit();
@@ -1186,7 +1196,7 @@ class VideoDetailController extends GetxController
         SmartDialog.showToast('视频资源不存在');
         autoPlay.value = false;
         isShowCover.value = true;
-        videoState.value = LoadingState.error('视频资源不存在');
+        videoState.value = const Error('视频资源不存在');
         if (plPlayerController.isFullScreen.value) {
           plPlayerController.toggleFullScreen(false);
         }
@@ -1196,7 +1206,7 @@ class VideoDetailController extends GetxController
       final List<VideoItem> allVideosList = data.dash!.video!;
       // debugPrint("allVideosList:${allVideosList}");
       // 当前可播放的最高质量视频
-      int currentHighVideoQa = allVideosList.first.quality!.code;
+      int currentHighVideoQa = allVideosList.first.quality.code;
       // 预设的画质为null，则当前可用的最高质量
       int resVideoQa = currentHighVideoQa;
       if (plPlayerController.cacheVideoQa! <= currentHighVideoQa) {
@@ -1206,11 +1216,11 @@ class VideoDetailController extends GetxController
         resVideoQa =
             Utils.findClosestNumber(plPlayerController.cacheVideoQa!, numbers);
       }
-      currentVideoQa = VideoQualityExt.fromCode(resVideoQa)!;
+      currentVideoQa = VideoQuality.fromCode(resVideoQa);
 
       /// 取出符合当前画质的videoList
       final List<VideoItem> videosList =
-          allVideosList.where((e) => e.quality!.code == resVideoQa).toList();
+          allVideosList.where((e) => e.quality.code == resVideoQa).toList();
 
       /// 优先顺序 设置中指定解码格式 -> 当前可选的首个解码格式
       final List<FormatItem> supportFormats = data.supportFormats!;
@@ -1274,7 +1284,7 @@ class VideoDetailController extends GetxController
             orElse: () => audiosList.first);
         audioUrl = VideoUtils.getCdnUrl(firstAudio);
         if (firstAudio.id != null) {
-          currentAudioQa = AudioQualityExt.fromCode(firstAudio.id!)!;
+          currentAudioQa = AudioQuality.fromCode(firstAudio.id!);
         }
       } else {
         firstAudio = AudioItem();
@@ -1297,7 +1307,7 @@ class VideoDetailController extends GetxController
     } else {
       autoPlay.value = false;
       isShowCover.value = true;
-      videoState.value = LoadingState.error(result['msg']);
+      videoState.value = Error(result['msg']);
       if (plPlayerController.isFullScreen.value) {
         plPlayerController.toggleFullScreen(false);
       }
@@ -1472,7 +1482,7 @@ class VideoDetailController extends GetxController
             return Segment(
               start,
               start,
-              Colors.black.withOpacity(0.5),
+              Colors.black.withValues(alpha: 0.5),
               item?['content'],
               item?['imgUrl'],
               item?['from'],

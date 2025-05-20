@@ -5,7 +5,7 @@ import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
 import 'package:PiliPlus/common/widgets/video_card/video_card_v_member_home.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/space/data.dart';
-import 'package:PiliPlus/models/space/item.dart';
+import 'package:PiliPlus/models/space/tab_item.dart';
 import 'package:PiliPlus/pages/bangumi/widgets/bangumi_card_v_member_home.dart';
 import 'package:PiliPlus/pages/member/controller.dart';
 import 'package:PiliPlus/pages/member_article/widget/item.dart';
@@ -158,9 +158,9 @@ class _MemberHomeState extends State<MemberHome>
                 ],
                 if (res.article?.item?.isNotEmpty == true) ...[
                   _videoHeader(
-                    title: '专栏',
+                    title: '图文',
                     param: 'contribute',
-                    param1: 'article',
+                    param1: 'opus',
                     count: res.article!.count!,
                   ),
                   SliverGrid(
@@ -222,8 +222,8 @@ class _MemberHomeState extends State<MemberHome>
                 ),
               ],
             )
-          : errorWidget(),
-      Error() => errorWidget(),
+          : scrollErrorWidget(),
+      Error(:var errMsg) => scrollErrorWidget(errMsg: errMsg),
     };
   }
 
@@ -256,23 +256,25 @@ class _MemberHomeState extends State<MemberHome>
                 int index =
                     _ctr.tab2!.indexWhere((item) => item.param == param);
                 if (index != -1) {
-                  if (['video', 'article', 'audio'].contains(param1)) {
-                    List<SpaceItem> items = _ctr.tab2!
+                  if (const ['video', 'opus', 'audio'].contains(param1)) {
+                    List<SpaceTabItem> items = _ctr.tab2!
                         .firstWhere((item) => item.param == param)
                         .items!;
                     int index1 =
                         items.indexWhere((item) => item.param == param1);
-                    try {
-                      final contributeCtr =
-                          Get.find<MemberContributeCtr>(tag: widget.heroTag);
-                      // contributeCtr.tabController?.animateTo(index1);
-                      if (contributeCtr.tabController?.index != index1) {
-                        contributeCtr.tabController?.index = index1;
+                    if (index1 != -1) {
+                      try {
+                        final contributeCtr =
+                            Get.find<MemberContributeCtr>(tag: widget.heroTag);
+                        // contributeCtr.tabController?.animateTo(index1);
+                        if (contributeCtr.tabController?.index != index1) {
+                          contributeCtr.tabController?.index = index1;
+                        }
+                        debugPrint('initialized');
+                      } catch (e) {
+                        _ctr.contributeInitialIndex.value = index1;
+                        debugPrint('not initialized');
                       }
-                      debugPrint('initialized');
-                    } catch (e) {
-                      _ctr.contributeInitialIndex.value = index1;
-                      debugPrint('not initialized');
                     }
                   }
                   _ctr.tabController?.animateTo(index);

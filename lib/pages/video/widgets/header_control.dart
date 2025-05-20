@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
+import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/self_sized_horizontal_list.dart';
 import 'package:PiliPlus/models/common/search_type.dart';
 import 'package:PiliPlus/models/common/super_resolution_type.dart';
@@ -90,8 +91,7 @@ class HeaderControlState extends State<HeaderControl> {
     if (videoDetailCtr.videoType != SearchType.video) {
       bangumiIntroController = Get.find<BangumiIntroController>(tag: heroTag);
     }
-    horizontalScreen =
-        setting.get(SettingBoxKey.horizontalScreen, defaultValue: false);
+    horizontalScreen = GStorage.horizontalScreen;
     defaultCDNService = setting.get(SettingBoxKey.CDNService,
         defaultValue: CDNService.backupUrl.code);
   }
@@ -251,7 +251,7 @@ class HeaderControlState extends State<HeaderControl> {
                 ListTile(
                   dense: true,
                   title: const Text('CDN 设置', style: titleStyle),
-                  leading: Icon(MdiIcons.cloudPlusOutline, size: 20),
+                  leading: const Icon(MdiIcons.cloudPlusOutline, size: 20),
                   subtitle: Text(
                     '当前：${CDNService.fromCode(defaultCDNService).description}，无法播放请切换',
                     style: subTitleStyle,
@@ -379,10 +379,7 @@ class HeaderControlState extends State<HeaderControl> {
                 ListTile(
                   dense: true,
                   onTap: () => {Get.back(), showSetDanmaku()},
-                  leading: Transform.rotate(
-                    angle: pi,
-                    child: const Icon(Icons.subtitles_outlined, size: 20),
-                  ),
+                  leading: const Icon(CustomIcon.dm_settings, size: 20),
                   title: const Text('弹幕设置', style: titleStyle),
                 ),
                 ListTile(
@@ -414,7 +411,7 @@ class HeaderControlState extends State<HeaderControl> {
                         return AlertDialog(
                           title: const Text('播放信息'),
                           content: SizedBox(
-                            width: double.maxFinite,
+                            width: double.infinity,
                             child: ListView(
                               children: [
                                 ListTile(
@@ -650,7 +647,7 @@ class HeaderControlState extends State<HeaderControl> {
                                 final int quality = videoFormat[i].quality!;
                                 videoDetailCtr
                                   ..currentVideoQa =
-                                      VideoQualityExt.fromCode(quality)!
+                                      VideoQuality.fromCode(quality)
                                   ..updatePlayer();
 
                                 // update
@@ -659,16 +656,16 @@ class HeaderControlState extends State<HeaderControl> {
                                     .checkConnectivity()
                                     .then((res) {
                                   if (res.contains(ConnectivityResult.wifi)) {
-                                    oldQualityDesc = VideoQualityExt.fromCode(
-                                            GStorage.defaultVideoQa)!
+                                    oldQualityDesc = VideoQuality.fromCode(
+                                            GStorage.defaultVideoQa)
                                         .description;
                                     setting.put(
                                       SettingBoxKey.defaultVideoQa,
                                       quality,
                                     );
                                   } else {
-                                    oldQualityDesc = VideoQualityExt.fromCode(
-                                            GStorage.defaultVideoQaCellular)!
+                                    oldQualityDesc = VideoQuality.fromCode(
+                                            GStorage.defaultVideoQaCellular)
                                         .description;
                                     setting.put(
                                       SettingBoxKey.defaultVideoQaCellular,
@@ -677,7 +674,7 @@ class HeaderControlState extends State<HeaderControl> {
                                   }
                                 });
                                 SmartDialog.showToast(
-                                  "默认画质由：$oldQualityDesc 变为：${VideoQualityExt.fromCode(quality)!.description}",
+                                  "默认画质由：$oldQualityDesc 变为：${VideoQuality.fromCode(quality).description}",
                                 );
                               },
                               // 可能包含会员解锁画质
@@ -745,7 +742,7 @@ class HeaderControlState extends State<HeaderControl> {
                               final int quality = i.id!;
                               videoDetailCtr
                                 ..currentAudioQa =
-                                    AudioQualityExt.fromCode(quality)!
+                                    AudioQuality.fromCode(quality)
                                 ..updatePlayer();
 
                               // update
@@ -754,16 +751,16 @@ class HeaderControlState extends State<HeaderControl> {
                                   .checkConnectivity()
                                   .then((res) {
                                 if (res.contains(ConnectivityResult.wifi)) {
-                                  oldQualityDesc = AudioQualityExt.fromCode(
-                                          GStorage.defaultAudioQa)!
+                                  oldQualityDesc = AudioQuality.fromCode(
+                                          GStorage.defaultAudioQa)
                                       .description;
                                   setting.put(
                                     SettingBoxKey.defaultAudioQa,
                                     quality,
                                   );
                                 } else {
-                                  oldQualityDesc = AudioQualityExt.fromCode(
-                                          GStorage.defaultAudioQaCellular)!
+                                  oldQualityDesc = AudioQuality.fromCode(
+                                          GStorage.defaultAudioQaCellular)
                                       .description;
                                   setting.put(
                                     SettingBoxKey.defaultAudioQaCellular,
@@ -772,12 +769,12 @@ class HeaderControlState extends State<HeaderControl> {
                                 }
                               });
                               SmartDialog.showToast(
-                                "默认音质由：$oldQualityDesc 变为：${AudioQualityExt.fromCode(quality)!.description}",
+                                "默认音质由：$oldQualityDesc 变为：${AudioQuality.fromCode(quality).description}",
                               );
                             },
                             contentPadding:
                                 const EdgeInsets.only(left: 20, right: 20),
-                            title: Text(i.quality!),
+                            title: Text(i.quality),
                             subtitle: Text(
                               i.codecs!,
                               style: subTitleStyle,
@@ -811,7 +808,7 @@ class HeaderControlState extends State<HeaderControl> {
     // 当前视频可用的解码格式
     final List<FormatItem> videoFormat = videoInfo.supportFormats!;
     final List? list = videoFormat
-        .firstWhere((FormatItem e) => e.quality == firstVideo.quality!.code)
+        .firstWhere((FormatItem e) => e.quality == firstVideo.quality.code)
         .codecs;
     if (list == null) {
       SmartDialog.showToast('当前视频不支持选择解码格式');
@@ -1040,7 +1037,7 @@ class HeaderControlState extends State<HeaderControl> {
             color: theme.colorScheme.surface,
             borderRadius: const BorderRadius.all(Radius.circular(12)),
             child: Padding(
-              padding: const EdgeInsets.only(left: 14, right: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
@@ -1445,7 +1442,7 @@ class HeaderControlState extends State<HeaderControl> {
             color: theme.colorScheme.surface,
             borderRadius: const BorderRadius.all(Radius.circular(12)),
             child: Padding(
-              padding: const EdgeInsets.only(left: 14, right: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
@@ -2071,7 +2068,7 @@ class HeaderControlState extends State<HeaderControl> {
                             ),
                             onPressed: () =>
                                 videoDetailCtr.showSBDetail(context),
-                            icon: Icon(
+                            icon: const Icon(
                               MdiIcons.advertisements,
                               size: 19,
                               color: Colors.white,

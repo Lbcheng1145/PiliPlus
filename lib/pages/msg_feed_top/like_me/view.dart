@@ -4,9 +4,13 @@ import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/pair.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
+import 'package:PiliPlus/grpc/bilibili/app/im/v1.pbenum.dart'
+    show IMSettingType;
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/msg/msgfeed_like_me.dart';
 import 'package:PiliPlus/pages/msg_feed_top/like_me/controller.dart';
+import 'package:PiliPlus/pages/whisper_settings/view.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
@@ -24,9 +28,26 @@ class _LikeMePageState extends State<LikeMePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('收到的赞'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Get.to(
+                const WhisperSettingsPage(
+                    imSettingType: IMSettingType.SETTING_TYPE_OLD_RECEIVE_LIKE),
+              );
+            },
+            icon: Icon(
+              size: 20,
+              Icons.settings,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+            ),
+          ),
+          const SizedBox(width: 10),
+        ],
       ),
       body: refreshIndicator(
         onRefresh: _likeMeController.onRefresh,
@@ -36,8 +57,8 @@ class _LikeMePageState extends State<LikeMePage> {
             SliverPadding(
               padding: EdgeInsets.only(
                   bottom: MediaQuery.paddingOf(context).bottom + 80),
-              sliver:
-                  Obx(() => _buildBody(_likeMeController.loadingState.value)),
+              sliver: Obx(() =>
+                  _buildBody(theme, _likeMeController.loadingState.value)),
             ),
           ],
         ),
@@ -45,7 +66,7 @@ class _LikeMePageState extends State<LikeMePage> {
     );
   }
 
-  Widget _buildBody(LoadingState loadingState) {
+  Widget _buildBody(ThemeData theme, LoadingState loadingState) {
     return switch (loadingState) {
       Loading() => SliverList.builder(
           itemCount: 12,
@@ -53,10 +74,8 @@ class _LikeMePageState extends State<LikeMePage> {
             return const MsgFeedTopSkeleton();
           },
         ),
-      Success() => () {
-          final theme = Theme.of(context);
-          Pair<List<LikeMeItems>, List<LikeMeItems>> pair =
-              loadingState.response;
+      Success(:var response) => () {
+          Pair<List<LikeMeItems>, List<LikeMeItems>> pair = response;
           List<LikeMeItems> latest = pair.first;
           List<LikeMeItems> total = pair.second;
           if (latest.isNotEmpty || total.isNotEmpty) {
@@ -87,7 +106,7 @@ class _LikeMePageState extends State<LikeMePage> {
                         indent: 72,
                         endIndent: 20,
                         height: 6,
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                       );
                     },
                   ),
@@ -117,7 +136,7 @@ class _LikeMePageState extends State<LikeMePage> {
                         indent: 72,
                         endIndent: 20,
                         height: 6,
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                       );
                     },
                   ),
@@ -127,8 +146,8 @@ class _LikeMePageState extends State<LikeMePage> {
           }
           return HttpError(onReload: _likeMeController.onReload);
         }(),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: _likeMeController.onReload,
         ),
     };
@@ -240,7 +259,7 @@ class _LikeMePageState extends State<LikeMePage> {
                       child: NetworkImgLayer(
                         width: item.users!.length > 1 ? 30 : 45,
                         height: item.users!.length > 1 ? 30 : 45,
-                        type: 'avatar',
+                        type: ImageType.avatar,
                         src: item.users![j].avatar,
                       )),
                 ]
@@ -304,15 +323,16 @@ class _LikeMePageState extends State<LikeMePage> {
             NetworkImgLayer(
               width: 45,
               height: 45,
-              type: 'cover',
               src: item.item!.image,
             ),
-          if (item.noticeState == 1)
+          if (item.noticeState == 1) ...[
+            if (item.item?.image?.isNotEmpty == true) const SizedBox(width: 4),
             Icon(
               size: 18,
               Icons.notifications_off,
               color: theme.colorScheme.outline,
             ),
+          ],
         ],
       ),
     );

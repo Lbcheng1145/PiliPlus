@@ -58,9 +58,13 @@ class _MemberDynamicsPageState extends State<MemberDynamicsPage>
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            Obx(
-              () => _buildContent(_memberDynamicController.loadingState.value),
-            )
+            SliverPadding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.paddingOf(context).bottom + 80,
+              ),
+              sliver: Obx(() =>
+                  _buildContent(_memberDynamicController.loadingState.value)),
+            ),
           ],
         ),
       );
@@ -68,58 +72,53 @@ class _MemberDynamicsPageState extends State<MemberDynamicsPage>
   Widget _buildContent(LoadingState<List<DynamicItemModel>?> loadingState) {
     return switch (loadingState) {
       Loading() => DynamicsTabPage.dynSkeleton(dynamicsWaterfallFlow),
-      Success() => loadingState.response?.isNotEmpty == true
-          ? SliverPadding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.paddingOf(context).bottom + 80,
-              ),
-              sliver: dynamicsWaterfallFlow
-                  ? SliverWaterfallFlow.extent(
-                      maxCrossAxisExtent: Grid.smallCardWidth * 2,
-                      crossAxisSpacing: StyleString.safeSpace,
-                      lastChildLayoutTypeBuilder: (index) {
-                        if (index == loadingState.response!.length - 1) {
-                          _memberDynamicController.onLoadMore();
-                        }
-                        return index == loadingState.response!.length
-                            ? LastChildLayoutType.foot
-                            : LastChildLayoutType.none;
-                      },
-                      children: loadingState.response!
-                          .map((item) => DynamicPanel(
-                              item: item,
-                              onRemove: _memberDynamicController.onRemove,
-                              onSetTop: _memberDynamicController.onSetTop))
-                          .toList(),
-                    )
-                  : SliverCrossAxisGroup(
-                      slivers: [
-                        const SliverFillRemaining(),
-                        SliverConstrainedCrossAxis(
-                          maxExtent: Grid.smallCardWidth * 2,
-                          sliver: SliverList.builder(
-                            itemBuilder: (context, index) {
-                              if (index == loadingState.response!.length - 1) {
-                                _memberDynamicController.onLoadMore();
-                              }
-                              return DynamicPanel(
-                                item: loadingState.response![index],
-                                onRemove: _memberDynamicController.onRemove,
-                                onSetTop: _memberDynamicController.onSetTop,
-                              );
-                            },
-                            itemCount: loadingState.response!.length,
-                          ),
-                        ),
-                        const SliverFillRemaining(),
-                      ],
+      Success(:var response) => response?.isNotEmpty == true
+          ? dynamicsWaterfallFlow
+              ? SliverWaterfallFlow.extent(
+                  maxCrossAxisExtent: Grid.smallCardWidth * 2,
+                  crossAxisSpacing: StyleString.safeSpace,
+                  lastChildLayoutTypeBuilder: (index) {
+                    if (index == response.length - 1) {
+                      _memberDynamicController.onLoadMore();
+                    }
+                    return index == response.length
+                        ? LastChildLayoutType.foot
+                        : LastChildLayoutType.none;
+                  },
+                  children: response!
+                      .map((item) => DynamicPanel(
+                          item: item,
+                          onRemove: _memberDynamicController.onRemove,
+                          onSetTop: _memberDynamicController.onSetTop))
+                      .toList(),
+                )
+              : SliverCrossAxisGroup(
+                  slivers: [
+                    const SliverFillRemaining(),
+                    SliverConstrainedCrossAxis(
+                      maxExtent: Grid.smallCardWidth * 2,
+                      sliver: SliverList.builder(
+                        itemBuilder: (context, index) {
+                          if (index == response.length - 1) {
+                            _memberDynamicController.onLoadMore();
+                          }
+                          return DynamicPanel(
+                            item: response[index],
+                            onRemove: _memberDynamicController.onRemove,
+                            onSetTop: _memberDynamicController.onSetTop,
+                          );
+                        },
+                        itemCount: response!.length,
+                      ),
                     ),
-            )
+                    const SliverFillRemaining(),
+                  ],
+                )
           : HttpError(
               onReload: _memberDynamicController.onReload,
             ),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: _memberDynamicController.onReload,
         ),
     };

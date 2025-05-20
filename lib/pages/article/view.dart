@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:PiliPlus/common/skeleton/video_reply.dart';
 import 'package:PiliPlus/common/widgets/badge.dart';
+import 'package:PiliPlus/common/widgets/custom_icon.dart';
+import 'package:PiliPlus/common/widgets/custom_sliver_persistent_header_delegate.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
@@ -10,12 +12,14 @@ import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
 import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart' show DynamicStat;
 import 'package:PiliPlus/pages/article/controller.dart';
 import 'package:PiliPlus/pages/article/widgets/html_render.dart';
 import 'package:PiliPlus/pages/article/widgets/opus_content.dart';
+import 'package:PiliPlus/pages/article/widgets/read_opus.dart';
 import 'package:PiliPlus/pages/dynamics_repost/view.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/pages/video/reply_reply/view.dart';
@@ -49,7 +53,8 @@ class _ArticlePageState extends State<ArticlePage>
   );
   bool _isFabVisible = true;
   bool? _imageStatus;
-  late AnimationController fabAnimationCtr;
+  late final AnimationController fabAnimationCtr;
+  late final Animation<Offset> _anim;
 
   late final List<double> _ratio = GStorage.dynamicDetailRatio;
 
@@ -107,6 +112,13 @@ class _ArticlePageState extends State<ArticlePage>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    _anim = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: fabAnimationCtr,
+      curve: Curves.easeInOut,
+    ));
     fabAnimationCtr.forward();
     _articleCtr.scrollController.addListener(listener);
   }
@@ -163,9 +175,10 @@ class _ArticlePageState extends State<ArticlePage>
     EasyThrottle.throttle('replyReply', const Duration(milliseconds: 500), () {
       int oid = replyItem.oid.toInt();
       int rpid = replyItem.id.toInt();
-      Widget replyReplyPage(
-              [bool automaticallyImplyLeading = true,
-              VoidCallback? onDispose]) =>
+      Widget replyReplyPage({
+        bool automaticallyImplyLeading = true,
+        VoidCallback? onDispose,
+      }) =>
           Scaffold(
             resizeToAvoidBottomInset: false,
             appBar: AppBar(
@@ -177,6 +190,7 @@ class _ArticlePageState extends State<ArticlePage>
               top: false,
               bottom: false,
               child: VideoReplyReplyPanel(
+                enableSlide: false,
                 id: id,
                 oid: oid,
                 rpid: rpid,
@@ -208,8 +222,8 @@ class _ArticlePageState extends State<ArticlePage>
               context: context,
               removeLeft: true,
               child: replyReplyPage(
-                false,
-                () {
+                automaticallyImplyLeading: false,
+                onDispose: () {
                   if (isFabVisible && _imageStatus != true) {
                     _showFab();
                   }
@@ -260,10 +274,10 @@ class _ArticlePageState extends State<ArticlePage>
                           SliverToBoxAdapter(
                             child: Divider(
                               thickness: 8,
-                              color: theme.dividerColor.withOpacity(0.05),
+                              color: theme.dividerColor.withValues(alpha: 0.05),
                             ),
                           ),
-                          _buildReplyHeader,
+                          _buildReplyHeader(theme),
                           Obx(() => _buildReplyList(
                               theme, _articleCtr.loadingState.value)),
                         ],
@@ -300,7 +314,7 @@ class _ArticlePageState extends State<ArticlePage>
                       ),
                       VerticalDivider(
                         thickness: 8,
-                        color: theme.dividerColor.withOpacity(0.05),
+                        color: theme.dividerColor.withValues(alpha: 0.05),
                       ),
                       Expanded(
                         flex: _ratio[1].toInt(),
@@ -315,7 +329,7 @@ class _ArticlePageState extends State<ArticlePage>
                                 controller: _articleCtr.scrollController,
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 slivers: [
-                                  _buildReplyHeader,
+                                  _buildReplyHeader(theme),
                                   Obx(() => _buildReplyList(
                                       theme, _articleCtr.loadingState.value)),
                                 ],
@@ -357,6 +371,10 @@ class _ArticlePageState extends State<ArticlePage>
                   child: moduleBlockedItem(theme, moduleBlocked, maxWidth),
                 );
               } else if (_articleCtr.articleData?.content != null) {
+                if (_articleCtr.articleData?.type == 3) {
+                  // json
+                  return ReadOpus(ops: _articleCtr.articleData?.ops);
+                }
                 debugPrint('html page');
                 final res = parser.parse(_articleCtr.articleData!.content!);
                 if (res.body!.children.isEmpty) {
@@ -427,8 +445,9 @@ class _ArticlePageState extends State<ArticlePage>
                                   },
                                   itemCount: length,
                                   itemBuilder: (context, index) {
-                                    final url = pics[0].url!;
+                                    final pic = pics[index];
                                     return GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
                                       onTap: () {
                                         context.imageView(
                                           imgList: pics
@@ -439,10 +458,28 @@ class _ArticlePageState extends State<ArticlePage>
                                         );
                                       },
                                       child: Hero(
-                                        tag: url,
-                                        child: CachedNetworkImage(
-                                          imageUrl:
-                                              Utils.thumbnailImgUrl(url, 60),
+                                        tag: pic.url!,
+                                        child: Stack(
+                                          clipBehavior: Clip.none,
+                                          alignment: Alignment.center,
+                                          children: [
+                                            Positioned.fill(
+                                              child: CachedNetworkImage(
+                                                fit: pic.isLongPic == true
+                                                    ? BoxFit.cover
+                                                    : null,
+                                                imageUrl: Utils.thumbnailImgUrl(
+                                                    pic.url, 60),
+                                              ),
+                                            ),
+                                            if (pic.isLongPic == true)
+                                              PBadge(
+                                                text: '长图',
+                                                type: PBadgeType.primary,
+                                                right: paddingRight,
+                                                bottom: 12,
+                                              ),
+                                          ],
                                         ),
                                       ),
                                     );
@@ -484,7 +521,7 @@ class _ArticlePageState extends State<ArticlePage>
                               // TODO Avatar
                               width: 40,
                               height: 40,
-                              type: 'avatar',
+                              type: ImageType.avatar,
                               src: _articleCtr.summary.author?.face,
                             ),
                             const SizedBox(width: 10),
@@ -514,6 +551,14 @@ class _ArticlePageState extends State<ArticlePage>
                       ),
                     ),
                   ),
+                  if (_articleCtr.type != 'read' &&
+                      _articleCtr.opusData?.modules.moduleCollection != null)
+                    SliverToBoxAdapter(
+                      child: opusCollection(
+                        theme,
+                        _articleCtr.opusData!.modules.moduleCollection!,
+                      ),
+                    ),
                   content,
                 ],
               );
@@ -533,11 +578,11 @@ class _ArticlePageState extends State<ArticlePage>
             return const VideoReplySkeleton();
           },
         ),
-      Success() => loadingState.response?.isNotEmpty == true
+      Success(:var response) => response?.isNotEmpty == true
           ? SliverList.builder(
-              itemCount: loadingState.response!.length + 1,
+              itemCount: response!.length + 1,
               itemBuilder: (context, index) {
-                if (index == loadingState.response!.length) {
+                if (index == response.length) {
                   _articleCtr.onLoadMore();
                   return Container(
                     alignment: Alignment.center,
@@ -545,11 +590,7 @@ class _ArticlePageState extends State<ArticlePage>
                         bottom: MediaQuery.of(context).padding.bottom),
                     height: 125,
                     child: Text(
-                      _articleCtr.isEnd.not
-                          ? '加载中...'
-                          : loadingState.response!.isEmpty
-                              ? '还没有评论'
-                              : '没有更多了',
+                      _articleCtr.isEnd ? '没有更多了' : '加载中...',
                       style: TextStyle(
                         fontSize: 12,
                         color: theme.colorScheme.outline,
@@ -558,14 +599,14 @@ class _ArticlePageState extends State<ArticlePage>
                   );
                 } else {
                   return ReplyItemGrpc(
-                    replyItem: loadingState.response![index],
+                    replyItem: response[index],
                     replyLevel: '1',
                     replyReply: (replyItem, id) =>
                         replyReply(context, replyItem, id),
                     onReply: () {
                       _articleCtr.onReply(
                         context,
-                        replyItem: loadingState.response![index],
+                        replyItem: response[index],
                         index: index,
                       );
                     },
@@ -586,39 +627,43 @@ class _ArticlePageState extends State<ArticlePage>
                 }
               },
             )
-          : HttpError(
-              onReload: _articleCtr.onReload,
-            ),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+          : HttpError(onReload: _articleCtr.onReload),
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: _articleCtr.onReload,
         ),
     };
   }
 
-  Widget get _buildReplyHeader {
-    return SliverToBoxAdapter(
-      child: Container(
-        height: 45,
-        padding: const EdgeInsets.only(left: 12, right: 6),
-        child: Row(
-          children: [
-            const Text('回复'),
-            const Spacer(),
-            SizedBox(
-              height: 35,
-              child: TextButton.icon(
-                onPressed: () => _articleCtr.queryBySort(),
-                icon: const Icon(Icons.sort, size: 16),
-                label: Obx(
-                  () => Text(
-                    _articleCtr.sortType.value.label,
-                    style: const TextStyle(fontSize: 13),
+  Widget _buildReplyHeader(ThemeData theme) {
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: CustomSliverPersistentHeaderDelegate(
+        extent: 40,
+        bgColor: theme.colorScheme.surface,
+        child: Container(
+          height: 45,
+          padding: const EdgeInsets.only(left: 12, right: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Obx(() => Text(
+                  '${_articleCtr.count.value == -1 ? 0 : Utils.numFormat(_articleCtr.count.value)}条回复')),
+              SizedBox(
+                height: 35,
+                child: TextButton.icon(
+                  onPressed: () => _articleCtr.queryBySort(),
+                  icon: const Icon(Icons.sort, size: 16),
+                  label: Obx(
+                    () => Text(
+                      _articleCtr.sortType.value.label,
+                      style: const TextStyle(fontSize: 13),
+                    ),
                   ),
                 ),
-              ),
-            )
-          ],
+              )
+            ],
+          ),
         ),
       ),
     );
@@ -758,13 +803,7 @@ class _ArticlePageState extends State<ArticlePage>
         bottom: 0,
         right: 0,
         child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 1),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(
-            parent: fabAnimationCtr,
-            curve: Curves.easeInOut,
-          )),
+          position: _anim,
           child: Builder(
             builder: (context) {
               Widget button() => FloatingActionButton(
@@ -842,7 +881,7 @@ class _ArticlePageState extends State<ArticlePage>
                                     border: Border(
                                       top: BorderSide(
                                         color: theme.colorScheme.outline
-                                            .withOpacity(0.08),
+                                            .withValues(alpha: 0.08),
                                       ),
                                     ),
                                   ),
@@ -913,7 +952,7 @@ class _ArticlePageState extends State<ArticlePage>
                                       Expanded(
                                           child: textIconButton(
                                         text: '分享',
-                                        icon: FontAwesomeIcons.shareNodes,
+                                        icon: CustomIcon.share_node,
                                         stat: null,
                                         callback: () =>
                                             Utils.shareText(_articleCtr.url),

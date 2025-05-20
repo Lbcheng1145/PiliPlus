@@ -5,6 +5,7 @@ import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/model_hot_video_item.dart';
 import 'package:PiliPlus/models/user/fav_detail.dart';
 import 'package:PiliPlus/models/user/fav_folder.dart';
+import 'package:PiliPlus/models/user/fav_topic/data.dart';
 import 'package:PiliPlus/models/user/history.dart';
 import 'package:PiliPlus/models/user/info.dart';
 import 'package:PiliPlus/models/user/stat.dart';
@@ -61,9 +62,9 @@ class UserHttp {
       'up_mid': mid,
     });
     if (res.data['code'] == 0) {
-      return LoadingState.success(FavFolderData.fromJson(res.data['data']));
+      return Success(FavFolderData.fromJson(res.data['data']));
     } else {
-      return LoadingState.error(res.data['message'] ?? '账号未登录');
+      return Error(res.data['message'] ?? '账号未登录');
     }
   }
 
@@ -214,9 +215,9 @@ class UserHttp {
       'platform': 'web'
     });
     if (res.data['code'] == 0) {
-      return LoadingState.success(FavDetailData.fromJson(res.data['data']));
+      return Success(FavDetailData.fromJson(res.data['data']));
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -241,7 +242,7 @@ class UserHttp {
     );
     if (res.data['code'] == 0) {
       if (res.data['data']['count'] == 0) {
-        return LoadingState.success({'count': 0});
+        return const Success({'count': 0});
       }
       List<HotVideoItemModel> list = <HotVideoItemModel>[];
       if (res.data['data']?['list'] != null) {
@@ -249,12 +250,12 @@ class UserHttp {
           list.add(HotVideoItemModel.fromJson(i));
         }
       }
-      return LoadingState.success({
+      return Success({
         'list': list,
         'count': res.data['data']['count'],
       });
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -271,9 +272,9 @@ class UserHttp {
       'view_at': viewAt ?? 0,
     });
     if (res.data['code'] == 0) {
-      return LoadingState.success(HistoryData.fromJson(res.data['data']));
+      return Success(HistoryData.fromJson(res.data['data']));
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -431,9 +432,9 @@ class UserHttp {
       },
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(HistoryData.fromJson(res.data['data']));
+      return Success(HistoryData.fromJson(res.data['data']));
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -453,10 +454,9 @@ class UserHttp {
       },
     );
     if (res.data['code'] == 0 && res.data['data'] is Map) {
-      return LoadingState.success(
-          SubFolderModelData.fromJson(res.data['data']).list);
+      return Success(SubFolderModelData.fromJson(res.data['data']).list);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -474,24 +474,95 @@ class UserHttp {
       },
     );
     if (res.data['code'] == 0) {
-      return LoadingState.success(
-          SubDetailModelData.fromJson(res.data['data']));
+      return Success(SubDetailModelData.fromJson(res.data['data']));
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<FavTopicData>> favTopic({
+    required int page,
+  }) async {
+    var res = await Request().get(
+      Api.favTopicList,
+      queryParameters: {
+        'page_size': 24,
+        'page_num': page,
+        'web_location': 333.1387,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return Success(FavTopicData.fromJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future addFavTopic(topicId) async {
+    var res = await Request().post(
+      Api.addFavTopic,
+      data: {
+        'topic_id': topicId,
+        'csrf': Accounts.main.csrf,
+      },
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+    if (res.data['code'] == 0) {
+      return {'status': true};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
+    }
+  }
+
+  static Future delFavTopic(topicId) async {
+    var res = await Request().post(
+      Api.delFavTopic,
+      data: {
+        'topic_id': topicId,
+        'csrf': Accounts.main.csrf,
+      },
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+    if (res.data['code'] == 0) {
+      return {'status': true};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
+    }
+  }
+
+  static Future likeTopic(topicId, bool isLike) async {
+    var res = await Request().post(
+      Api.likeTopic,
+      data: {
+        'action': isLike ? 'cancel_like' : 'like',
+        'up_mid': Accounts.main.mid,
+        'topic_id': topicId,
+        'csrf': Accounts.main.csrf,
+        'business': 'topic',
+      },
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+    if (res.data['code'] == 0) {
+      return {'status': true};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
     }
   }
 
   static Future<LoadingState> favArticle({
     required int page,
   }) async {
-    var res = await Request().get(Api.favArticle, queryParameters: {
-      'page_size': 20,
-      'page': page,
-    });
+    var res = await Request().get(
+      Api.favArticle,
+      queryParameters: {
+        'page_size': 20,
+        'page': page,
+      },
+    );
     if (res.data['code'] == 0) {
-      return LoadingState.success(res.data['data']);
+      return Success(res.data['data']);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -570,10 +641,9 @@ class UserHttp {
       'pn': pn,
     });
     if (res.data['code'] == 0) {
-      return LoadingState.success(
-          SubDetailModelData.fromJson(res.data['data']));
+      return Success(SubDetailModelData.fromJson(res.data['data']));
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -618,7 +688,7 @@ class UserHttp {
   // 稍后再看列表
   static Future getMediaList({
     required dynamic type,
-    required int bizId,
+    required bizId,
     required int ps,
     dynamic oid,
     int? otype,

@@ -25,7 +25,6 @@ class PiliScheme {
 
     listener?.cancel();
     listener = appLinks.uriLinkStream.listen((uri) {
-      debugPrint('onAppLink: $uri');
       routePush(uri);
     });
   }
@@ -66,6 +65,8 @@ class PiliScheme {
     int? businessId,
     int? oid,
   }) async {
+    // debugPrint('onAppLink: $uri');
+
     final String scheme = uri.scheme;
     final String host = uri.host;
     final String path = uri.path;
@@ -136,6 +137,7 @@ class PiliScheme {
                       top: false,
                       bottom: false,
                       child: VideoReplyReplyPanel(
+                        enableSlide: false,
                         oid: int.parse(oid),
                         rpid: rpid,
                         source: 'routePush',
@@ -278,6 +280,7 @@ class PiliScheme {
                     top: false,
                     bottom: false,
                     child: VideoReplyReplyPanel(
+                      enableSlide: false,
                       oid: oid,
                       rpid: rootId,
                       id: rpId,
@@ -328,6 +331,7 @@ class PiliScheme {
                     top: false,
                     bottom: false,
                     child: VideoReplyReplyPanel(
+                      enableSlide: false,
                       oid: oid,
                       rpid: rpId,
                       source: 'routePush',
@@ -392,6 +396,7 @@ class PiliScheme {
                         top: false,
                         bottom: false,
                         child: VideoReplyReplyPanel(
+                          enableSlide: false,
                           oid: oid ?? int.parse(dynId),
                           rpid: rpid,
                           source: 'routePush',
@@ -443,6 +448,19 @@ class PiliScheme {
             final url = uri.queryParameters['url'];
             if (url != null) {
               _toWebview(url, off, parameters);
+              return true;
+            }
+            return false;
+          case 'm.bilibili.com':
+            // bilibili://m.bilibili.com/topic-detail?topic_id=1028161&frommodule=H5&h5awaken=xxx
+            final id =
+                RegExp(r'topic_id=(\d+)').firstMatch(uri.query)?.group(1);
+            if (id != null) {
+              PageUtils.toDupNamed(
+                '/dynTopic',
+                parameters: {'id': id},
+                off: off,
+              );
               return true;
             }
             return false;
@@ -607,12 +625,32 @@ class PiliScheme {
         }
         return hasMatch;
       case 'playlist':
+        // http://m.bilibili.com/playlist/pl12345678?bvid=BVxxxxxxxx&page_type=4
+        String? mediaId = RegExp(r'/pl(\d+)', caseSensitive: false)
+            .firstMatch(path)
+            ?.group(1);
         String? bvid = uri.queryParameters['bvid'] ??
             RegExp(r'/(BV[a-z\d]{10})', caseSensitive: false)
                 .firstMatch(path)
                 ?.group(1);
         if (bvid != null) {
-          videoPush(null, bvid, off: off);
+          if (mediaId != null) {
+            final int cid = await SearchHttp.ab2c(bvid: bvid);
+            PageUtils.toVideoPage(
+              'bvid=$bvid&cid=$cid',
+              arguments: {
+                'heroTag': Utils.makeHeroTag(bvid),
+                'sourceType': 'playlist',
+                'favTitle': '播放列表',
+                'mediaId': mediaId,
+                'mediaType': 3,
+                'desc': true,
+                'isContinuePlaying': true,
+              },
+            );
+          } else {
+            videoPush(null, bvid, off: off);
+          }
           return true;
         }
         launchURL();
@@ -625,9 +663,10 @@ class PiliScheme {
           bool isSeason = id.startsWith('ss');
           id = id.substring(2);
           PageUtils.viewBangumi(
-              seasonId: isSeason ? id : null,
-              epId: isSeason ? null : id,
-              progress: uri.queryParameters['start_progress']);
+            seasonId: isSeason ? id : null,
+            epId: isSeason ? null : id,
+            progress: uri.queryParameters['start_progress'],
+          );
           return true;
         }
         launchURL();
@@ -649,6 +688,21 @@ class PiliScheme {
         launchURL();
         return false;
       case 'read':
+        if (path.contains('readlist')) {
+          String? id = RegExp(r'/rl(\d+)', caseSensitive: false)
+              .firstMatch(path)
+              ?.group(1);
+          if (id != null) {
+            PageUtils.toDupNamed(
+              '/articleList',
+              parameters: {'id': id},
+              off: off,
+            );
+            return true;
+          }
+          launchURL();
+          return false;
+        }
         debugPrint('专栏');
         String? id =
             RegExp(r'cv(\d+)', caseSensitive: false).firstMatch(path)?.group(1);
@@ -686,6 +740,18 @@ class PiliScheme {
               'mediaId': mediaId,
               'heroTag': Utils.makeHeroTag(mediaId),
             },
+            off: off,
+          );
+          return true;
+        }
+        launchURL();
+        return false;
+      case 'topic-detail':
+        String? id = RegExp(r'topic_id=(\d+)').firstMatch(uri.query)?.group(1);
+        if (id != null) {
+          PageUtils.toDupNamed(
+            '/dynTopic',
+            parameters: {'id': id},
             off: off,
           );
           return true;

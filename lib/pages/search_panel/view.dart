@@ -45,6 +45,7 @@ abstract class CommonSearchPanelState<
         controller: controller.scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
+          if (widget.searchType.hasHeader) buildHeader(theme),
           Obx(() => _buildBody(theme, controller.loadingState.value)),
         ],
       ),
@@ -104,17 +105,23 @@ abstract class CommonSearchPanelState<
               sliver: _builLoading,
             )
           : _builLoading,
-      Success() => loadingState.response?.isNotEmpty == true
-          ? buildList(theme, loadingState.response!)
+      Success(:var response) => response?.isNotEmpty == true
+          ? SliverPadding(
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.paddingOf(context).bottom + 80),
+              sliver: buildList(theme, response!),
+            )
           : HttpError(
               onReload: controller.onReload,
             ),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: controller.onReload,
         ),
     };
   }
+
+  Widget buildHeader(ThemeData theme) => throw UnimplementedError();
 
   Widget buildList(ThemeData theme, List<T> list);
 }

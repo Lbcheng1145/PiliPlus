@@ -1,23 +1,23 @@
 import 'dart:math';
 
-import 'package:PiliPlus/grpc/bilibili/app/im/v1.pb.dart';
-import 'package:PiliPlus/grpc/grpc_repo.dart';
 import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/reply/reply_option_type.dart';
 import 'package:PiliPlus/models/msg/account.dart';
+import 'package:PiliPlus/models/msg/im_user_infos/datum.dart';
+import 'package:PiliPlus/models/msg/msg_dnd/uid_setting.dart';
 import 'package:PiliPlus/models/msg/msgfeed_at_me.dart';
 import 'package:PiliPlus/models/msg/msgfeed_like_me.dart';
 import 'package:PiliPlus/models/msg/msgfeed_reply_me.dart';
 import 'package:PiliPlus/models/msg/msgfeed_sys_msg.dart';
 import 'package:PiliPlus/models/msg/session.dart';
+import 'package:PiliPlus/models/msg/session_ss/data.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:protobuf/protobuf.dart' show PbMap;
 import 'package:uuid/uuid.dart';
 
 class MsgHttp {
@@ -32,9 +32,9 @@ class MsgHttp {
     });
     if (res.data['code'] == 0) {
       MsgFeedReplyMe data = MsgFeedReplyMe.fromJson(res.data['data']);
-      return LoadingState.success(data);
+      return Success(data);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -49,9 +49,9 @@ class MsgHttp {
     });
     if (res.data['code'] == 0) {
       MsgFeedAtMe data = MsgFeedAtMe.fromJson(res.data['data']);
-      return LoadingState.success(data);
+      return Success(data);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -66,9 +66,9 @@ class MsgHttp {
     });
     if (res.data['code'] == 0) {
       MsgFeedLikeMe data = MsgFeedLikeMe.fromJson(res.data['data']);
-      return LoadingState.success(data);
+      return Success(data);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -82,9 +82,9 @@ class MsgHttp {
       List<SystemNotifyList>? list = (res.data['data'] as List?)
           ?.map((e) => SystemNotifyList.fromJson(e))
           .toList();
-      return LoadingState.success(list);
+      return Success(list);
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -106,18 +106,6 @@ class MsgHttp {
     }
   }
 
-  static Future msgFeedUnread() async {
-    var res = await Request().get(Api.msgFeedUnread);
-    if (res.data['code'] == 0) {
-      return {
-        'status': true,
-        'data': res.data['data'],
-      };
-    } else {
-      return {'status': false, 'msg': res.data['message']};
-    }
-  }
-
   static Future createDynamic({
     dynamic mid,
     dynamic dynIdStr, // repost dyn
@@ -129,12 +117,11 @@ class MsgHttp {
     ReplyOptionType? replyOption,
     int? privatePub,
   }) async {
-    String csrf = Accounts.main.csrf;
     var res = await Request().post(
       Api.createDynamic,
       queryParameters: {
         'platform': 'web',
-        'csrf': csrf,
+        'csrf': Accounts.main.csrf,
         'x-bili-device-req-json': {"platform": "web", "device": "pc"},
         'x-bili-web-req-json': {"spm_id": "333.999"},
       },
@@ -422,24 +409,14 @@ class MsgHttp {
     var res = await Request().get(Api.sessionList, queryParameters: params);
     if (res.data['code'] == 0) {
       try {
-        return LoadingState.success(
+        return Success(
           SessionDataModel.fromJson(res.data['data']).sessionList,
         );
       } catch (err) {
-        return LoadingState.error(err.toString());
+        return Error(err.toString());
       }
     } else {
-      return LoadingState.error(res.data['message']);
-    }
-  }
-
-  static Future<LoadingState<SessionMainReply>> sessionMain(
-      {PbMap<int, Offset>? offset}) async {
-    final res = await GrpcRepo.sessionMain(offset: offset);
-    if (res['status']) {
-      return LoadingState.success(res['data']);
-    } else {
-      return LoadingState.error(res['msg']);
+      return Error(res.data['message']);
     }
   }
 
@@ -470,7 +447,7 @@ class MsgHttp {
     beginSeqno,
     endSeqno,
   }) async {
-    Map params = await WbiSign.makSign({
+    final params = await WbiSign.makSign({
       'talker_id': talkerId,
       'session_type': 1,
       'size': 20,
@@ -483,13 +460,12 @@ class MsgHttp {
     var res = await Request().get(Api.sessionMsg, queryParameters: params);
     if (res.data['code'] == 0) {
       try {
-        return LoadingState.success(
-            SessionMsgDataModel.fromJson(res.data['data']));
+        return Success(SessionMsgDataModel.fromJson(res.data['data']));
       } catch (err) {
-        return LoadingState.error(err.toString());
+        return Error(err.toString());
       }
     } else {
-      return LoadingState.error(res.data['message']);
+      return Error(res.data['message']);
     }
   }
 
@@ -499,7 +475,7 @@ class MsgHttp {
     int? ackSeqno,
   }) async {
     String csrf = Accounts.main.csrf;
-    Map params = await WbiSign.makSign({
+    final params = await WbiSign.makSign({
       'talker_id': talkerId,
       'session_type': 1,
       'ack_seqno': ackSeqno,
@@ -605,6 +581,124 @@ class MsgHttp {
       return {'status': true};
     } else {
       return {'status': false, 'msg': res.data['message']};
+    }
+  }
+
+  static Future setMsgDnd({
+    required uid,
+    required int setting,
+    required dndUid,
+  }) async {
+    final csrf = Accounts.main.csrf;
+    var res = await Request().post(
+      Api.setMsgDnd,
+      data: {
+        'uid': uid,
+        'setting': setting,
+        'dnd_uid': dndUid,
+        'build': 0,
+        'mobi_app': 'web',
+        'csrf_token': csrf,
+        'csrf': csrf,
+      },
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+    if (res.data['code'] == 0) {
+      return {'status': true};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
+    }
+  }
+
+  static Future setPushSs({
+    required int setting,
+    required talkerUid,
+  }) async {
+    final csrf = Accounts.main.csrf;
+    var res = await Request().post(
+      Api.setPushSs,
+      data: {
+        'setting': setting,
+        'talker_uid': talkerUid,
+        'build': 0,
+        'mobi_app': 'web',
+        'csrf_token': csrf,
+        'csrf': csrf,
+      },
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+    if (res.data['code'] == 0) {
+      return {'status': true};
+    } else {
+      return {'status': false, 'msg': res.data['message']};
+    }
+  }
+
+  static Future<LoadingState<List<ImUserInfosData>?>> imUserInfos({
+    required List uids,
+  }) async {
+    final csrf = Accounts.main.csrf;
+    var res = await Request().get(
+      Api.imUserInfos,
+      queryParameters: {
+        'uids': uids.join(','),
+        'build': 0,
+        'mobi_app': 'web',
+        'csrf_token': csrf,
+        'csrf': csrf,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return Success((res.data['data'] as List?)
+          ?.map((e) => ImUserInfosData.fromJson(e))
+          .toList());
+    } else {
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<SessionSsData>> getSessionSs({
+    required talkerUid,
+  }) async {
+    final csrf = Accounts.main.csrf;
+    var res = await Request().get(
+      Api.getSessionSs,
+      queryParameters: {
+        'talker_uid': talkerUid,
+        'build': 0,
+        'mobi_app': 'web',
+        'csrf_token': csrf,
+        'csrf': csrf,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return Success(SessionSsData.fromJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<List<UidSetting>?>> getMsgDnd({
+    required uidsStr,
+  }) async {
+    final csrf = Accounts.main.csrf;
+    var res = await Request().get(
+      Api.getMsgDnd,
+      queryParameters: {
+        'own_uid': Accounts.main.mid,
+        'uids_str': uidsStr,
+        'build': 0,
+        'mobi_app': 'web',
+        'csrf_token': csrf,
+        'csrf': csrf,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return Success((res.data['data']?['uid_settings'] as List?)
+          ?.map((e) => UidSetting.fromJson(e))
+          .toList());
+    } else {
+      return Error(res.data['message']);
     }
   }
 }

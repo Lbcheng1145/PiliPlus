@@ -328,7 +328,7 @@ class PlPlayerController {
         fontWeight: FontWeight.values[subtitleFontWeight],
         backgroundColor: subtitleBgOpaticy == 0
             ? null
-            : Colors.black.withOpacity(subtitleBgOpaticy),
+            : Colors.black.withValues(alpha: subtitleBgOpaticy),
       );
 
   SubtitleViewConfiguration get subtitleViewConfiguration =>
@@ -1352,8 +1352,7 @@ class PlPlayerController {
 
   late final FullScreenMode mode = FullScreenModeCode.fromCode(
       setting.get(SettingBoxKey.fullScreenMode, defaultValue: 0));
-  late final horizontalScreen =
-      setting.get(SettingBoxKey.horizontalScreen, defaultValue: false);
+  late final horizontalScreen = GStorage.horizontalScreen;
 
   // 全屏
   void triggerFullScreen({bool status = true, int duration = 500}) {

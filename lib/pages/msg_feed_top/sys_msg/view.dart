@@ -61,14 +61,14 @@ class _SysMsgPageState extends State<SysMsgPage> {
             },
           ),
         ),
-      Success() => loadingState.response?.isNotEmpty == true
+      Success(:var response) => response?.isNotEmpty == true
           ? SliverList.separated(
-              itemCount: loadingState.response!.length,
+              itemCount: response!.length,
               itemBuilder: (context, int index) {
-                if (index == loadingState.response!.length - 1) {
+                if (index == response.length - 1) {
                   _sysMsgController.onLoadMore();
                 }
-                final item = loadingState.response![index];
+                final item = response[index];
                 String? content = item.content;
                 if (content != null) {
                   try {
@@ -100,7 +100,8 @@ class _SysMsgPageState extends State<SysMsgPage> {
                         _buildContent(theme, content ?? ''),
                         style: TextStyle(
                           fontSize: 14,
-                          color: theme.colorScheme.onSurface.withOpacity(0.85),
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.85),
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -126,13 +127,13 @@ class _SysMsgPageState extends State<SysMsgPage> {
                   indent: 72,
                   endIndent: 20,
                   height: 6,
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                 );
               },
             )
           : HttpError(onReload: _sysMsgController.onReload),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: _sysMsgController.onReload,
         ),
     };

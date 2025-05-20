@@ -1,11 +1,14 @@
+import 'package:PiliPlus/common/skeleton/video_card_h.dart';
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
 import 'package:PiliPlus/common/widgets/custom_sliver_persistent_header_delegate.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
-import 'package:PiliPlus/common/widgets/scroll_physics.dart';
+import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/video_card/video_card_h_member_video.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/member/info.dart';
 import 'package:PiliPlus/models/space_archive/item.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
@@ -48,31 +51,12 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
     _controller = Get.put(
       HorizontalMemberPageController(
         mid: widget.mid,
-        lastAid: widget.videoDetailController.oid.value.toString(),
+        currAid: widget.videoDetailController.oid.value.toString(),
       ),
       tag: widget.videoDetailController.heroTag,
     );
     _bvid = widget.videoDetailController.bvid;
     _ownerMid = Accounts.main.mid;
-    if (_controller.hasPrev) {
-      _controller.scrollController.addListener(listener);
-    }
-  }
-
-  void listener() {
-    if (_controller.scrollController.position.pixels == 0) {
-      if (_controller.hasPrev) {
-        _controller
-          ..isLoadPrevious = true
-          ..onLoadMore();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.scrollController.removeListener(listener);
-    super.dispose();
   }
 
   @override
@@ -86,7 +70,7 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
   Widget _buildUserPage(ThemeData theme, LoadingState userState) {
     return switch (userState) {
       Loading() => loadingWidget,
-      Success() => Column(
+      Success(:var response) => Column(
           children: [
             const SizedBox(height: 4),
             Row(
@@ -102,19 +86,32 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
                 const SizedBox(width: 16),
               ],
             ),
-            _buildUserInfo(theme, userState.response),
-            const SizedBox(height: 5),
+            _buildUserInfo(theme, response),
             Expanded(
-              child: Obx(
-                  () => _buildVideoList(theme, _controller.loadingState.value)),
+              child: refreshIndicator(
+                onRefresh: _controller.onRefresh,
+                child: CustomScrollView(
+                  controller: _controller.scrollController,
+                  // physics: PositionRetainedScrollPhysics(
+                  //   shouldRetain: _controller.hasPrev,
+                  //   parent: const ClampingScrollPhysics(),
+                  // ),
+                  slivers: [
+                    _buildSliverHeader(theme),
+                    Obx(() =>
+                        _buildVideoList(theme, _controller.loadingState.value)),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
-      Error() => scrollErrorWidget(
+      Error(:var errMsg) => scrollErrorWidget(
           controller: _controller.scrollController,
-          errMsg: userState.errMsg,
+          errMsg: errMsg,
           onReload: () {
-            _controller.userState.value = LoadingState.loading();
+            _controller.userState.value =
+                LoadingState<MemberInfoModel>.loading();
             _controller.getUserInfo();
           },
         ),
@@ -174,35 +171,34 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
     );
   }
 
-  Widget _buildVideoList(ThemeData theme, LoadingState loadingState) {
+  Widget _buildVideoList(
+      ThemeData theme, LoadingState<List<SpaceArchiveItem>?> loadingState) {
     return switch (loadingState) {
-      Loading() => loadingWidget,
-      Success() => Material(
-          color: Colors.transparent,
-          child: CustomScrollView(
-            controller: _controller.scrollController,
-            physics: PositionRetainedScrollPhysics(
-              shouldRetain: _controller.hasPrev,
-              parent: const ClampingScrollPhysics(),
-            ),
-            slivers: [
-              _buildSliverHeader(theme),
-              SliverPadding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).padding.bottom + 80,
-                ),
-                sliver: SliverGrid(
-                  gridDelegate: Grid.videoCardHDelegate(context),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      if (index == loadingState.response.length - 1 &&
-                          _controller.hasNext) {
-                        _controller.onLoadMore();
-                      }
-                      final SpaceArchiveItem videoItem =
-                          loadingState.response[index];
-                      return VideoCardHMemberVideo(
-                        key: ValueKey('${videoItem.param}'),
+      Loading() => SliverGrid(
+          gridDelegate: Grid.videoCardHDelegate(context),
+          delegate: SliverChildBuilderDelegate(
+            childCount: 10,
+            (context, index) {
+              return const VideoCardHSkeleton();
+            },
+          ),
+        ),
+      Success(:var response) => response?.isNotEmpty == true
+          ? SliverPadding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).padding.bottom + 80,
+              ),
+              sliver: SliverGrid(
+                gridDelegate: Grid.videoCardHDelegate(context),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    if (index == response.length - 1 && _controller.hasNext) {
+                      _controller.onLoadMore();
+                    }
+                    final SpaceArchiveItem videoItem = response[index];
+                    return Material(
+                      color: Colors.transparent,
+                      child: VideoCardHMemberVideo(
                         videoItem: videoItem,
                         bvid: _bvid,
                         onTap: () {
@@ -219,18 +215,16 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
                             setState(() {});
                           }
                         },
-                      );
-                    },
-                    childCount: loadingState.response.length,
-                  ),
+                      ),
+                    );
+                  },
+                  childCount: response!.length,
                 ),
               ),
-            ],
-          ),
-        ),
-      Error() => scrollErrorWidget(
-          controller: _controller.scrollController,
-          errMsg: loadingState.errMsg,
+            )
+          : HttpError(onReload: _controller.onReload),
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: _controller.onReload,
         ),
     };
@@ -417,7 +411,7 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
           },
           child: NetworkImgLayer(
             src: face,
-            type: 'avatar',
+            type: ImageType.avatar,
             width: 70,
             height: 70,
           ),

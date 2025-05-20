@@ -17,7 +17,7 @@ class FavSearchController
   @override
   Future<LoadingState<FavDetailData>> customGetData() =>
       UserHttp.userFavFolderDetail(
-        pn: currentPage,
+        pn: page,
         ps: 20,
         mediaId: mediaId,
         keyword: editController.text,
@@ -45,8 +45,9 @@ class FavSearchController
       type: type,
     );
     if (result['status']) {
-      loadingState.value.data!.removeAt(index);
-      loadingState.refresh();
+      loadingState
+        ..value.data!.removeAt(index)
+        ..refresh();
       SmartDialog.showToast('取消收藏');
     }
   }

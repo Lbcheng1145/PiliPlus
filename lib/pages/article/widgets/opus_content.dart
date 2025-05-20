@@ -4,8 +4,9 @@ import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/image/image_view.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/dynamics/article_content_model.dart'
-    show ArticleContentModel, Style, Word;
+    show ArticleContentModel, Rich, Style, Word;
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/vote.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
@@ -37,6 +38,7 @@ class OpusContent extends StatelessWidget {
       TextStyle(
         decoration:
             style?.strikethrough == true ? TextDecoration.lineThrough : null,
+        decorationColor: color,
         fontStyle: style?.italic == true ? FontStyle.italic : null,
         fontWeight: style?.bold == true ? FontWeight.bold : null,
         color: color,
@@ -67,46 +69,78 @@ class OpusContent extends StatelessWidget {
           switch (element.paraType) {
             case 1 || 4:
               final isQuote = element.paraType == 4;
-              Widget widget = SelectableText.rich(
-                textAlign: element.align == 1 ? TextAlign.center : null,
-                TextSpan(
-                    children: element.text?.nodes?.map<TextSpan>((item) {
-                  if (item.rich != null) {
-                    return TextSpan(
-                      text: '\u{1F517}${item.rich!.text}',
-                      style: _getStyle(item.rich!.style, colorScheme.primary),
-                      recognizer: item.rich!.jumpUrl == null
-                          ? null
-                          : (TapGestureRecognizer()
-                            ..onTap = () {
-                              PiliScheme.routePushFromUrl(item.rich!.jumpUrl!);
-                            }),
-                    );
-                  } else if (item.formula != null) {
-                    // TEXT_NODE_TYPE_FORMULA
-                    return TextSpan(
-                      children: [
-                        WidgetSpan(
-                          child: SizedBox(
-                            height: 65,
-                            child: CachedNetworkSVGImage(
-                              'https://api.bilibili.com/x/web-frontend/mathjax/tex?formula=${Uri.encodeComponent(item.formula!.latexContent!)}',
-                              colorFilter: ColorFilter.mode(
-                                colorScheme.onSurfaceVariant,
-                                BlendMode.srcIn,
+              Widget widget = SelectionArea(
+                child: Text.rich(
+                  textAlign: element.align == 1 ? TextAlign.center : null,
+                  TextSpan(
+                      children: element.text?.nodes?.map((item) {
+                    switch (item.type) {
+                      case 'TEXT_NODE_TYPE_RICH' when (item.rich != null):
+                        Rich rich = item.rich!;
+                        switch (rich.type) {
+                          case 'RICH_TEXT_NODE_TYPE_EMOJI':
+                            Emoji emoji = rich.emoji!;
+                            final size = 20.0 * emoji.size;
+                            return WidgetSpan(
+                              child: NetworkImgLayer(
+                                width: size,
+                                height: size,
+                                src: emoji.url,
+                                type: ImageType.emote,
                               ),
-                              alignment: Alignment.centerLeft,
-                              placeholderBuilder: (context) =>
-                                  const SizedBox.shrink(),
+                            );
+                          default:
+                            return TextSpan(
+                              text:
+                                  '${rich.type == 'RICH_TEXT_NODE_TYPE_WEB' ? '\u{1F517}' : ''}${item.rich!.text}',
+                              style: _getStyle(
+                                rich.style,
+                                rich.type == 'RICH_TEXT_NODE_TYPE_TEXT'
+                                    ? null
+                                    : colorScheme.primary,
+                              ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () {
+                                  switch (rich.type) {
+                                    case 'RICH_TEXT_NODE_TYPE_AT':
+                                      Get.toNamed('/member?mid=${rich.rid}');
+                                    // case 'RICH_TEXT_NODE_TYPE_TOPIC':
+                                    default:
+                                      if (rich.jumpUrl != null) {
+                                        PiliScheme.routePushFromUrl(
+                                          rich.jumpUrl!,
+                                        );
+                                      }
+                                  }
+                                },
+                            );
+                        }
+                      case 'TEXT_NODE_TYPE_FORMULA' when (item.formula != null):
+                        return TextSpan(
+                          children: [
+                            WidgetSpan(
+                              child: CachedNetworkSVGImage(
+                                height: 65,
+                                'https://api.bilibili.com/x/web-frontend/mathjax/tex?formula=${Uri.encodeComponent(item.formula!.latexContent!)}',
+                                colorFilter: ColorFilter.mode(
+                                  colorScheme.onSurfaceVariant,
+                                  BlendMode.srcIn,
+                                ),
+                                alignment: Alignment.centerLeft,
+                                placeholderBuilder: (_) =>
+                                    const SizedBox.shrink(),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }
-                  return _getSpan(
-                      item.word, isQuote ? colorScheme.onSurfaceVariant : null);
-                }).toList()),
+                          ],
+                        );
+                      default:
+                        return _getSpan(
+                          item.word,
+                          isQuote ? colorScheme.onSurfaceVariant : null,
+                        );
+                    }
+                  }).toList()),
+                ),
               );
               if (isQuote) {
                 widget = Container(
@@ -126,27 +160,36 @@ class OpusContent extends StatelessWidget {
               return widget;
             case 2 when (element.pic != null):
               if (element.pic!.pics!.length == 1) {
-                element.pic!.pics!.first.onCalHeight(maxWidth);
+                final pic = element.pic!.pics!.first;
+                final width = pic.width == null
+                    ? null
+                    : min(maxWidth.toDouble(), pic.width!);
+                final height = width == null || pic.height == null
+                    ? null
+                    : width * pic.height! / pic.width!;
                 return Hero(
-                  tag: element.pic!.pics!.first.url!,
+                  tag: pic.url!,
                   child: GestureDetector(
                     onTap: () {
                       if (callback != null) {
-                        callback!([element.pic!.pics!.first.url!], 0);
+                        callback!([pic.url!], 0);
                       } else {
                         context.imageView(
                           initialPage: 0,
-                          imgList: [
-                            SourceModel(url: element.pic!.pics!.first.url!)
-                          ],
+                          imgList: [SourceModel(url: pic.url!)],
                         );
                       }
                     },
-                    child: NetworkImgLayer(
-                      width: maxWidth,
-                      height: element.pic!.pics!.first.calHeight,
-                      src: element.pic!.pics!.first.url!,
-                      quality: 60,
+                    child: Center(
+                      child: CachedNetworkImage(
+                        width: width,
+                        height: height,
+                        imageUrl: Utils.thumbnailImgUrl(pic.url!, 60),
+                        fadeInDuration: const Duration(milliseconds: 120),
+                        fadeOutDuration: const Duration(milliseconds: 120),
+                        placeholder: (context, url) =>
+                            Image.asset('assets/images/loading.png'),
+                      ),
                     ),
                   ),
                 );
@@ -166,23 +209,25 @@ class OpusContent extends StatelessWidget {
                 imageUrl: Utils.thumbnailImgUrl(element.line!.pic!.url!),
               );
             case 5 when (element.list != null):
-              return SelectableText.rich(
-                TextSpan(
-                  children: element.list!.items?.indexed.map((entry) {
-                    return TextSpan(
-                      children: [
-                        WidgetSpan(
-                          child: Icon(MdiIcons.circleMedium),
-                          alignment: PlaceholderAlignment.middle,
-                        ),
-                        ...entry.$2.nodes!.map((item) {
-                          return _getSpan(item.word);
-                        }),
-                        if (entry.$1 < element.list!.items!.length - 1)
-                          const TextSpan(text: '\n'),
-                      ],
-                    );
-                  }).toList(),
+              return SelectionArea(
+                child: Text.rich(
+                  TextSpan(
+                    children: element.list!.items?.indexed.map((entry) {
+                      return TextSpan(
+                        children: [
+                          const WidgetSpan(
+                            child: Icon(MdiIcons.circleMedium),
+                            alignment: PlaceholderAlignment.middle,
+                          ),
+                          ...entry.$2.nodes!.map((item) {
+                            return _getSpan(item.word);
+                          }),
+                          if (entry.$1 < element.list!.items!.length - 1)
+                            const TextSpan(text: '\n'),
+                        ],
+                      );
+                    }).toList(),
+                  ),
                 ),
               );
             case 6:
@@ -192,37 +237,38 @@ class OpusContent extends StatelessWidget {
                 ),
                 color: colorScheme.onInverseSurface,
                 child: InkWell(
-                  onTap: () {
-                    try {
-                      if (element.linkCard!.card!.type ==
-                          'LINK_CARD_TYPE_VOTE') {
-                        showVoteDialog(
-                          context,
-                          element.linkCard!.card!.vote?.voteId ??
-                              int.parse(element.linkCard!.card!.oid!),
-                        );
-                        return;
-                      }
-                      String? url = switch (element.linkCard!.card!.type) {
-                        'LINK_CARD_TYPE_UGC' =>
-                          element.linkCard!.card!.ugc!.jumpUrl,
-                        'LINK_CARD_TYPE_COMMON' =>
-                          element.linkCard!.card!.common!.jumpUrl,
-                        'LINK_CARD_TYPE_LIVE' =>
-                          element.linkCard!.card!.live!.jumpUrl,
-                        'LINK_CARD_TYPE_OPUS' =>
-                          element.linkCard!.card!.opus!.jumpUrl,
-                        'LINK_CARD_TYPE_MUSIC' =>
-                          element.linkCard!.card!.music!.jumpUrl,
-                        'LINK_CARD_TYPE_GOODS' =>
-                          element.linkCard!.card!.goods!.jumpUrl,
-                        _ => null,
-                      };
-                      if (url != null) {
-                        PiliScheme.routePushFromUrl(url);
-                      }
-                    } catch (_) {}
-                  },
+                  onTap: element.linkCard!.card!.type == 'LINK_CARD_TYPE_GOODS'
+                      ? null
+                      : () {
+                          try {
+                            if (element.linkCard!.card!.type ==
+                                'LINK_CARD_TYPE_VOTE') {
+                              showVoteDialog(
+                                context,
+                                element.linkCard!.card!.vote?.voteId ??
+                                    int.parse(element.linkCard!.card!.oid!),
+                              );
+                              return;
+                            }
+                            String? url =
+                                switch (element.linkCard!.card!.type) {
+                              'LINK_CARD_TYPE_UGC' =>
+                                element.linkCard!.card!.ugc!.jumpUrl,
+                              'LINK_CARD_TYPE_COMMON' =>
+                                element.linkCard!.card!.common!.jumpUrl,
+                              'LINK_CARD_TYPE_LIVE' =>
+                                element.linkCard!.card!.live!.jumpUrl,
+                              'LINK_CARD_TYPE_OPUS' =>
+                                element.linkCard!.card!.opus!.jumpUrl,
+                              'LINK_CARD_TYPE_MUSIC' =>
+                                element.linkCard!.card!.music!.jumpUrl,
+                              _ => null,
+                            };
+                            if (url?.isNotEmpty == true) {
+                              PiliScheme.routePushFromUrl(url!);
+                            }
+                          } catch (_) {}
+                        },
                   borderRadius: const BorderRadius.all(Radius.circular(8)),
                   child: Padding(
                     padding: const EdgeInsets.all(8),
@@ -372,12 +418,12 @@ class OpusContent extends StatelessWidget {
                                 ),
                                 color: colorScheme.secondaryContainer,
                               ),
-                              width: 75,
+                              width: 70,
                               height: 50,
                               alignment: Alignment.center,
                               child: Icon(
                                 Icons.bar_chart_rounded,
-                                color: colorScheme.onSecondaryContainer,
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -426,47 +472,53 @@ class OpusContent extends StatelessWidget {
                             ),
                           ],
                         ),
-                      'LINK_CARD_TYPE_GOODS' => Row(
-                          children: [
-                            NetworkImgLayer(
-                              radius: 6,
-                              width: 65 * StyleString.aspectRatio,
-                              height: 65,
-                              src: element
-                                  .linkCard!.card!.goods!.items!.first.cover,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                      'LINK_CARD_TYPE_GOODS' => Column(
+                          children:
+                              element.linkCard!.card!.goods!.items!.map((e) {
+                            return GestureDetector(
+                              onTap: () {
+                                if (e.jumpUrl?.isNotEmpty == true) {
+                                  PiliScheme.routePushFromUrl(e.jumpUrl!);
+                                }
+                              },
+                              child: Row(
                                 children: [
-                                  Text(element.linkCard!.card!.goods!.items!
-                                      .first.name!),
-                                  if (element.linkCard!.card!.goods!.items!
-                                          .first.brief !=
-                                      null)
-                                    Text(
-                                      element.linkCard!.card!.goods!.items!
-                                          .first.brief!,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: colorScheme.outline,
-                                      ),
+                                  NetworkImgLayer(
+                                    radius: 6,
+                                    width: 65 * StyleString.aspectRatio,
+                                    height: 65,
+                                    src: e.cover,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(e.name!),
+                                        if (e.brief?.isNotEmpty == true)
+                                          Text(
+                                            e.brief!,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: colorScheme.outline,
+                                            ),
+                                          ),
+                                        if (e.price?.isNotEmpty == true)
+                                          Text(
+                                            '${e.price!}起',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: colorScheme.outline,
+                                            ),
+                                          ),
+                                      ],
                                     ),
-                                  if (element.linkCard!.card!.goods!.items!
-                                          .first.price !=
-                                      null)
-                                    Text(
-                                      '${element.linkCard!.card!.goods!.items!.first.price!}起',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: colorScheme.outline,
-                                      ),
-                                    ),
+                                  ),
                                 ],
                               ),
-                            ),
-                          ],
+                            );
+                          }).toList(),
                         ),
                       _ => throw UnimplementedError(
                           '\nparaType: ${element.paraType},\ncard type: ${element.linkCard?.card?.type}',
@@ -497,32 +549,42 @@ class OpusContent extends StatelessWidget {
                   color: colorScheme.onInverseSurface,
                 ),
                 width: double.infinity,
-                child: SelectableText.rich(renderer.span!),
+                child: SelectionArea(child: Text.rich(renderer.span!)),
               );
             default:
               debugPrint('unknown type ${element.paraType}');
               if (element.text?.nodes?.isNotEmpty == true) {
-                return SelectableText.rich(
-                  textAlign: element.align == 1 ? TextAlign.center : null,
-                  TextSpan(
-                      children: element.text!.nodes!
-                          .map<TextSpan>((item) => _getSpan(item.word))
-                          .toList()),
+                return SelectionArea(
+                  child: Text.rich(
+                    textAlign: element.align == 1 ? TextAlign.center : null,
+                    TextSpan(
+                        children: element.text!.nodes!
+                            .map<TextSpan>((item) => _getSpan(item.word))
+                            .toList()),
+                  ),
                 );
               }
 
-              return SelectableText('不支持的类型 (${element.paraType})',
+              return SelectionArea(
+                child: Text(
+                  '不支持的类型 (${element.paraType})',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.red,
-                  ));
+                  ),
+                ),
+              );
           }
         } catch (e) {
-          return SelectableText('错误的类型 $e',
+          return SelectionArea(
+            child: Text(
+              '错误的类型 $e',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.red,
-              ));
+              ),
+            ),
+          );
         }
       },
       separatorBuilder: (context, index) => const SizedBox(height: 10),
@@ -577,14 +639,14 @@ Widget moduleBlockedItem(
         shape: shape,
       ),
       onPressed: () {
-        if (moduleBlocked.button!.jumpUrl != null) {
+        if (moduleBlocked.button!.jumpUrl?.isNotEmpty == true) {
           PiliScheme.routePushFromUrl(moduleBlocked.button!.jumpUrl!);
         }
       },
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (moduleBlocked.button!.icon != null)
+          if (moduleBlocked.button!.icon?.isNotEmpty == true)
             CachedNetworkImage(
               height: 16,
               color: Colors.white,
@@ -609,7 +671,7 @@ Widget moduleBlockedItem(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (moduleBlocked.icon != null) icon(max(40, maxWidth / 7)),
-            if (moduleBlocked.hintMessage != null) ...[
+            if (moduleBlocked.hintMessage?.isNotEmpty == true) ...[
               const SizedBox(height: 5),
               Text(
                 moduleBlocked.hintMessage!,
@@ -642,8 +704,9 @@ Widget moduleBlockedItem(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (moduleBlocked.title != null) Text(moduleBlocked.title!),
-              if (moduleBlocked.hintMessage != null) ...[
+              if (moduleBlocked.title?.isNotEmpty == true)
+                Text(moduleBlocked.title!),
+              if (moduleBlocked.hintMessage?.isNotEmpty == true) ...[
                 const SizedBox(height: 2),
                 Text(
                   moduleBlocked.hintMessage!,
@@ -667,6 +730,66 @@ Widget moduleBlockedItem(
           ),
         ],
       ],
+    ),
+  );
+}
+
+Widget opusCollection(ThemeData theme, ModuleCollection item) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Material(
+      borderRadius: const BorderRadius.all(Radius.circular(8)),
+      color: theme.colorScheme.onInverseSurface,
+      child: InkWell(
+        borderRadius: const BorderRadius.all(Radius.circular(8)),
+        onTap: () {
+          Get.toNamed(
+            '/articleList',
+            parameters: {'id': '${item.id}'},
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.title!),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Icon(
+                              size: 18,
+                              Icons.article_outlined,
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '${item.name} · ${item.count}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.keyboard_arrow_right,
+                color: theme.colorScheme.outline,
+              ),
+            ],
+          ),
+        ),
+      ),
     ),
   );
 }

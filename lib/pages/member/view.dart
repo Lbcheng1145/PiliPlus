@@ -1,9 +1,8 @@
+import 'package:PiliPlus/common/widgets/dialog/report_member.dart';
 import 'package:PiliPlus/common/widgets/dynamic_sliver_appbar.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
-import 'package:PiliPlus/common/widgets/radio_widget.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/http/member.dart';
 import 'package:PiliPlus/models/space/data.dart';
 import 'package:PiliPlus/pages/member/controller.dart';
 import 'package:PiliPlus/pages/member/widget/user_info_card.dart';
@@ -16,7 +15,6 @@ import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
 class MemberPage extends StatefulWidget {
@@ -30,8 +28,6 @@ class _MemberPageState extends State<MemberPage> {
   late final int _mid;
   late final String _heroTag;
   late final MemberController _userController;
-  final _key = GlobalKey<ExtendedNestedScrollViewState>();
-  int _offset = 120;
 
   @override
   void initState() {
@@ -48,7 +44,7 @@ class _MemberPageState extends State<MemberPage> {
   void listener() {
     if (_userController.scrollController.hasClients) {
       _userController.showUname.value =
-          _userController.scrollController.offset >= _offset;
+          _userController.scrollController.offset >= _userController.offset;
     }
   }
 
@@ -137,7 +133,7 @@ class _MemberPageState extends State<MemberPage> {
                           horizontal: 20,
                           vertical: 16,
                         ),
-                        content: ReportPanel(
+                        content: MemberReportPanel(
                           name: _userController.username,
                           mid: _mid,
                         ),
@@ -171,7 +167,7 @@ class _MemberPageState extends State<MemberPage> {
             ? LayoutBuilder(
                 builder: (context, constraints) {
                   return ExtendedNestedScrollView(
-                    key: _key,
+                    key: _userController.key,
                     controller: _userController.scrollController,
                     onlyOneScrollInBody: true,
                     pinnedHeaderSliverHeightBuilder: () {
@@ -215,7 +211,7 @@ class _MemberPageState extends State<MemberPage> {
           tabs: _userController.tabs,
           onTap: (value) {
             if (_userController.tabController?.indexIsChanging == false) {
-              _key.currentState?.outerController.animToTop();
+              _userController.key.currentState?.outerController.animToTop();
             }
           },
         ),
@@ -255,30 +251,24 @@ class _MemberPageState extends State<MemberPage> {
       toolbarHeight: kToolbarHeight + MediaQuery.paddingOf(context).top,
       flexibleSpace: _buildUserInfo(_userController.loadingState.value, isV),
       callback: (value) {
-        _offset = (value - 56 - MediaQuery.paddingOf(context).top).toInt();
+        _userController.offset =
+            (value - 56 - MediaQuery.paddingOf(context).top).toInt();
         listener();
       },
-    );
-  }
-
-  Widget _errorWidget(msg) {
-    return errorWidget(
-      errMsg: msg,
-      onReload: _userController.onReload,
     );
   }
 
   Widget _buildUserInfo(LoadingState userState, [bool isV = true]) {
     return switch (userState) {
       Loading() => const CircularProgressIndicator(),
-      Success() => userState.response is SpaceData
+      Success(:var response) => response is SpaceData
           ? Obx(
               () => UserInfoCard(
                 isV: isV,
                 isOwner: _userController.mid == _userController.ownerMid,
                 relation: _userController.relation.value,
-                card: userState.response.card,
-                images: userState.response.images,
+                card: response.card!,
+                images: response.images!,
                 onFollow: () => _userController.onFollow(context),
                 live: _userController.live,
                 silence: _userController.silence,
@@ -290,128 +280,10 @@ class _MemberPageState extends State<MemberPage> {
               behavior: HitTestBehavior.opaque,
               child: const SizedBox(height: 56, width: double.infinity),
             ),
-      Error() => _errorWidget(userState.errMsg),
+      Error(:var errMsg) => scrollErrorWidget(
+          errMsg: errMsg,
+          onReload: _userController.onReload,
+        ),
     };
   }
-}
-
-class ReportPanel extends StatefulWidget {
-  const ReportPanel({
-    super.key,
-    required this.name,
-    required this.mid,
-  });
-
-  final dynamic name;
-  final dynamic mid;
-
-  @override
-  State<ReportPanel> createState() => _ReportPanelState();
-}
-
-class _ReportPanelState extends State<ReportPanel> {
-  final List<bool> _reasonList = List.generate(3, (_) => false).toList();
-  final Set<int> _reason = {};
-  int? _reasonV2;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '举报: ${widget.name}',
-            style: const TextStyle(fontSize: 18),
-          ),
-          const SizedBox(height: 4),
-          Text('uid: ${widget.mid}'),
-          const SizedBox(height: 10),
-          const Text('举报内容（必选，可多选）'),
-          ...List.generate(
-            3,
-            (index) => _checkBoxWidget(
-              _reasonList[index],
-              (value) {
-                setState(() => _reasonList[index] = value);
-                if (value) {
-                  _reason.add(index + 1);
-                } else {
-                  _reason.remove(index + 1);
-                }
-              },
-              ['头像违规', '昵称违规', '签名违规'][index],
-            ),
-          ),
-          const Text('举报理由（单选，非必选）'),
-          ...List.generate(
-            5,
-            (index) => RadioWidget<int>(
-              value: index,
-              groupValue: _reasonV2,
-              onChanged: (value) {
-                setState(() => _reasonV2 = value);
-              },
-              title: const ['色情低俗', '不实信息', '违禁', '人身攻击', '赌博诈骗'][index],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: Get.back,
-                child: Text(
-                  '取消',
-                  style: TextStyle(color: theme.colorScheme.outline),
-                ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  if (_reason.isEmpty) {
-                    SmartDialog.showToast('至少选择一项作为举报内容');
-                  } else {
-                    Get.back();
-                    dynamic result = await MemberHttp.reportMember(
-                      widget.mid,
-                      reason: _reason.join(','),
-                      reasonV2: _reasonV2 != null ? _reasonV2! + 1 : null,
-                    );
-                    if (result['msg'] is String && result['msg'].isNotEmpty) {
-                      SmartDialog.showToast(result['msg']);
-                    } else {
-                      SmartDialog.showToast('举报失败');
-                    }
-                  }
-                },
-                child: const Text('确定'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-Widget _checkBoxWidget(
-  bool defValue,
-  ValueChanged onChanged,
-  String title,
-) {
-  return InkWell(
-    onTap: () => onChanged(!defValue),
-    child: Row(
-      children: [
-        Checkbox(
-          value: defValue,
-          onChanged: onChanged,
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        Text(title),
-      ],
-    ),
-  );
 }

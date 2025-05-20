@@ -69,9 +69,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         .then((data) {
       setState(() {
         if (data.data['code'] == 0) {
-          _loadingState = LoadingState.success(data.data['data']);
+          _loadingState = Success(data.data['data']);
         } else {
-          _loadingState = LoadingState.error(data.data['message']);
+          _loadingState = Error(data.data['message']);
         }
       });
     });
@@ -80,135 +80,129 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget _buildBody(ThemeData theme, LoadingState loadingState) {
     late final divider = Divider(
       height: 1,
-      color: theme.dividerColor.withOpacity(0.1),
+      color: theme.dividerColor.withValues(alpha: 0.1),
     );
 
     late final divider1 = Divider(
       thickness: 16,
-      color: theme.dividerColor.withOpacity(0.1),
+      color: theme.dividerColor.withValues(alpha: 0.1),
     );
 
     return switch (loadingState) {
       Loading() => loadingWidget,
-      Success() => SingleChildScrollView(
-          child: Column(
-            children: [
-              _item(
-                theme: theme,
-                title: '头像',
-                widget: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: ClipOval(
-                    child: CachedNetworkImage(
-                      imageUrl:
-                          Utils.thumbnailImgUrl(loadingState.response['face']),
-                    ),
+      Success(:var response) => ListView(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.paddingOf(context).bottom + 25),
+          children: [
+            divider1,
+            _item(
+              theme: theme,
+              title: '头像',
+              widget: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl: Utils.thumbnailImgUrl(response['face']),
                   ),
                 ),
-                onTap: () {
-                  EasyThrottle.throttle(
-                      'imagePicker', const Duration(milliseconds: 500), () {
-                    _pickImg(theme);
-                  });
-                },
               ),
-              divider,
-              _item(
-                theme: theme,
-                title: '昵称',
-                text: loadingState.response['name'],
-                onTap: () {
-                  if (loadingState.response['coins'] < 6) {
-                    SmartDialog.showToast('硬币不足');
-                  } else {
-                    _editDialog(
-                      type: ProfileType.uname,
-                      title: '昵称',
-                      text: loadingState.response['name'],
+              onTap: () {
+                EasyThrottle.throttle(
+                    'imagePicker', const Duration(milliseconds: 500), () {
+                  _pickImg(theme);
+                });
+              },
+            ),
+            divider,
+            _item(
+              theme: theme,
+              title: '昵称',
+              text: response['name'],
+              onTap: () {
+                if (response['coins'] < 6) {
+                  SmartDialog.showToast('硬币不足');
+                } else {
+                  _editDialog(
+                    type: ProfileType.uname,
+                    title: '昵称',
+                    text: response['name'],
+                  );
+                }
+              },
+            ),
+            divider,
+            _item(
+              theme: theme,
+              title: '性别',
+              text: _sex(response['sex']),
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context_) => _sexDialog(response['sex']),
+                );
+              },
+            ),
+            divider,
+            _item(
+              theme: theme,
+              title: '出生年月',
+              text: response['birthday'],
+              onTap: () {
+                showDatePicker(
+                  context: context,
+                  initialDate: DateTime.parse(response['birthday']),
+                  firstDate: DateTime(1900, 1, 1),
+                  lastDate: DateTime.now(),
+                ).then((date) {
+                  if (date != null) {
+                    _update(
+                      type: ProfileType.birthday,
+                      datum: DateFormat('yyyy-MM-dd').format(date),
                     );
                   }
-                },
-              ),
-              divider,
-              _item(
-                theme: theme,
-                title: '性别',
-                text: _sex(loadingState.response['sex']),
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context_) =>
-                        _sexDialog(loadingState.response['sex']),
-                  );
-                },
-              ),
-              divider,
-              _item(
-                theme: theme,
-                title: '出生年月',
-                text: loadingState.response['birthday'],
-                onTap: () {
-                  showDatePicker(
-                    context: context,
-                    initialDate:
-                        DateTime.parse(loadingState.response['birthday']),
-                    firstDate: DateTime(1900, 1, 1),
-                    lastDate: DateTime.now(),
-                  ).then((date) {
-                    if (date != null) {
-                      _update(
-                        type: ProfileType.birthday,
-                        datum: DateFormat('yyyy-MM-dd').format(date),
-                      );
-                    }
-                  });
-                },
-              ),
-              divider,
-              _item(
-                theme: theme,
-                title: '个性签名',
-                text: loadingState.response['sign'].isEmpty
-                    ? '无'
-                    : loadingState.response['sign'],
-                onTap: () {
-                  _editDialog(
-                    type: ProfileType.sign,
-                    title: '个性签名',
-                    text: loadingState.response['sign'],
-                  );
-                },
-              ),
-              divider1,
-              _item(
-                theme: theme,
-                title: '头像挂件',
-                onTap: () => PageUtils.launchURL(
-                    'https://www.bilibili.com/h5/mall/pendant/home'),
-              ),
-              divider1,
-              _item(
-                theme: theme,
-                title: 'UID',
-                needIcon: false,
-                text: loadingState.response['mid'].toString(),
-                onTap: () =>
-                    Utils.copyText(loadingState.response['mid'].toString()),
-              ),
-              divider1,
-              _item(
-                theme: theme,
-                title: '哔哩哔哩认证',
-                onTap: () => PageUtils.launchURL(
-                    'https://account.bilibili.com/official/mobile/home'),
-              ),
-              divider,
-              SizedBox(height: 25 + MediaQuery.paddingOf(context).bottom),
-            ],
-          ),
+                });
+              },
+            ),
+            divider,
+            _item(
+              theme: theme,
+              title: '个性签名',
+              text: response['sign'].isEmpty ? '无' : response['sign'],
+              onTap: () {
+                _editDialog(
+                  type: ProfileType.sign,
+                  title: '个性签名',
+                  text: response['sign'],
+                );
+              },
+            ),
+            divider1,
+            _item(
+              theme: theme,
+              title: '头像挂件',
+              onTap: () => PageUtils.inAppWebview(
+                  'https://www.bilibili.com/h5/mall/pendant/home'),
+            ),
+            divider1,
+            _item(
+              theme: theme,
+              title: 'UID',
+              needIcon: false,
+              text: response['mid'].toString(),
+              onTap: () => Utils.copyText(response['mid'].toString()),
+            ),
+            divider1,
+            _item(
+              theme: theme,
+              title: '哔哩哔哩认证',
+              onTap: () => PageUtils.inAppWebview(
+                  'https://account.bilibili.com/official/mobile/home'),
+            ),
+            divider1,
+          ],
         ),
-      Error() => errorWidget(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => scrollErrorWidget(
+          errMsg: errMsg,
           onReload: _getInfo,
         ),
     };

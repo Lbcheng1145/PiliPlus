@@ -1,6 +1,7 @@
 import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class PBadge extends StatelessWidget {
   final String? text;
@@ -52,7 +53,7 @@ class PBadge extends StatelessWidget {
         bgColor = theme.primary;
         color = theme.onPrimary;
       case PBadgeType.secondary:
-        bgColor = theme.secondaryContainer.withOpacity(0.5);
+        bgColor = theme.secondaryContainer.withValues(alpha: 0.5);
         color = theme.onSecondaryContainer;
       case PBadgeType.gray:
         bgColor = Colors.black45;
@@ -68,6 +69,10 @@ class PBadge extends StatelessWidget {
         color = theme.secondary;
         bgColor = Colors.transparent;
         borderColor = theme.secondary;
+      case PBadgeType.free:
+        bgColor =
+            Get.isDarkMode ? const Color(0xFFD66011) : const Color(0xFFFF7F24);
+        color = Colors.white;
     }
 
     late EdgeInsets paddingStyle =

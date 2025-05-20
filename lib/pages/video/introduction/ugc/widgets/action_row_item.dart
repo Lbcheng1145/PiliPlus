@@ -5,7 +5,7 @@ class ActionRowItem extends StatelessWidget {
   final Icon? icon;
   final Icon? selectIcon;
   final Function? onTap;
-  final bool? loadingStatus;
+  final bool? isLoading;
   final String? text;
   final bool selectStatus;
   final Function? onLongPress;
@@ -15,7 +15,7 @@ class ActionRowItem extends StatelessWidget {
     this.icon,
     this.selectIcon,
     this.onTap,
-    this.loadingStatus,
+    this.isLoading,
     this.text,
     this.selectStatus = false,
     this.onLongPress,
@@ -26,8 +26,8 @@ class ActionRowItem extends StatelessWidget {
     final theme = Theme.of(context);
     return Material(
       color: selectStatus
-          ? theme.colorScheme.primaryContainer.withOpacity(0.6)
-          : theme.highlightColor.withOpacity(0.2),
+          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.6)
+          : theme.highlightColor.withValues(alpha: 0.2),
       borderRadius: const BorderRadius.all(Radius.circular(30)),
       clipBehavior: Clip.hardEdge,
       child: InkWell(
@@ -53,7 +53,7 @@ class ActionRowItem extends StatelessWidget {
                 const SizedBox(width: 6),
               ],
               AnimatedOpacity(
-                opacity: loadingStatus! ? 0 : 1,
+                opacity: isLoading! ? 0 : 1,
                 duration: const Duration(milliseconds: 200),
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),

@@ -56,35 +56,36 @@ class _FavArticlePageState extends State<FavArticlePage>
             childCount: 10,
           ),
         ),
-      Success() => loadingState.response?.isNotEmpty == true
+      Success(:var response) => response?.isNotEmpty == true
           ? SliverGrid(
               gridDelegate: Grid.videoCardHDelegate(context),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  if (index == loadingState.response!.length - 1) {
+                  if (index == response.length - 1) {
                     _favArticleController.onLoadMore();
                   }
                   return FavArticleItem(
-                    item: loadingState.response![index],
+                    item: response[index],
                     onDelete: () {
                       showConfirmDialog(
-                          context: context,
-                          title: '确定取消收藏？',
-                          onConfirm: () {
-                            _favArticleController.onRemove(
-                              index,
-                              loadingState.response![index]['opus_id'],
-                            );
-                          });
+                        context: context,
+                        title: '确定取消收藏？',
+                        onConfirm: () {
+                          _favArticleController.onRemove(
+                            index,
+                            response[index]['opus_id'],
+                          );
+                        },
+                      );
                     },
                   );
                 },
-                childCount: loadingState.response!.length,
+                childCount: response!.length,
               ),
             )
           : HttpError(onReload: _favArticleController.onReload),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: _favArticleController.onReload,
         ),
     };

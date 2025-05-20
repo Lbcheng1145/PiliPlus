@@ -3,9 +3,13 @@ import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
+import 'package:PiliPlus/grpc/bilibili/app/im/v1.pbenum.dart'
+    show IMSettingType;
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/msg/msgfeed_at_me.dart';
 import 'package:PiliPlus/pages/msg_feed_top/at_me/controller.dart';
+import 'package:PiliPlus/pages/whisper_settings/view.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +31,22 @@ class _AtMePageState extends State<AtMePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('@我的'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Get.to(
+                const WhisperSettingsPage(
+                    imSettingType: IMSettingType.SETTING_TYPE_OLD_AT_ME),
+              );
+            },
+            icon: Icon(
+              size: 20,
+              Icons.settings,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+            ),
+          ),
+          const SizedBox(width: 10),
+        ],
       ),
       body: refreshIndicator(
         onRefresh: _atMeController.onRefresh,
@@ -54,14 +74,14 @@ class _AtMePageState extends State<AtMePage> {
             return const MsgFeedTopSkeleton();
           },
         ),
-      Success() => loadingState.response?.isNotEmpty == true
+      Success(:var response) => response?.isNotEmpty == true
           ? SliverList.separated(
-              itemCount: loadingState.response!.length,
+              itemCount: response!.length,
               itemBuilder: (context, int index) {
-                if (index == loadingState.response!.length - 1) {
+                if (index == response.length - 1) {
                   _atMeController.onLoadMore();
                 }
-                final item = loadingState.response![index];
+                final item = response[index];
                 return ListTile(
                   onTap: () {
                     String? nativeUri = item.item?.nativeUri;
@@ -85,7 +105,7 @@ class _AtMePageState extends State<AtMePage> {
                     child: NetworkImgLayer(
                       width: 45,
                       height: 45,
-                      type: 'avatar',
+                      type: ImageType.avatar,
                       src: item.user?.avatar,
                     ),
                   ),
@@ -132,7 +152,6 @@ class _AtMePageState extends State<AtMePage> {
                       ? NetworkImgLayer(
                           width: 45,
                           height: 45,
-                          type: 'cover',
                           src: item.item?.image,
                         )
                       : null,
@@ -143,13 +162,13 @@ class _AtMePageState extends State<AtMePage> {
                   indent: 72,
                   endIndent: 20,
                   height: 6,
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                 );
               },
             )
           : HttpError(onReload: _atMeController.onReload),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: _atMeController.onReload,
         ),
     };

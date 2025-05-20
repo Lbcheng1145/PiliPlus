@@ -5,7 +5,6 @@ import 'dart:math';
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/progress_bar/audio_video_progress_bar.dart';
 import 'package:PiliPlus/common/widgets/progress_bar/segment_progress_bar.dart';
-import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/super_resolution_type.dart';
 import 'package:PiliPlus/models/video_detail_res.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
@@ -266,7 +265,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     bool isSeason = videoIntroController?.videoDetail.value.ugcSeason != null;
     bool isPage = videoIntroController?.videoDetail.value.pages != null &&
         videoIntroController!.videoDetail.value.pages!.length > 1;
-    bool isBangumi = bangumiIntroController?.loadingState.value is Success;
+    bool isBangumi = bangumiIntroController != null;
     bool anySeason = isSeason || isPage || isBangumi;
     double widgetWidth =
         isFullScreen && context.orientation == Orientation.landscape ? 42 : 35;
@@ -412,7 +411,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
               child: PopupMenuButton<SuperResolutionType>(
                 initialValue: SuperResolutionType
                     .values[plPlayerController.superResolutionType],
-                color: Colors.black.withOpacity(0.8),
+                color: Colors.black.withValues(alpha: 0.8),
                 itemBuilder: (BuildContext context) {
                   return SuperResolutionType.values
                       .map((SuperResolutionType type) {
@@ -451,7 +450,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                 child: ComBtn(
                   icon: Transform.rotate(
                     angle: pi / 2,
-                    child: Icon(
+                    child: const Icon(
                       MdiIcons.viewHeadline,
                       semanticLabel: '分段信息',
                       size: 22,
@@ -508,9 +507,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                   videoIntroController!.videoDetail.value.pages!;
               episodes = pages;
             } else if (isBangumi) {
-              episodes = (bangumiIntroController!.loadingState.value as Success)
-                  .response
-                  .episodes!;
+              episodes = bangumiIntroController!.bangumiItem.episodes!;
             }
             widget.showEpisodes?.call(
               index,
@@ -535,7 +532,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
         alignment: Alignment.center,
         child: PopupMenuButton<BoxFit>(
           initialValue: plPlayerController.videoFit.value,
-          color: Colors.black.withOpacity(0.8),
+          color: Colors.black.withValues(alpha: 0.8),
           itemBuilder: (BuildContext context) {
             return BoxFit.values.map((BoxFit boxFit) {
               return PopupMenuItem<BoxFit>(
@@ -570,7 +567,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                   initialValue: widget
                       .videoDetailController!.vttSubtitlesIndex.value
                       .clamp(0, widget.videoDetailController!.subtitles.length),
-                  color: Colors.black.withOpacity(0.8),
+                  color: Colors.black.withValues(alpha: 0.8),
                   itemBuilder: (BuildContext context) {
                     return [
                       PopupMenuItem<int>(
@@ -626,7 +623,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           alignment: Alignment.center,
           child: PopupMenuButton<double>(
             initialValue: plPlayerController.playbackSpeed,
-            color: Colors.black.withOpacity(0.8),
+            color: Colors.black.withValues(alpha: 0.8),
             itemBuilder: (BuildContext context) {
               return plPlayerController.speedList.map((double speed) {
                 return PopupMenuItem<double>(
@@ -1331,7 +1328,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                       style: FilledButton.styleFrom(
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         backgroundColor: theme.colorScheme.secondaryContainer
-                            .withOpacity(0.8),
+                            .withValues(alpha: 0.8),
                         visualDensity: VisualDensity.compact,
                         padding: const EdgeInsets.all(15),
                         shape: const RoundedRectangleBorder(
@@ -1421,8 +1418,8 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                           buffered: Duration(seconds: buffer),
                           total: Duration(seconds: max),
                           progressBarColor: primary,
-                          baseBarColor: Colors.white.withOpacity(0.2),
-                          bufferedBarColor: primary.withOpacity(0.4),
+                          baseBarColor: Colors.white.withValues(alpha: 0.2),
+                          bufferedBarColor: primary.withValues(alpha: 0.4),
                           timeLabelLocation: TimeLabelLocation.none,
                           thumbColor: primary,
                           barHeight: 3.5,
@@ -1797,7 +1794,7 @@ Widget buildDmChart(
               dotData: const FlDotData(show: false),
               belowBarData: BarAreaData(
                 show: true,
-                color: color.withOpacity(0.4),
+                color: color.withValues(alpha: 0.4),
               ),
             ),
           ],

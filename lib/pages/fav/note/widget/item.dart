@@ -55,29 +55,28 @@ class FavNoteItem extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        item.title ?? '',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          height: 1.4,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    Text(
+                      item.title ?? '',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        height: 1.4,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const Spacer(),
                     Text(
                       item.summary ?? '',
                       maxLines: 1,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 14,
                         height: 1,
                         color: theme.colorScheme.outline,
                         overflow: TextOverflow.clip,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const Spacer(),
                     Text(
                       item.message ?? '',
                       maxLines: 1,
@@ -120,7 +119,8 @@ class FavNoteItem extends StatelessWidget {
                                         StyleString.aspectRatio,
                                     decoration: BoxDecoration(
                                       borderRadius: StyleString.mdRadius,
-                                      color: Colors.black.withOpacity(0.6),
+                                      color:
+                                          Colors.black.withValues(alpha: 0.6),
                                     ),
                                     child: SizedBox(
                                       width: 34,
@@ -139,7 +139,7 @@ class FavNoteItem extends StatelessWidget {
                                                 WidgetStateProperty.resolveWith(
                                               (states) {
                                                 return theme.colorScheme.surface
-                                                    .withOpacity(0.8);
+                                                    .withValues(alpha: 0.8);
                                               },
                                             ),
                                           ),

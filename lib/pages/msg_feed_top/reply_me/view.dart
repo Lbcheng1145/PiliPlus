@@ -3,9 +3,13 @@ import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
+import 'package:PiliPlus/grpc/bilibili/app/im/v1.pbenum.dart'
+    show IMSettingType;
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/msg/msgfeed_reply_me.dart';
 import 'package:PiliPlus/pages/msg_feed_top/reply_me/controller.dart';
+import 'package:PiliPlus/pages/whisper_settings/view.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +29,25 @@ class _ReplyMePageState extends State<ReplyMePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('回复我的')),
+      appBar: AppBar(
+        title: const Text('回复我的'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Get.to(
+                const WhisperSettingsPage(
+                    imSettingType: IMSettingType.SETTING_TYPE_OLD_REPLY_ME),
+              );
+            },
+            icon: Icon(
+              size: 20,
+              Icons.settings,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+            ),
+          ),
+          const SizedBox(width: 10),
+        ],
+      ),
       body: refreshIndicator(
         onRefresh: _replyMeController.onRefresh,
         child: CustomScrollView(
@@ -52,15 +74,15 @@ class _ReplyMePageState extends State<ReplyMePage> {
             return const MsgFeedTopSkeleton();
           },
         ),
-      Success() => loadingState.response?.isNotEmpty == true
+      Success(:var response) => response?.isNotEmpty == true
           ? SliverList.separated(
-              itemCount: loadingState.response!.length,
+              itemCount: response!.length,
               itemBuilder: (context, int index) {
-                if (index == loadingState.response!.length - 1) {
+                if (index == response.length - 1) {
                   _replyMeController.onLoadMore();
                 }
 
-                ReplyMeItems item = loadingState.response![index];
+                ReplyMeItems item = response[index];
                 return ListTile(
                   onTap: () {
                     String? nativeUri = item.item?.nativeUri;
@@ -88,7 +110,7 @@ class _ReplyMePageState extends State<ReplyMePage> {
                     child: NetworkImgLayer(
                       width: 45,
                       height: 45,
-                      type: 'avatar',
+                      type: ImageType.avatar,
                       src: item.user?.avatar,
                     ),
                   ),
@@ -153,13 +175,13 @@ class _ReplyMePageState extends State<ReplyMePage> {
                   indent: 72,
                   endIndent: 20,
                   height: 6,
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                 );
               },
             )
           : HttpError(onReload: _replyMeController.onReload),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: _replyMeController.onReload,
         ),
     };

@@ -9,7 +9,6 @@ import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
 import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/pages/video/reply/controller.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -168,13 +167,7 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
             bottom: MediaQuery.of(context).padding.bottom + 14,
             right: 14,
             child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 2),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: _videoReplyController.fabAnimationCtr,
-                curve: Curves.easeInOut,
-              )),
+              position: _videoReplyController.anim,
               child: FloatingActionButton(
                 heroTag: null,
                 onPressed: () {
@@ -203,22 +196,18 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
           },
           itemCount: 5,
         ),
-      Success() => loadingState.response?.isNotEmpty == true
+      Success(:var response) => response?.isNotEmpty == true
           ? SliverList.builder(
               itemBuilder: (context, index) {
                 double bottom = MediaQuery.of(context).padding.bottom;
-                if (index == loadingState.response.length) {
+                if (index == response.length) {
                   _videoReplyController.onLoadMore();
                   return Container(
                     alignment: Alignment.center,
                     padding: EdgeInsets.only(bottom: bottom),
                     height: bottom + 100,
                     child: Text(
-                      _videoReplyController.isEnd.not
-                          ? '加载中...'
-                          : loadingState.response.isEmpty
-                              ? '还没有评论'
-                              : '没有更多了',
+                      _videoReplyController.isEnd ? '没有更多了' : '加载中...',
                       style: TextStyle(
                         fontSize: 12,
                         color: theme.colorScheme.outline,
@@ -227,13 +216,13 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
                   );
                 } else {
                   return ReplyItemGrpc(
-                    replyItem: loadingState.response[index],
+                    replyItem: response[index],
                     replyLevel: widget.replyLevel,
                     replyReply: widget.replyReply,
                     onReply: () {
                       _videoReplyController.onReply(
                         context,
-                        replyItem: loadingState.response[index],
+                        replyItem: response[index],
                         index: index,
                       );
                     },
@@ -257,14 +246,14 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
                   );
                 }
               },
-              itemCount: loadingState.response.length + 1,
+              itemCount: response.length + 1,
             )
           : HttpError(
               errMsg: '还没有评论',
               onReload: _videoReplyController.onReload,
             ),
-      Error() => HttpError(
-          errMsg: loadingState.errMsg,
+      Error(:var errMsg) => HttpError(
+          errMsg: errMsg,
           onReload: _videoReplyController.onReload,
         ),
     };
