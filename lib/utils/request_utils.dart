@@ -22,7 +22,6 @@ import 'package:PiliPlus/pages/common/multi_select_controller.dart';
 import 'package:PiliPlus/pages/dynamics_tab/controller.dart';
 import 'package:PiliPlus/pages/group_panel/view.dart';
 import 'package:PiliPlus/pages/later/controller.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
@@ -157,9 +156,10 @@ class RequestUtils {
                         context: context,
                         useSafeArea: true,
                         isScrollControlled: true,
-                        sheetAnimationStyle: AnimationStyle(curve: Curves.ease),
+                        sheetAnimationStyle:
+                            const AnimationStyle(curve: Curves.ease),
                         constraints: BoxConstraints(
-                          maxWidth: min(640, min(Get.width, Get.height)),
+                          maxWidth: min(640, context.mediaQueryShortestSide),
                         ),
                         builder: (BuildContext context) {
                           return DraggableScrollableSheet(
@@ -243,7 +243,7 @@ class RequestUtils {
 
   // static Future<dynamic> getWwebid(mid) async {
   //   try {
-  //     dynamic response = await Request().get(
+  //     var response = await Request().get(
   //       '${HttpString.spaceBaseUrl}/$mid/dynamic',
   //       options: Options(
   //         extra: {'account': AnonymousAccount()},
@@ -260,17 +260,15 @@ class RequestUtils {
   //   }
   // }
 
-  static Future<void> insertCreatedDyn(result) async {
+  static Future<void> insertCreatedDyn(id) async {
     try {
-      dynamic id = result['data']['dyn_id'];
       if (id != null) {
         await Future.delayed(const Duration(milliseconds: 200));
-        dynamic res = await DynamicsHttp.dynamicDetail(id: id);
+        var res = await DynamicsHttp.dynamicDetail(id: id);
         if (res['status']) {
           final ctr = Get.find<DynamicsTabController>(tag: 'all');
-          if (ctr.loadingState.value is Success) {
-            List<DynamicItemModel>? list =
-                (ctr.loadingState.value as Success).response;
+          if (ctr.loadingState.value.isSuccess) {
+            List<DynamicItemModel>? list = ctr.loadingState.value.data;
             if (list != null) {
               list.insert(0, res['data']);
               ctr.loadingState.refresh();
@@ -292,8 +290,7 @@ class RequestUtils {
           if (isManual != true) {
             await Future.delayed(const Duration(seconds: 5));
           }
-          dynamic res =
-              await DynamicsHttp.dynamicDetail(id: id, clearCookie: true);
+          var res = await DynamicsHttp.dynamicDetail(id: id, clearCookie: true);
           showDialog(
             context: Get.context!,
             builder: (context) => AlertDialog(
@@ -386,8 +383,7 @@ class RequestUtils {
                 TextButton(
                   onPressed: () {
                     if (checkedId != null) {
-                      List resources = ((ctr.loadingState.value as Success)
-                              .response as List<T>)
+                      List resources = ctr.loadingState.value.data!
                           .where((e) => e.checked == true)
                           .toList();
                       SmartDialog.showLoading();
@@ -405,9 +401,8 @@ class RequestUtils {
                       ).then((res) {
                         if (res['status']) {
                           ctr.handleSelect(false);
-                          if (isCopy.not) {
-                            List<T> dataList =
-                                (ctr.loadingState.value as Success).response;
+                          if (!isCopy) {
+                            List<T> dataList = ctr.loadingState.value.data!;
                             List<T> remainList = dataList
                                 .toSet()
                                 .difference(resources.toSet())

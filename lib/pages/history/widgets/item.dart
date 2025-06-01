@@ -9,9 +9,9 @@ import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models/common/history_business_type.dart';
 import 'package:PiliPlus/models/user/history.dart';
+import 'package:PiliPlus/models/video_detail/data.dart';
 import 'package:PiliPlus/pages/common/multi_select_controller.dart';
 import 'package:PiliPlus/pages/history/base_controller.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
@@ -70,20 +70,23 @@ class HistoryItem extends StatelessWidget {
           if (bvid != null && bvid != '') {
             var result = await VideoHttp.videoIntro(bvid: bvid);
             if (result['status']) {
-              String bvid = result['data'].bvid!;
-              var epid = result['data'].epId;
+              VideoDetailData data = result['data'];
+              String bvid = data.bvid!;
+              var epid = data.epId;
               if (epid != null) {
                 PageUtils.viewBangumi(epId: epid);
               } else {
-                int cid = videoItem.history.cid ??
+                int? cid = videoItem.history.cid ??
                     await SearchHttp.ab2c(aid: aid, bvid: bvid);
-                PageUtils.toVideoPage(
-                  'bvid=$bvid&cid=$cid',
-                  arguments: {
-                    'heroTag': Utils.makeHeroTag(cid),
-                    'pic': videoItem.cover,
-                  },
-                );
+                if (cid != null) {
+                  PageUtils.toVideoPage(
+                    'bvid=$bvid&cid=$cid',
+                    arguments: {
+                      'heroTag': Utils.makeHeroTag(cid),
+                      'pic': videoItem.cover,
+                    },
+                  );
+                }
               }
             } else {
               SmartDialog.showToast(result['msg']);
@@ -94,15 +97,17 @@ class HistoryItem extends StatelessWidget {
             }
           }
         } else {
-          int cid = videoItem.history.cid ??
+          int? cid = videoItem.history.cid ??
               await SearchHttp.ab2c(aid: aid, bvid: bvid);
-          PageUtils.toVideoPage(
-            'bvid=$bvid&cid=$cid',
-            arguments: {
-              'heroTag': Utils.makeHeroTag(aid),
-              'pic': videoItem.cover,
-            },
-          );
+          if (cid != null) {
+            PageUtils.toVideoPage(
+              'bvid=$bvid&cid=$cid',
+              arguments: {
+                'heroTag': Utils.makeHeroTag(aid),
+                'pic': videoItem.cover,
+              },
+            );
+          }
         }
       },
       onLongPress: () {
@@ -140,9 +145,9 @@ class HistoryItem extends StatelessWidget {
                         clipBehavior: Clip.none,
                         children: [
                           NetworkImgLayer(
-                            src: (videoItem.cover.isNullOrEmpty
-                                ? videoItem.covers?.firstOrNull ?? ''
-                                : videoItem.cover),
+                            src: videoItem.cover?.isNotEmpty == true
+                                ? videoItem.cover
+                                : videoItem.covers?.firstOrNull ?? '',
                             width: maxWidth,
                             height: maxHeight,
                           ),
@@ -253,14 +258,12 @@ class HistoryItem extends StatelessWidget {
                   if (videoItem.authorMid != null &&
                       videoItem.authorName?.isNotEmpty == true)
                     PopupMenuItem<String>(
-                      onTap: () {
-                        Get.toNamed(
-                          '/member?mid=${videoItem.authorMid}',
-                          arguments: {
-                            'heroTag': '${videoItem.authorMid}',
-                          },
-                        );
-                      },
+                      onTap: () => Get.toNamed(
+                        '/member?mid=${videoItem.authorMid}',
+                        arguments: {
+                          'heroTag': '${videoItem.authorMid}',
+                        },
+                      ),
                       height: 35,
                       child: Row(
                         children: [

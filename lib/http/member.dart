@@ -14,6 +14,7 @@ import 'package:PiliPlus/models/member/coin.dart';
 import 'package:PiliPlus/models/member/info.dart';
 import 'package:PiliPlus/models/member/seasons.dart';
 import 'package:PiliPlus/models/member/tags.dart';
+import 'package:PiliPlus/models/member_ss/item.dart';
 import 'package:PiliPlus/models/space/data.dart';
 import 'package:PiliPlus/models/space_archive/data.dart';
 import 'package:PiliPlus/models/space_article/data.dart';
@@ -65,7 +66,7 @@ class MemberHttp {
       'statistics': Constants.statisticsApp,
       'vmid': mid.toString(),
     };
-    dynamic res = await Request().get(
+    var res = await Request().get(
       Api.spaceArticle,
       queryParameters: data,
       options: Options(
@@ -95,7 +96,7 @@ class MemberHttp {
       'statistics': Constants.statisticsApp,
       'up_mid': mid.toString(),
     };
-    dynamic res = await Request().get(
+    var res = await Request().get(
       Api.spaceFav,
       queryParameters: data,
       options: Options(
@@ -112,11 +113,11 @@ class MemberHttp {
     }
   }
 
-  static Future<LoadingState> seasonSeriesList({
+  static Future<LoadingState<MemberSsData>> seasonSeriesList({
     required int? mid,
     required int pn,
   }) async {
-    dynamic res = await Request().get(
+    var res = await Request().get(
       Api.seasonSeries,
       queryParameters: {
         'mid': mid,
@@ -125,7 +126,8 @@ class MemberHttp {
       },
     );
     if (res.data['code'] == 0) {
-      return Success(res.data['data']?['items_lists']);
+      return Success(
+          MemberSsData.fromJson(res.data['data']?['items_lists'] ?? {}));
     } else {
       return Error(res.data['message']);
     }
@@ -163,7 +165,7 @@ class MemberHttp {
       'statistics': Constants.statisticsApp,
       'vmid': mid.toString(),
     };
-    dynamic res = await Request().get(
+    var res = await Request().get(
       switch (type) {
         ContributeType.video => Api.spaceArchive,
         ContributeType.charging => Api.spaceChargingArchive,
@@ -211,7 +213,7 @@ class MemberHttp {
       'statistics': Constants.statisticsApp,
       'vmid': mid.toString(),
     };
-    dynamic res = await Request().get(
+    var res = await Request().get(
       Api.spaceStory,
       queryParameters: data,
       options: Options(
@@ -243,7 +245,7 @@ class MemberHttp {
       'statistics': Constants.statisticsApp,
       'vmid': mid.toString(),
     };
-    dynamic res = await Request().get(
+    var res = await Request().get(
       Api.space,
       queryParameters: data,
       options: Options(

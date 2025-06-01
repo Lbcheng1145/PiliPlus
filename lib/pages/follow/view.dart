@@ -7,7 +7,7 @@ import 'package:PiliPlus/pages/follow/child_view.dart';
 import 'package:PiliPlus/pages/follow/controller.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show LengthLimitingTextInputFormatter;
 import 'package:get/get.dart';
 
 class FollowPage extends StatefulWidget {
@@ -97,9 +97,7 @@ class _FollowPageState extends State<FollowPage> {
                     int? count = item.count;
                     if (_isCustomTag(item.tagid)) {
                       return GestureDetector(
-                        onLongPress: () {
-                          _onHandleTag(index, item);
-                        },
+                        onLongPress: () => _onHandleTag(index, item),
                         child: Tab(
                           child: Row(
                             children: [
@@ -115,7 +113,7 @@ class _FollowPageState extends State<FollowPage> {
                     return Tab(
                         text: '${item.name}${count != null ? '($count)' : ''}');
                   });
-                }).toList(),
+                }),
                 onTap: (value) {
                   if (!_followController.tabController!.indexIsChanging) {
                     final item = _followController.tabs[value];
@@ -200,9 +198,7 @@ class _FollowPageState extends State<FollowPage> {
                     context: context,
                     title: '删除分组',
                     content: '删除后，该分组下的用户依旧保留？',
-                    onConfirm: () {
-                      _followController.onDelTag(item.tagid);
-                    },
+                    onConfirm: () => _followController.onDelTag(item.tagid),
                   );
                 },
                 dense: true,
@@ -232,9 +228,7 @@ class _FollowPageState extends State<FollowPage> {
         ],
         decoration: const InputDecoration(border: OutlineInputBorder()),
       ),
-      onConfirm: () {
-        _followController.onCreateTag(tagName);
-      },
+      onConfirm: () => _followController.onCreateTag(tagName),
     );
   }
 }

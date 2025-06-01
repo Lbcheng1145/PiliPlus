@@ -6,7 +6,7 @@ import 'package:PiliPlus/pages/dynamics/widgets/up_panel.dart';
 import 'package:PiliPlus/pages/dynamics_create/view.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide DraggableScrollableSheet;
 import 'package:get/get.dart';
 
 class DynamicsPage extends StatefulWidget {
@@ -40,12 +40,7 @@ class _DynamicsPageState extends State<DynamicsPage>
             ),
             onPressed: () {
               if (_dynamicsController.isLogin.value) {
-                showModalBottomSheet(
-                  context: context,
-                  useSafeArea: true,
-                  isScrollControlled: true,
-                  builder: (context) => const CreateDynPanel(),
-                );
+                CreateDynPanel.onCreateDyn(context);
               }
             },
             icon: Icon(
@@ -100,9 +95,7 @@ class _DynamicsPageState extends State<DynamicsPage>
               return Center(
                 child: IconButton(
                   icon: const Icon(Icons.refresh),
-                  onPressed: () {
-                    _dynamicsController.queryFollowUp();
-                  },
+                  onPressed: _dynamicsController.queryFollowUp,
                 ),
               );
             } else {
@@ -121,7 +114,7 @@ class _DynamicsPageState extends State<DynamicsPage>
     super.build(context);
     ThemeData theme = Theme.of(context);
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: upPanelPosition == UpPanelPosition.rightDrawer
             ? _createDynamicBtn(theme, false)

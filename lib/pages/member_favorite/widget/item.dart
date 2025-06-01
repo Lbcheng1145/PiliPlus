@@ -12,7 +12,7 @@ import 'package:get/get.dart';
 class MemberFavItem extends StatelessWidget {
   const MemberFavItem({super.key, required this.item, this.callback});
 
-  final FavList item;
+  final SpaceFavItemModel item;
   final ValueChanged<bool?>? callback;
 
   @override
@@ -28,7 +28,7 @@ class MemberFavItem extends StatelessWidget {
           }
 
           if (item.type == 0) {
-            dynamic res = await Get.toNamed(
+            var res = await Get.toNamed(
               '/favDetail',
               parameters: {
                 'mediaId': item.id.toString(),
@@ -58,12 +58,10 @@ class MemberFavItem extends StatelessWidget {
             );
           }
         },
-        onLongPress: () {
-          imageSaveDialog(
-            title: item.title,
-            cover: item.cover,
-          );
-        },
+        onLongPress: () => imageSaveDialog(
+          title: item.title,
+          cover: item.cover,
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: StyleString.safeSpace,

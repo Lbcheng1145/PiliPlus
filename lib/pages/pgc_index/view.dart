@@ -3,11 +3,11 @@ import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
 import 'package:PiliPlus/common/widgets/self_sized_horizontal_list.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/bangumi/pgc_index/condition.dart';
+import 'package:PiliPlus/models/pgc/pgc_index/condition.dart';
+import 'package:PiliPlus/models/pgc/pgc_index_item/list.dart';
 import 'package:PiliPlus/pages/bangumi/widgets/bangumi_card_v_pgc_index.dart';
 import 'package:PiliPlus/pages/pgc_index/controller.dart';
 import 'package:PiliPlus/pages/search/widgets/search_text.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/grid.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -43,17 +43,18 @@ class _PgcIndexPageState extends State<PgcIndexPage>
         : Obx(() => _buildBody(theme, _ctr.conditionState.value));
   }
 
-  Widget _buildBody(ThemeData theme, LoadingState loadingState) {
+  Widget _buildBody(
+      ThemeData theme, LoadingState<PgcIndexCondition> loadingState) {
     return switch (loadingState) {
       Loading() => loadingWidget,
       Success(:var response) => Builder(builder: (context) {
-          PgcIndexCondition data = response;
-          int count = (data.order?.isNotEmpty == true ? 1 : 0) +
-              (data.filter?.length ?? 0);
+          int count = (response.order?.isNotEmpty == true ? 1 : 0) +
+              (response.filter?.length ?? 0);
           if (count == 0) return const SizedBox.shrink();
           return SafeArea(
             bottom: false,
             child: CustomScrollView(
+              controller: _ctr.scrollController,
               slivers: [
                 if (widget.indexType != null)
                   const SliverToBoxAdapter(child: SizedBox(height: 12)),
@@ -63,8 +64,8 @@ class _PgcIndexPageState extends State<PgcIndexPage>
                     alignment: Alignment.topCenter,
                     duration: const Duration(milliseconds: 200),
                     child: count > 5
-                        ? Obx(() => _buildSortWidget(theme, count, data))
-                        : _buildSortWidget(theme, count, data),
+                        ? Obx(() => _buildSortWidget(theme, count, response))
+                        : _buildSortWidget(theme, count, response),
                   ),
                 ),
                 SliverPadding(
@@ -82,10 +83,9 @@ class _PgcIndexPageState extends State<PgcIndexPage>
         }),
       Error(:var errMsg) => scrollErrorWidget(
           errMsg: errMsg,
-          onReload: () {
-            _ctr.conditionState.value = LoadingState.loading();
-            _ctr.getPgcIndexCondition();
-          },
+          onReload: () => _ctr
+            ..conditionState.value = LoadingState.loading()
+            ..getPgcIndexCondition(),
         ),
     };
   }
@@ -175,9 +175,7 @@ class _PgcIndexPageState extends State<PgcIndexPage>
             const SizedBox(height: 8),
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () {
-                _ctr.isExpand.value = _ctr.isExpand.value.not;
-              },
+              onTap: () => _ctr.isExpand.value = !_ctr.isExpand.value,
               child: Container(
                 alignment: Alignment.center,
                 child: Row(
@@ -203,7 +201,7 @@ class _PgcIndexPageState extends State<PgcIndexPage>
         ],
       );
 
-  Widget _buildList(LoadingState<List<dynamic>?> loadingState) {
+  Widget _buildList(LoadingState<List<PgcIndexItemModel>?> loadingState) {
     return switch (loadingState) {
       Loading() => const SliverToBoxAdapter(child: LinearProgressIndicator()),
       Success(:var response) => response?.isNotEmpty == true

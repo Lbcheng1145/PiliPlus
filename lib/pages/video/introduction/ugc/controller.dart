@@ -8,15 +8,24 @@ import 'package:PiliPlus/http/member.dart';
 import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/http/video.dart';
+import 'package:PiliPlus/models/triple/ugc_triple.dart';
 import 'package:PiliPlus/models/user/fav_folder.dart';
 import 'package:PiliPlus/models/video/ai.dart';
-import 'package:PiliPlus/models/video_detail_res.dart';
+import 'package:PiliPlus/models/video_detail/data.dart';
+import 'package:PiliPlus/models/video_detail/episode.dart';
+import 'package:PiliPlus/models/video_detail/page.dart';
+import 'package:PiliPlus/models/video_detail/section.dart';
+import 'package:PiliPlus/models/video_detail/staff.dart';
+import 'package:PiliPlus/models/video_detail/ugc_season.dart';
+import 'package:PiliPlus/models/video_relation/data.dart';
+import 'package:PiliPlus/models/video_tag/data.dart';
 import 'package:PiliPlus/pages/dynamics_repost/view.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
 import 'package:PiliPlus/pages/video/pay_coins/view.dart';
 import 'package:PiliPlus/pages/video/related/controller.dart';
 import 'package:PiliPlus/pages/video/reply/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_repeat.dart';
+import 'package:PiliPlus/services/service_locator.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/global_data.dart';
@@ -50,7 +59,7 @@ class VideoIntroController extends GetxController {
   // up主粉丝数
   RxMap<String, dynamic> userStat = RxMap<String, dynamic>({'follower': '-'});
 
-  dynamic videoTags;
+  List<VideoTagItem>? videoTags;
 
   // 是否点赞
   RxBool hasLike = false.obs;
@@ -140,6 +149,7 @@ class VideoIntroController extends GetxController {
     var result = await VideoHttp.videoIntro(bvid: bvid);
     if (result['status']) {
       VideoDetailData data = result['data'];
+      videoPlayerServiceHandler.onVideoDetailChange(data, data.cid!, heroTag);
       if (videoDetail.value.ugcSeason?.id == data.ugcSeason?.id) {
         // keep reversed season
         data.ugcSeason = videoDetail.value.ugcSeason;
@@ -158,7 +168,7 @@ class VideoIntroController extends GetxController {
         if (videoDetailController.videoItem['pic'] == null ||
             videoDetailController.videoItem['pic'] == '' ||
             (videoDetailController.videoUrl.isNullOrEmpty &&
-                videoDetailController.isQuerying.not)) {
+                !videoDetailController.isQuerying)) {
           videoDetailController.videoItem['pic'] = data.pic;
         }
         if (videoDetailController.showReply) {
@@ -187,6 +197,7 @@ class VideoIntroController extends GetxController {
   }
 
   Future<void> queryVideoTags() async {
+    videoTags = null;
     var result = await UserHttp.videoTags(bvid: bvid);
     if (result['status']) {
       videoTags = result['data'];
@@ -226,11 +237,11 @@ class VideoIntroController extends GetxController {
   Future<void> queryAllStatus() async {
     var result = await VideoHttp.videoRelation(bvid: bvid);
     if (result['status']) {
-      var data = result['data'];
-      hasLike.value = data['like'];
-      hasDislike.value = data['dislike'];
-      _coinNum.value = data['coin'];
-      hasFav.value = data['favorite'];
+      VideoRelation data = result['data'];
+      hasLike.value = data.like!;
+      hasDislike.value = data.dislike!;
+      _coinNum.value = data.coin!;
+      hasFav.value = data.favorite!;
     }
   }
 
@@ -248,12 +259,13 @@ class VideoIntroController extends GetxController {
     }
     var result = await VideoHttp.oneThree(bvid: bvid);
     if (result['status']) {
-      hasLike.value = result["data"]["like"];
-      if (result["data"]["coin"]) {
+      UgcTriple data = result['data'];
+      hasLike.value = data.like!;
+      if (data.coin == true) {
         _coinNum.value = 2;
         GlobalData().afterCoin(2);
       }
-      hasFav.value = result["data"]["fav"];
+      hasFav.value = data.fav!;
       SmartDialog.showToast('三连成功');
     } else {
       SmartDialog.showToast(result['msg']);
@@ -330,7 +342,7 @@ class VideoIntroController extends GetxController {
       _coinNum.value += coin;
       GlobalData().afterCoin(coin);
       videoDetail.value.stat!.coin = videoDetail.value.stat!.coin! + coin;
-      if (selectLike && hasLike.value.not) {
+      if (selectLike && !hasLike.value) {
         hasLike.value = true;
         videoDetail.value.stat!.like = videoDetail.value.stat!.like! + 1;
       }
@@ -401,7 +413,7 @@ class VideoIntroController extends GetxController {
       for (var i in favFolderData.value.list!.toList()) {
         bool isFaved = favIds?.contains(i.id) == true;
         if (i.favState == 1) {
-          if (isFaved.not) {
+          if (!isFaved) {
             addMediaIdsNew.add(i.id);
           }
         } else {
@@ -548,12 +560,10 @@ class VideoIntroController extends GetxController {
   // 选择文件夹
   void onChoose(bool checkValue, int index) {
     feedBack();
-    List<FavFolderItemData> datalist = favFolderData.value.list!;
-    datalist[index].favState = checkValue ? 1 : 0;
-    datalist[index].mediaCount = checkValue
-        ? datalist[index].mediaCount! + 1
-        : datalist[index].mediaCount! - 1;
-    favFolderData.value.list = datalist;
+    FavFolderItemData item = favFolderData.value.list![index];
+    item
+      ..favState = checkValue ? 1 : 0
+      ..mediaCount = checkValue ? item.mediaCount! + 1 : item.mediaCount! - 1;
     favFolderData.refresh();
   }
 
@@ -582,7 +592,7 @@ class VideoIntroController extends GetxController {
     }
     int attr = followStatus['attribute'] ?? 0;
     if (attr == 128) {
-      dynamic res = await VideoHttp.relationMod(
+      var res = await VideoHttp.relationMod(
         mid: mid,
         act: 6,
         reSrc: 11,
@@ -687,10 +697,10 @@ class VideoIntroController extends GetxController {
 
   // 查看同时在看人数
   Future<void> queryOnlineTotal() async {
-    if (isShowOnlineTotal.not) {
+    if (!isShowOnlineTotal) {
       return;
     }
-    dynamic result = await VideoHttp.onlineTotal(
+    var result = await VideoHttp.onlineTotal(
       aid: IdUtils.bv2av(bvid),
       bvid: bvid,
       cid: lastPlayCid.value,
@@ -715,7 +725,7 @@ class VideoIntroController extends GetxController {
 
     final videoDetailCtr = Get.find<VideoDetailController>(tag: heroTag);
 
-    if (skipPages.not && (videoDetail.value.pages?.length ?? 0) > 1) {
+    if (!skipPages && (videoDetail.value.pages?.length ?? 0) > 1) {
       isPages = true;
       final List<Part> pages = videoDetail.value.pages!;
       episodes.addAll(pages);
@@ -767,7 +777,7 @@ class VideoIntroController extends GetxController {
       final videoDetailCtr = Get.find<VideoDetailController>(tag: heroTag);
 
       // part -> playall -> season
-      if (skipPages.not && (videoDetail.value.pages?.length ?? 0) > 1) {
+      if (!skipPages && (videoDetail.value.pages?.length ?? 0) > 1) {
         isPages = true;
         final List<Part> pages = videoDetail.value.pages!;
         episodes.addAll(pages);
@@ -803,7 +813,7 @@ class VideoIntroController extends GetxController {
 
       int nextIndex = currentIndex + 1;
 
-      if (isPages.not &&
+      if (!isPages &&
           videoDetailCtr.isPlayAll &&
           currentIndex == episodes.length - 2) {
         videoDetailCtr.getMediaList();
@@ -852,7 +862,7 @@ class VideoIntroController extends GetxController {
       relatedCtr = Get.find<RelatedController>(tag: heroTag);
     } else {
       relatedCtr = Get.put(RelatedController(false), tag: heroTag)
-        ..queryData().then((_) {
+        ..queryData().whenComplete(() {
           playRelated();
         });
       return false;

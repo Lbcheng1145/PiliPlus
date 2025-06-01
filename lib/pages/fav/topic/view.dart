@@ -30,6 +30,8 @@ class _FavTopicPageState extends State<FavTopicPage>
     return refreshIndicator(
       onRefresh: _controller.onRefresh,
       child: CustomScrollView(
+        controller: _controller.scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverPadding(
             padding: EdgeInsets.only(
@@ -68,24 +70,20 @@ class _FavTopicPageState extends State<FavTopicPage>
                     color: theme.colorScheme.onInverseSurface,
                     borderRadius: const BorderRadius.all(Radius.circular(6)),
                     child: InkWell(
-                      onTap: () {
-                        Get.toNamed(
-                          '/dynTopic',
-                          parameters: {
-                            'id': item.id!.toString(),
-                            'name': item.name!,
-                          },
-                        );
-                      },
-                      onLongPress: () {
-                        showConfirmDialog(
-                          context: context,
-                          title: '确定取消收藏？',
-                          onConfirm: () {
-                            _controller.onRemove(index, item.id);
-                          },
-                        );
-                      },
+                      onTap: () => Get.toNamed(
+                        '/dynTopic',
+                        parameters: {
+                          'id': item.id!.toString(),
+                          'name': item.name!,
+                        },
+                      ),
+                      onLongPress: () => showConfirmDialog(
+                        context: context,
+                        title: '确定取消收藏？',
+                        onConfirm: () {
+                          _controller.onRemove(index, item.id);
+                        },
+                      ),
                       borderRadius: const BorderRadius.all(Radius.circular(6)),
                       child: Container(
                         alignment: Alignment.centerLeft,

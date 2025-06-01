@@ -66,12 +66,14 @@ class MemberFavoriteCtr extends CommonDataController {
       page++;
       firstEnd.value = res.data['data']['has_more'] == false;
       if (res.data['data'] != null) {
-        List<FavList> list = (res.data['data']['list'] as List<dynamic>?)
-                ?.map((item) => FavList.fromJson(item))
-                .toList() ??
-            <FavList>[];
-        first.value.mediaListResponse?.list?.addAll(list);
-        first.refresh();
+        List<SpaceFavItemModel> list =
+            (res.data['data']['list'] as List<dynamic>?)
+                    ?.map((item) => SpaceFavItemModel.fromJson(item))
+                    .toList() ??
+                <SpaceFavItemModel>[];
+        first
+          ..value.mediaListResponse?.list?.addAll(list)
+          ..refresh();
       } else {
         firstEnd.value = true;
       }
@@ -91,12 +93,14 @@ class MemberFavoriteCtr extends CommonDataController {
       page++;
       secondEnd.value = res.data['data']['has_more'] == false;
       if (res.data['data'] != null) {
-        List<FavList> list = (res.data['data']['list'] as List<dynamic>?)
-                ?.map((item) => FavList.fromJson(item))
-                .toList() ??
-            <FavList>[];
-        second.value.mediaListResponse?.list?.addAll(list);
-        second.refresh();
+        List<SpaceFavItemModel> list =
+            (res.data['data']['list'] as List<dynamic>?)
+                    ?.map((item) => SpaceFavItemModel.fromJson(item))
+                    .toList() ??
+                <SpaceFavItemModel>[];
+        second
+          ..value.mediaListResponse?.list?.addAll(list)
+          ..refresh();
       } else {
         secondEnd.value = true;
       }

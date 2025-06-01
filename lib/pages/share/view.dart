@@ -6,6 +6,7 @@ import 'package:PiliPlus/pages/contact/view.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show LengthLimitingTextInputFormatter;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
@@ -172,10 +173,8 @@ class _SharePanelState extends State<SharePanel> {
               GestureDetector(
                 onTap: () async {
                   _focusNode.unfocus();
-                  UserModel? userModel = await Get.dialog(
-                    const ContactPage(),
-                    useSafeArea: false,
-                    transitionDuration: const Duration(milliseconds: 120),
+                  UserModel? userModel = await Navigator.of(context).push(
+                    GetPageRoute(page: () => const ContactPage()),
                   );
                   if (userModel != null) {
                     _userList
@@ -239,6 +238,7 @@ class _SharePanelState extends State<SharePanel> {
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     fillColor: theme.colorScheme.onInverseSurface,
                   ),
+                  inputFormatters: [LengthLimitingTextInputFormatter(100)],
                 ),
               ),
               const SizedBox(width: 12),

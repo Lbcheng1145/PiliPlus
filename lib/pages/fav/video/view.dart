@@ -74,7 +74,7 @@ class _FavVideoPageState extends State<FavVideoPage>
                     heroTag: heroTag,
                     favFolderItem: item,
                     onTap: () async {
-                      dynamic res = await Get.toNamed(
+                      var res = await Get.toNamed(
                         '/favDetail',
                         arguments: item,
                         parameters: {
@@ -83,8 +83,9 @@ class _FavVideoPageState extends State<FavVideoPage>
                         },
                       );
                       if (res == true) {
-                        _favController.loadingState.value.data!.removeAt(index);
-                        _favController.loadingState.refresh();
+                        _favController.loadingState
+                          ..value.data!.removeAt(index)
+                          ..refresh();
                       }
                     },
                   );

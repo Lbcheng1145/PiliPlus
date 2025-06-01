@@ -1,11 +1,12 @@
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/http/msg.dart';
 import 'package:PiliPlus/http/user.dart';
+import 'package:PiliPlus/models/folder_info/data.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show LengthLimitingTextInputFormatter;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -38,15 +39,17 @@ class _CreateFavPageState extends State<CreateFavPage> {
   }
 
   void _getFolderInfo() {
-    UserHttp.folderInfo(mediaId: _mediaId).then((data) {
-      if (data['status']) {
-        _titleController.text = data['data']['title'];
-        _introController.text = data['data']['intro'];
-        _isPublic = Utils.isPublicFav(data['data']['attr']);
-        _cover = data['data']['cover'];
-        _attr = data['data']['attr'];
+    _errMsg = null;
+    UserHttp.folderInfo(mediaId: _mediaId).then((res) {
+      if (res['status']) {
+        FolderInfo data = res['data'];
+        _titleController.text = data.title!;
+        _introController.text = data.intro ?? '';
+        _isPublic = Utils.isPublicFav(data.attr!);
+        _cover = data.cover;
+        _attr = data.attr;
       } else {
-        _errMsg = data['msg'];
+        _errMsg = res['msg'];
       }
       setState(() {});
     });
@@ -365,11 +368,9 @@ class _CreateFavPageState extends State<CreateFavPage> {
               const SizedBox(height: 16),
             ],
             ListTile(
-              onTap: () {
-                setState(() {
-                  _isPublic = !_isPublic;
-                });
-              },
+              onTap: () => setState(() {
+                _isPublic = !_isPublic;
+              }),
               tileColor: theme.colorScheme.onInverseSurface,
               leading: Text(
                 '公开',

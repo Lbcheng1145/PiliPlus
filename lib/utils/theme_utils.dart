@@ -39,7 +39,7 @@ class ThemeUtils {
               labelSmall: textStyle,
             ),
       tabBarTheme:
-          fontWeight == null ? null : TabBarTheme(labelStyle: textStyle),
+          fontWeight == null ? null : TabBarThemeData(labelStyle: textStyle),
       appBarTheme: AppBarTheme(
         elevation: 0,
         titleSpacing: 0,
@@ -72,7 +72,7 @@ class ThemeUtils {
       popupMenuTheme: PopupMenuThemeData(
         surfaceTintColor: isDynamic ? colorScheme.onSurfaceVariant : null,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 1,
         surfaceTintColor: isDynamic
             ? colorScheme.onSurfaceVariant
@@ -82,9 +82,11 @@ class ThemeUtils {
         shadowColor: Colors.transparent,
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
+        // ignore: deprecated_member_use
+        year2023: false,
         refreshBackgroundColor: colorScheme.onSecondary,
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         titleTextStyle: TextStyle(
           fontSize: 18,
           color: colorScheme.onSurface,
@@ -101,6 +103,8 @@ class ThemeUtils {
           ),
         ),
       ),
+      // ignore: deprecated_member_use
+      sliderTheme: const SliderThemeData(year2023: false),
     );
     if (isDark && GStorage.isPureBlackTheme) {
       themeData = darkenTheme(themeData);

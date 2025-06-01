@@ -92,10 +92,7 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
                 onRefresh: _controller.onRefresh,
                 child: CustomScrollView(
                   controller: _controller.scrollController,
-                  // physics: PositionRetainedScrollPhysics(
-                  //   shouldRetain: _controller.hasPrev,
-                  //   parent: const ClampingScrollPhysics(),
-                  // ),
+                  physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
                     _buildSliverHeader(theme),
                     Obx(() =>
@@ -142,12 +139,10 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
               SizedBox(
                 height: 35,
                 child: TextButton.icon(
-                  onPressed: () {
-                    _controller
-                      ..lastAid =
-                          widget.videoDetailController.oid.value.toString()
-                      ..queryBySort();
-                  },
+                  onPressed: () => _controller
+                    ..lastAid =
+                        widget.videoDetailController.oid.value.toString()
+                    ..queryBySort(),
                   icon: Icon(
                     Icons.sort,
                     size: 16,
@@ -249,9 +244,7 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
           Row(
             children: [
               GestureDetector(
-                onTap: () {
-                  Utils.copyText(memberInfoModel.name ?? '');
-                },
+                onTap: () => Utils.copyText(memberInfoModel.name ?? ''),
                 child: Text(
                   memberInfoModel.name ?? '',
                   style: TextStyle(
@@ -339,11 +332,9 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
                         mid: widget.mid,
                         isFollow: memberInfoModel.isFollowed ?? false,
                         callback: (attribute) {
-                          (_controller.userState.value
-                                  as Success<MemberInfoModel>)
-                              .response
-                              .isFollowed = attribute != 0;
-                          _controller.userState.refresh();
+                          _controller
+                            ..userState.value.data.isFollowed = attribute != 0
+                            ..userState.refresh();
                         },
                       );
                     }
@@ -366,9 +357,7 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
                     padding: EdgeInsets.zero,
                     visualDensity: const VisualDensity(vertical: -2),
                   ),
-                  onPressed: () {
-                    Get.toNamed('/member?mid=${widget.mid}');
-                  },
+                  onPressed: () => Get.toNamed('/member?mid=${widget.mid}'),
                   child: const Text(
                     '查看主页',
                     maxLines: 1,

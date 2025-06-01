@@ -1,7 +1,6 @@
 import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
     show ReplyInfo;
 import 'package:PiliPlus/http/reply.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:fixnum/fixnum.dart' as $fixnum;
@@ -87,31 +86,30 @@ class _ZanButtonGrpcState extends State<ZanButtonGrpc> {
 
   bool isProcessing = false;
   Future<void> handleState(Future Function() action) async {
-    if (isProcessing.not) {
+    if (!isProcessing) {
       isProcessing = true;
       await action();
       isProcessing = false;
     }
   }
 
-  ButtonStyle get _style => TextButton.styleFrom(
-        padding: EdgeInsets.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        visualDensity: VisualDensity.compact,
-      );
-
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final Color color = theme.colorScheme.outline;
     final Color primary = theme.colorScheme.primary;
+    final ButtonStyle style = TextButton.styleFrom(
+      padding: EdgeInsets.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+    );
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
           height: 32,
           child: TextButton(
-            style: _style,
+            style: style,
             onPressed: () => handleState(onHateReply),
             child: Icon(
               isDislike
@@ -126,7 +124,7 @@ class _ZanButtonGrpcState extends State<ZanButtonGrpc> {
         SizedBox(
           height: 32,
           child: TextButton(
-            style: _style,
+            style: style,
             onPressed: () => handleState(onLikeReply),
             child: Row(
               children: [

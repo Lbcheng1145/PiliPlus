@@ -5,8 +5,8 @@ import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/stat/stat.dart';
-import 'package:PiliPlus/models/bangumi/info.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart';
+import 'package:PiliPlus/models/pgc/pgc_info_model/result.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
 import 'package:PiliPlus/pages/video/introduction/pgc/controller.dart';
 import 'package:PiliPlus/pages/video/introduction/pgc/widgets/bangumi_panel.dart';
@@ -15,7 +15,7 @@ import 'package:PiliPlus/pages/video/introduction/ugc/widgets/action_row_item.da
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 
@@ -47,7 +47,7 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
 
   bool isProcessing = false;
   Future<void> handleState(FutureOr Function() action) async {
-    if (isProcessing.not) {
+    if (!isProcessing) {
       isProcessing = true;
       await action();
       isProcessing = false;
@@ -85,6 +85,7 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 10,
               children: [
                 Stack(
                   clipBehavior: Clip.none,
@@ -113,7 +114,7 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
                     ),
                     if (bangumiItem.rating != null)
                       PBadge(
-                        text: '评分 ${bangumiItem.rating!['score']!}',
+                        text: '评分 ${bangumiItem.rating!.score!}',
                         top: null,
                         right: 6,
                         bottom: 6,
@@ -121,7 +122,6 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
                       ),
                   ],
                 ),
-                const SizedBox(width: 10),
                 Expanded(
                   child: GestureDetector(
                     onTap: () => widget.showIntroDetail(
@@ -135,6 +135,7 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
                         children: [
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            spacing: 20,
                             children: [
                               Expanded(
                                 child: Text(
@@ -146,7 +147,6 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              const SizedBox(width: 20),
                               Obx(
                                 () => FilledButton.tonal(
                                   style: FilledButton.styleFrom(
@@ -204,24 +204,21 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
                             ],
                           ),
                           Row(
+                            spacing: 6,
                             children: [
                               StatView(
                                 context: context,
                                 theme: 'gray',
-                                value:
-                                    Utils.numFormat(bangumiItem.stat!['views']),
+                                value: Utils.numFormat(bangumiItem.stat!.views),
                               ),
-                              const SizedBox(width: 6),
                               StatDanMu(
                                 context: context,
                                 theme: 'gray',
-                                value: Utils.numFormat(
-                                    bangumiItem.stat!['danmakus']),
+                                value:
+                                    Utils.numFormat(bangumiItem.stat!.danmakus),
                               ),
                               if (isLandscape) ...[
-                                const SizedBox(width: 6),
                                 areasAndPubTime(theme, bangumiItem),
-                                const SizedBox(width: 6),
                                 newEpDesc(theme, bangumiItem),
                               ]
                             ],
@@ -289,7 +286,7 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
                   selectStatus: bangumiIntroController.hasLike.value,
                   isLoading: false,
                   semanticsLabel: '点赞',
-                  text: Utils.numFormat(bangumiItem.stat!['likes']!),
+                  text: Utils.numFormat(bangumiItem.stat!.likes),
                   needAnim: true,
                   hasTriple: bangumiIntroController.hasLike.value &&
                       bangumiIntroController.hasCoin &&
@@ -316,7 +313,7 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
                   selectStatus: bangumiIntroController.hasCoin,
                   isLoading: false,
                   semanticsLabel: '投币',
-                  text: Utils.numFormat(bangumiItem.stat!['coins']!),
+                  text: Utils.numFormat(bangumiItem.stat!.coins),
                   needAnim: true,
                 ),
               ),
@@ -332,7 +329,7 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
                   selectStatus: bangumiIntroController.hasFav.value,
                   isLoading: false,
                   semanticsLabel: '收藏',
-                  text: Utils.numFormat(bangumiItem.stat!['favorite']!),
+                  text: Utils.numFormat(bangumiItem.stat!.favorite),
                   needAnim: true,
                 ),
               ),
@@ -343,7 +340,7 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
                 selectStatus: false,
                 isLoading: false,
                 semanticsLabel: '评论',
-                text: Utils.numFormat(bangumiItem.stat!['reply']!),
+                text: Utils.numFormat(bangumiItem.stat!.reply),
               ),
               ActionItem(
                 icon: const Icon(FontAwesomeIcons.shareFromSquare),
@@ -351,7 +348,7 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
                 selectStatus: false,
                 isLoading: false,
                 semanticsLabel: '转发',
-                text: Utils.numFormat(bangumiItem.stat!['share']!),
+                text: Utils.numFormat(bangumiItem.stat!.share),
               ),
             ],
           ),
@@ -366,6 +363,7 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
     VideoDetailController videoDetailCtr,
   ) {
     return Row(
+      spacing: 8,
       children: [
         Obx(
           () => ActionRowItem(
@@ -373,20 +371,18 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
             onTap: () => handleState(bangumiIntroController.actionLikeVideo),
             selectStatus: bangumiIntroController.hasLike.value,
             isLoading: false,
-            text: bangumiItem.stat!['likes']!.toString(),
+            text: bangumiItem.stat!.likes!.toString(),
           ),
         ),
-        const SizedBox(width: 8),
         Obx(
           () => ActionRowItem(
             icon: const Icon(FontAwesomeIcons.b),
             onTap: () => handleState(bangumiIntroController.actionCoinVideo),
             selectStatus: bangumiIntroController.hasCoin,
             isLoading: false,
-            text: bangumiItem.stat!['coins']!.toString(),
+            text: bangumiItem.stat!.coins!.toString(),
           ),
         ),
-        const SizedBox(width: 8),
         Obx(
           () => ActionRowItem(
             icon: const Icon(FontAwesomeIcons.heart),
@@ -395,20 +391,16 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
                 .showFavBottomSheet(context, type: 'longPress'),
             selectStatus: bangumiIntroController.hasFav.value,
             isLoading: false,
-            text: bangumiItem.stat!['favorite']!.toString(),
+            text: bangumiItem.stat!.favorite!.toString(),
           ),
         ),
-        const SizedBox(width: 8),
         ActionRowItem(
           icon: const Icon(FontAwesomeIcons.comment),
-          onTap: () {
-            videoDetailCtr.tabCtr.animateTo(1);
-          },
+          onTap: () => videoDetailCtr.tabCtr.animateTo(1),
           selectStatus: false,
           isLoading: false,
-          text: bangumiItem.stat!['reply']!.toString(),
+          text: bangumiItem.stat!.reply!.toString(),
         ),
-        const SizedBox(width: 8),
         ActionRowItem(
           icon: const Icon(FontAwesomeIcons.share),
           onTap: () => bangumiIntroController.actionShareVideo(context),
@@ -422,19 +414,18 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
 
   Widget areasAndPubTime(ThemeData theme, BangumiInfoModel bangumiItem) {
     return Row(
+      spacing: 6,
       children: [
-        Text(
-          (bangumiItem.areas!.isNotEmpty
-              ? bangumiItem.areas!.first['name']
-              : ''),
-          style: TextStyle(
-            fontSize: 12,
-            color: theme.colorScheme.outline,
+        if (bangumiItem.areas?.isNotEmpty == true)
+          Text(
+            bangumiItem.areas!.first.name!,
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.colorScheme.outline,
+            ),
           ),
-        ),
-        const SizedBox(width: 6),
         Text(
-          bangumiItem.publish!['pub_time_show'],
+          bangumiItem.publish!.pubTimeShow!,
           style: TextStyle(
             fontSize: 12,
             color: theme.colorScheme.outline,
@@ -446,7 +437,7 @@ class _BangumiIntroPanelState extends State<BangumiIntroPanel>
 
   Widget newEpDesc(ThemeData theme, BangumiInfoModel bangumiItem) {
     return Text(
-      bangumiItem.newEp!['desc'],
+      bangumiItem.newEp!.desc!,
       style: TextStyle(
         fontSize: 12,
         color: theme.colorScheme.outline,

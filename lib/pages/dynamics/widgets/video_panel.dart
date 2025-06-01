@@ -4,11 +4,8 @@ import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
-import 'package:PiliPlus/pages/dynamics/widgets/content_panel.dart';
-import 'package:PiliPlus/pages/dynamics/widgets/rich_node_panel.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 Widget videoSeasonWidget(
   ThemeData theme,
@@ -60,8 +57,6 @@ Widget videoSeasonWidget(
     return const SizedBox.shrink();
   }
 
-  TextSpan? richNodes = richNode(theme, item, context);
-
   Widget buildCover() {
     return LayoutBuilder(
       builder: (context, box) {
@@ -74,16 +69,17 @@ Widget videoSeasonWidget(
               height: width / StyleString.aspectRatio,
               src: itemContent.cover,
             ),
-            if (itemContent.badge?['text'] != null)
+            if (itemContent.badge?.text != null)
               PBadge(
-                text: itemContent.badge!['text'],
+                text: itemContent.badge!.text,
                 top: 8.0,
                 right: 10.0,
                 bottom: null,
                 left: null,
-                type: itemContent.badge!['text'] == '充电专属'
-                    ? PBadgeType.error
-                    : PBadgeType.primary,
+                type: switch (itemContent.badge!.text) {
+                  '充电专属' => PBadgeType.error,
+                  _ => PBadgeType.primary,
+                },
               ),
             Positioned(
               left: 0,
@@ -124,9 +120,9 @@ Widget videoSeasonWidget(
                         ),
                         const SizedBox(width: 6),
                       ],
-                      Text('${itemContent.stat?.play}次围观'),
+                      Text('${Utils.numFormat(itemContent.stat?.play)}次围观'),
                       const SizedBox(width: 6),
-                      Text('${itemContent.stat?.danmu}条弹幕'),
+                      Text('${Utils.numFormat(itemContent.stat?.danmu)}条弹幕'),
                       const Spacer(),
                       Image.asset(
                         'assets/images/play.png',
@@ -148,46 +144,13 @@ Widget videoSeasonWidget(
     crossAxisAlignment: CrossAxisAlignment.start,
     mainAxisAlignment: MainAxisAlignment.start,
     children: [
-      if (floor == 2) ...[
-        Row(
-          children: [
-            GestureDetector(
-              onTap: () => Get.toNamed(
-                '/member?mid=${item.modules.moduleAuthor!.mid}',
-                arguments: {'face': item.modules.moduleAuthor!.face},
-              ),
-              child: Text(
-                '@${item.modules.moduleAuthor!.name}',
-                style: TextStyle(color: theme.colorScheme.primary),
-              ),
-            ),
-            const SizedBox(width: 6),
-            if (item.modules.moduleAuthor?.pubTs != null)
-              Text(
-                Utils.dateFormat(item.modules.moduleAuthor!.pubTs),
-                style: TextStyle(
-                  color: theme.colorScheme.outline,
-                  fontSize: theme.textTheme.labelSmall!.fontSize,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        content(theme, isSave, context, item, source, null, floor: 2),
-        if (itemContent.desc != null && richNodes != null) ...[
-          Text.rich(richNodes),
-          const SizedBox(height: 6),
-        ],
-      ],
       if (itemContent.cover != null)
-        if (item.isForwarded == true)
-          buildCover()
-        else
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: StyleString.safeSpace),
-            child: buildCover(),
-          ),
+        Padding(
+          padding: floor == 1
+              ? const EdgeInsets.symmetric(horizontal: StyleString.safeSpace)
+              : EdgeInsets.zero,
+          child: buildCover(),
+        ),
       const SizedBox(height: 6),
       if (itemContent.title != null)
         Padding(

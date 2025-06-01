@@ -1,5 +1,8 @@
 import 'package:PiliPlus/pages/fav/note/child_view.dart';
+import 'package:PiliPlus/pages/fav/note/controller.dart';
+import 'package:PiliPlus/utils/extension.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class FavNotePage extends StatefulWidget {
   const FavNotePage({super.key});
@@ -58,12 +61,22 @@ class _FavNotePageState extends State<FavNotePage>
                   const Tab(text: '未发布笔记'),
                   const Tab(text: '公开笔记'),
                 ],
+                onTap: (index) {
+                  try {
+                    if (!_tabController.indexIsChanging) {
+                      Get.find<FavNoteController>(
+                              tag: index == 0 ? 'false' : 'true')
+                          .scrollController
+                          .animToTop();
+                    }
+                  } catch (_) {}
+                },
               ),
             ),
             // TextButton(
             //   style: TextButton.styleFrom(
             //     foregroundColor: theme.colorScheme.onSurfaceVariant,
-            //     visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+            //     visualDensity: VisualDensity.compact,
             //     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             //   ),
             //   onPressed: () async {
@@ -72,10 +85,8 @@ class _FavNotePageState extends State<FavNotePage>
             //     if (favNoteController.enableMultiSelect.value) {
             //       favNoteController.onDisable();
             //     } else {
-            //       if (favNoteController.loadingState.value is Success &&
-            //           ((favNoteController.loadingState.value as Success)
-            //                       .response as List?)
-            //                   ?.isNotEmpty ==
+            //       if (favNoteController.loadingState.value.isSuccess &&
+            //           favNoteController.loadingState.value.data?.isNotEmpty ==
             //               true) {
             //         favNoteController.enableMultiSelect.value = true;
             //       }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/common/nav_bar_config.dart';
 import 'package:PiliPlus/models/user/fav_folder.dart';
 import 'package:PiliPlus/pages/common/common_page.dart';
 import 'package:PiliPlus/pages/main/controller.dart';
@@ -29,7 +30,7 @@ class _MediaPageState extends CommonPageState<MediaPage, MediaController>
 
   @override
   void listener() {
-    if (_mainController.navigationBars[0]['id'] != 2 &&
+    if (_mainController.navigationBars[0] != NavigationBarType.media &&
         _mainController.selectedIndex.value == 0) {
       return;
     }
@@ -41,15 +42,11 @@ class _MediaPageState extends CommonPageState<MediaPage, MediaController>
     super.build(context);
     final theme = Theme.of(context);
     Color primary = theme.colorScheme.primary;
-    return MediaQuery.removePadding(
-      context: context,
-      removeLeft: context.orientation == Orientation.landscape,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          toolbarHeight: 30,
-        ),
-        body: ListView(
+    return Padding(
+      padding: const EdgeInsets.only(top: 30),
+      child: Material(
+        color: Colors.transparent,
+        child: ListView(
           controller: controller.scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -67,9 +64,7 @@ class _MediaPageState extends CommonPageState<MediaPage, MediaController>
               ),
               trailing: IconButton(
                 tooltip: '设置',
-                onPressed: () {
-                  Get.toNamed('/setting');
-                },
+                onPressed: () => Get.toNamed('/setting'),
                 icon: const Icon(
                   Icons.settings_outlined,
                   size: 20,
@@ -78,12 +73,12 @@ class _MediaPageState extends CommonPageState<MediaPage, MediaController>
             ),
             for (var item in controller.list)
               ListTile(
-                onTap: item['onTap'],
+                onTap: item.onTap,
                 dense: true,
                 leading: Padding(
                   padding: const EdgeInsets.only(left: 15),
                   child: Icon(
-                    item['icon'],
+                    item.icon,
                     color: primary,
                   ),
                 ),
@@ -91,7 +86,7 @@ class _MediaPageState extends CommonPageState<MediaPage, MediaController>
                     const EdgeInsets.only(left: 15, top: 2, bottom: 2),
                 minLeadingWidth: 0,
                 title: Text(
-                  item['title'],
+                  item.title,
                   style: const TextStyle(fontSize: 15),
                 ),
               ),

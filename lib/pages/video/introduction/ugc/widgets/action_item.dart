@@ -1,24 +1,23 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 class ActionItem extends StatefulWidget {
   final Icon icon;
   final Icon? selectIcon;
-  final Function? onTap;
-  final Function? onLongPress;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final bool? isLoading;
   final String? text;
   final bool selectStatus;
   final String semanticsLabel;
   final bool needAnim;
   final bool hasTriple;
-  final Function? callBack;
+  final ValueChanged<bool>? callBack;
   final bool? expand;
 
   const ActionItem({
@@ -68,7 +67,7 @@ class ActionItemState extends State<ActionItem>
   void _cancelLongPress([bool isCancel = false]) {
     int duration = DateTime.now().millisecondsSinceEpoch - _lastTime;
     if (duration >= 200 && duration < 1500) {
-      if (widget.hasTriple.not) {
+      if (!widget.hasTriple) {
         controller?.reverse();
         widget.callBack?.call(false);
       }
@@ -145,14 +144,10 @@ class ActionItemState extends State<ActionItem>
                   feedBack();
                   widget.onTap?.call();
                 },
-          onLongPress: _isThumbsUp
-              ? null
-              : () {
-                  widget.onLongPress?.call();
-                },
-          onTapDown: (details) => _isThumbsUp ? _startLongPress() : null,
-          onTapUp: (details) => _isThumbsUp ? _cancelLongPress() : null,
-          onTapCancel: () => _isThumbsUp ? _cancelLongPress(true) : null,
+          onLongPress: _isThumbsUp ? null : widget.onLongPress,
+          onTapDown: _isThumbsUp ? (details) => _startLongPress() : null,
+          onTapUp: _isThumbsUp ? (details) => _cancelLongPress() : null,
+          onTapCancel: _isThumbsUp ? () => _cancelLongPress(true) : null,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

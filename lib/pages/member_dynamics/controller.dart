@@ -4,7 +4,6 @@ import 'package:PiliPlus/http/member.dart';
 import 'package:PiliPlus/http/msg.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 class MemberDynamicsController
@@ -27,7 +26,7 @@ class MemberDynamicsController
 
   @override
   Future<void> queryData([bool isRefresh = true]) {
-    if (isRefresh.not && (isEnd || offset == '-1')) {
+    if (!isRefresh && (isEnd || offset == '-1')) {
       return Future.value();
     }
     return super.queryData(isRefresh);
@@ -71,7 +70,7 @@ class MemberDynamicsController
   Future<void> onSetTop(bool isTop, dynamic dynamicId) async {
     var res = await DynamicsHttp.setTop(dynamicId: dynamicId);
     if (res['status']) {
-      List<DynamicItemModel> list = (loadingState.value as Success).response;
+      List<DynamicItemModel> list = loadingState.value.data!;
       list[0].modules.moduleTag = null;
       if (isTop) {
         loadingState.refresh();

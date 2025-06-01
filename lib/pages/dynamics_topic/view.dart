@@ -1,14 +1,17 @@
 import 'package:PiliPlus/common/constants.dart';
+import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/custom_sliver_persistent_header_delegate.dart';
 import 'package:PiliPlus/common/widgets/dynamic_sliver_appbar_medium.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/pair.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/dynamics/dyn_topic_feed/item.dart';
 import 'package:PiliPlus/models/dynamics/dyn_topic_top/top_details.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/dynamic_panel.dart';
+import 'package:PiliPlus/pages/dynamics_create/view.dart';
 import 'package:PiliPlus/pages/dynamics_tab/view.dart';
 import 'package:PiliPlus/pages/dynamics_topic/controller.dart';
 import 'package:PiliPlus/utils/grid.dart';
@@ -39,6 +42,24 @@ class _DynTopicPageState extends State<DynTopicPage> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     return Scaffold(
+      resizeToAvoidBottomInset: false,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          if (_controller.isLogin) {
+            CreateDynPanel.onCreateDyn(
+              context,
+              topic: Pair(
+                first: int.parse(_controller.topicId),
+                second: _controller.topicName,
+              ),
+            );
+          } else {
+            SmartDialog.showToast('账号未登录');
+          }
+        },
+        icon: const Icon(CustomIcon.topic_tag, size: 20),
+        label: const Text('参与话题'),
+      ),
       body: SafeArea(
         top: false,
         bottom: false,
@@ -46,6 +67,7 @@ class _DynTopicPageState extends State<DynTopicPage> {
           onRefresh: _controller.onRefresh,
           child: CustomScrollView(
             controller: _controller.scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               Obx(() => _buildAppBar(theme, _controller.topState.value)),
               Obx(() {
@@ -156,9 +178,8 @@ class _DynTopicPageState extends State<DynTopicPage> {
                   margin: const EdgeInsets.only(left: 45, right: 78),
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      Get.toNamed('/member?mid=${response.topicCreator!.uid}');
-                    },
+                    onTap: () => Get.toNamed(
+                        '/member?mid=${response.topicCreator!.uid}'),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -266,11 +287,10 @@ class _DynTopicPageState extends State<DynTopicPage> {
           ),
           actions: [
             IconButton(
-              onPressed: () {
-                // https://www.bilibili.com/v/topic/detail?topic_id=${_controller.topicId}
-                Utils.shareText(
-                    '${_controller.topicName} https://m.bilibili.com/topic-detail?topic_id=${_controller.topicId}');
-              },
+              onPressed: () => Utils.shareText(
+                  '${_controller.topicName} https://m.bilibili.com/topic-detail?topic_id=${_controller.topicId}')
+              // https://www.bilibili.com/v/topic/detail?topic_id=${_controller.topicId}
+              ,
               icon: const Icon(MdiIcons.share),
             ),
             PopupMenuButton(

@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:PiliPlus/common/constants.dart';
+import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/grpc/bilibili/im/interfaces/v1.pb.dart'
     show EmotionInfo;
 import 'package:PiliPlus/grpc/bilibili/im/type.pb.dart' show Msg, MsgType;
 import 'package:PiliPlus/http/search.dart';
+import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
@@ -39,7 +41,8 @@ class ChatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     bool isPic = item.msgType == MsgType.EN_MSG_TYPE_PIC.value; // 图片
     bool isRevoke = item.msgType == MsgType.EN_MSG_TYPE_DRAW_BACK.value; // 撤回消息
-    bool isSystem = item.msgType == MsgType.EN_MSG_TYPE_TIP_MESSAGE.value ||
+    bool isSystem = item.msgType == MsgType.EN_MSG_TYPE_VIDEO_CARD.value ||
+        item.msgType == MsgType.EN_MSG_TYPE_TIP_MESSAGE.value ||
         item.msgType == MsgType.EN_MSG_TYPE_NOTIFY_MSG.value ||
         item.msgType == MsgType.EN_MSG_TYPE_PICTURE_CARD.value ||
         item.msgType == 16;
@@ -52,80 +55,81 @@ class ChatItem extends StatelessWidget {
 
     return isRevoke
         ? const SizedBox.shrink()
-        : isSystem
-            ? messageContent(
-                context: context,
-                theme: theme,
-                content: content,
-                textColor: textColor,
-              )
-            : GestureDetector(
-                onLongPress: () {
-                  Feedback.forLongPress(context);
-                  onLongPress?.call();
-                },
-                child: Row(
-                  mainAxisAlignment:
-                      isOwner ? MainAxisAlignment.end : MainAxisAlignment.start,
-                  children: [
-                    Container(
-                      constraints: const BoxConstraints(maxWidth: 300.0),
-                      decoration: BoxDecoration(
-                        color: isOwner
-                            ? theme.colorScheme.secondaryContainer
-                            : theme.colorScheme.onInverseSurface,
-                        borderRadius: BorderRadius.only(
-                          topLeft: const Radius.circular(16),
-                          topRight: const Radius.circular(16),
-                          bottomLeft: Radius.circular(isOwner ? 16 : 6),
-                          bottomRight: Radius.circular(isOwner ? 6 : 16),
-                        ),
-                      ),
-                      padding: EdgeInsets.only(
-                        top: 8,
-                        bottom: 6,
-                        left: isPic ? 8 : 12,
-                        right: isPic ? 8 : 12,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: isOwner
-                            ? CrossAxisAlignment.end
-                            : CrossAxisAlignment.start,
+        : Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 6, bottom: 18),
+                child: Text(
+                  Utils.dateFormat(item.timestamp.toInt()),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: theme.colorScheme.outline),
+                ),
+              ),
+              isSystem
+                  ? messageContent(
+                      context: context,
+                      theme: theme,
+                      content: content,
+                      textColor: textColor,
+                    )
+                  : GestureDetector(
+                      onLongPress: onLongPress == null
+                          ? null
+                          : () {
+                              Feedback.forLongPress(context);
+                              onLongPress!();
+                            },
+                      child: Row(
+                        mainAxisAlignment: isOwner
+                            ? MainAxisAlignment.end
+                            : MainAxisAlignment.start,
                         children: [
-                          messageContent(
-                            context: context,
-                            theme: theme,
-                            content: content,
-                            textColor: textColor,
-                          ),
-                          SizedBox(height: isPic ? 7 : 2),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                Utils.dateFormat(item.timestamp.toInt()),
-                                style: theme.textTheme.labelSmall!.copyWith(
-                                    color: isOwner
-                                        ? theme.colorScheme.onSecondaryContainer
-                                            .withValues(alpha: 0.8)
-                                        : theme.colorScheme.onSurfaceVariant
-                                            .withValues(alpha: 0.8)),
+                          Container(
+                            constraints: const BoxConstraints(maxWidth: 300.0),
+                            decoration: BoxDecoration(
+                              color: isOwner
+                                  ? theme.colorScheme.secondaryContainer
+                                  : theme.colorScheme.onInverseSurface,
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(16),
+                                topRight: const Radius.circular(16),
+                                bottomLeft: Radius.circular(isOwner ? 16 : 6),
+                                bottomRight: Radius.circular(isOwner ? 6 : 16),
                               ),
-                              if (item.msgStatus == 1)
-                                Text(
-                                  '  已撤回',
-                                  style: theme.textTheme.labelSmall!.copyWith(
-                                    color: theme.colorScheme.onErrorContainer,
-                                  ),
+                            ),
+                            padding: EdgeInsets.only(
+                              top: 8,
+                              bottom: 6,
+                              left: isPic ? 8 : 12,
+                              right: isPic ? 8 : 12,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: isOwner
+                                  ? CrossAxisAlignment.end
+                                  : CrossAxisAlignment.start,
+                              children: [
+                                messageContent(
+                                  context: context,
+                                  theme: theme,
+                                  content: content,
+                                  textColor: textColor,
                                 ),
-                            ],
-                          )
+                                SizedBox(height: isPic ? 7 : 2),
+                                if (item.msgStatus == 1)
+                                  Text(
+                                    '  已撤回',
+                                    style: theme.textTheme.labelSmall!.copyWith(
+                                      color: theme.colorScheme.onErrorContainer,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              );
+            ],
+          );
   }
 
   Widget messageContent({
@@ -149,7 +153,7 @@ class ChatItem extends StatelessWidget {
         case MsgType.EN_MSG_TYPE_SHARE_V2:
           return msgTypeShareV2_7(content, textColor);
         case MsgType.EN_MSG_TYPE_VIDEO_CARD:
-          return msgTypeVideoCard_11(content, textColor);
+          return msgTypeVideoCard_11(theme, content, textColor);
         case MsgType.EN_MSG_TYPE_ARTICLE_CARD:
           return msgTypeArticleCard_12(content, textColor);
         case MsgType.EN_MSG_TYPE_COMMON_SHARE_CARD:
@@ -171,9 +175,7 @@ class ChatItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
-            onTap: () {
-              Get.toNamed('/liveRoom?roomid=${content['sourceID']}');
-            },
+            onTap: () => Get.toNamed('/liveRoom?roomid=${content['sourceID']}'),
             child: NetworkImgLayer(
               width: 220,
               height: 220 * 9 / 16,
@@ -209,15 +211,13 @@ class ChatItem extends StatelessWidget {
 
   Widget msgTypeArticleCard_12(content, Color textColor) {
     return GestureDetector(
-      onTap: () {
-        Get.toNamed(
-          '/articlePage',
-          parameters: {
-            'id': '${content['rid']}',
-            'type': "read",
-          },
-        );
-      },
+      onTap: () => Get.toNamed(
+        '/articlePage',
+        parameters: {
+          'id': '${content['rid']}',
+          'type': "read",
+        },
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -241,18 +241,21 @@ class ChatItem extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 1),
-          SelectableText(
-            content['summary'] ?? "",
-            style: TextStyle(
-              letterSpacing: 0.6,
-              height: 1.5,
-              color: textColor.withValues(alpha: 0.6),
-              fontSize: 12,
-              overflow: TextOverflow.ellipsis,
+          if (content['summary'] != null && content['summary'] != '') ...[
+            const SizedBox(height: 1),
+            SelectableText(
+              scrollPhysics: const NeverScrollableScrollPhysics(),
+              content['summary'],
+              style: TextStyle(
+                letterSpacing: 0.6,
+                height: 1.5,
+                color: textColor.withValues(alpha: 0.6),
+                fontSize: 12,
+                overflow: TextOverflow.ellipsis,
+              ),
+              maxLines: 2,
             ),
-            maxLines: 2,
-          ),
+          ],
         ],
       ),
     );
@@ -269,6 +272,7 @@ class ChatItem extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 6,
           children: [
             Text(
               content['main_title'],
@@ -279,8 +283,7 @@ class ChatItem extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            for (var i in content['sub_cards']) ...[
-              const SizedBox(height: 6),
+            for (var i in content['sub_cards'])
               GestureDetector(
                 onTap: () async {
                   RegExp bvRegex =
@@ -291,14 +294,17 @@ class ChatItem extends StatelessWidget {
                     String bvid = match.group(0)!;
                     try {
                       SmartDialog.showLoading();
-                      final int cid = await SearchHttp.ab2c(bvid: bvid);
-                      SmartDialog.dismiss<dynamic>().then(
-                        (e) => PageUtils.toVideoPage('bvid=$bvid&cid=$cid',
-                            arguments: <String, String?>{
-                              'pic': i['cover_url'],
-                              'heroTag': Utils.makeHeroTag(bvid),
-                            }),
-                      );
+                      final int? cid = await SearchHttp.ab2c(bvid: bvid);
+                      SmartDialog.dismiss();
+                      if (cid != null) {
+                        PageUtils.toVideoPage(
+                          'bvid=$bvid&cid=$cid',
+                          arguments: <String, String?>{
+                            'pic': i['cover_url'],
+                            'heroTag': Utils.makeHeroTag(bvid),
+                          },
+                        );
+                      }
                     } catch (err) {
                       SmartDialog.dismiss();
                       SmartDialog.showToast(err.toString());
@@ -309,13 +315,13 @@ class ChatItem extends StatelessWidget {
                   }
                 },
                 child: Row(
+                  spacing: 6,
                   children: [
                     NetworkImgLayer(
                       width: 130,
                       height: 130 * 9 / 16,
                       src: i['cover_url'],
                     ),
-                    const SizedBox(width: 6),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,64 +360,86 @@ class ChatItem extends StatelessWidget {
                   ],
                 ),
               ),
-            ],
           ],
         ),
       ),
     );
   }
 
-  Widget msgTypeVideoCard_11(content, Color textColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: () async {
-            try {
-              SmartDialog.showLoading();
-              var bvid = content["bvid"];
-              final int cid = await SearchHttp.ab2c(bvid: bvid);
-              SmartDialog.dismiss().then(
-                (_) => PageUtils.toVideoPage(
-                  'bvid=$bvid&cid=$cid',
-                  arguments: {
-                    'pic': content['thumb'],
-                    'heroTag': Utils.makeHeroTag(bvid),
-                  },
-                ),
-              );
-            } catch (err) {
-              SmartDialog.dismiss();
-              SmartDialog.showToast(err.toString());
-            }
+  Widget msgTypeVideoCard_11(ThemeData theme, content, Color textColor) {
+    return Center(
+      child: Container(
+        clipBehavior: Clip.hardEdge,
+        constraints: const BoxConstraints(maxWidth: 400.0),
+        decoration: BoxDecoration(
+          borderRadius: StyleString.mdRadius,
+          color: theme.colorScheme.onInverseSurface,
+        ),
+        child: LayoutBuilder(
+          builder: (_, constrains) {
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () async {
+                try {
+                  SmartDialog.showLoading();
+                  var bvid = content["bvid"];
+                  final int? cid = await SearchHttp.ab2c(bvid: bvid);
+                  SmartDialog.dismiss();
+                  if (cid != null) {
+                    PageUtils.toVideoPage(
+                      'bvid=$bvid&cid=$cid',
+                      arguments: {
+                        'pic': content['thumb'],
+                        'heroTag': Utils.makeHeroTag(bvid),
+                      },
+                    );
+                  }
+                } catch (err) {
+                  SmartDialog.dismiss();
+                  SmartDialog.showToast(err.toString());
+                }
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      NetworkImgLayer(
+                        type: ImageType.emote,
+                        width: constrains.maxWidth,
+                        height: constrains.maxWidth * 9 / 16,
+                        src: content['cover'],
+                      ),
+                      PBadge(
+                        left: 6,
+                        bottom: 6,
+                        type: PBadgeType.gray,
+                        text: content['times'] == 0
+                            ? '--:--'
+                            : Utils.timeFormat(content['times']),
+                      )
+                    ],
+                  ),
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Text(
+                      content['times'] == 0 ? '内容已失效' : content['title'],
+                      style: TextStyle(
+                        letterSpacing: 0.6,
+                        height: 1.5,
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
           },
-          child: NetworkImgLayer(
-            width: 220,
-            height: 220 * 9 / 16,
-            src: content['cover'],
-          ),
         ),
-        const SizedBox(height: 6),
-        SelectableText(
-          content['title'],
-          style: TextStyle(
-            letterSpacing: 0.6,
-            height: 1.5,
-            color: textColor,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 1),
-        Text(
-          Utils.timeFormat(content['times']),
-          style: TextStyle(
-            letterSpacing: 0.6,
-            height: 1.5,
-            color: textColor.withValues(alpha: 0.6),
-            fontSize: 12,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -422,9 +450,7 @@ class ChatItem extends StatelessWidget {
       // album
       case 2:
         type = '相簿';
-        onTap = () {
-          PageUtils.pushDynFromId(rid: content['id']);
-        };
+        onTap = () => PageUtils.pushDynFromId(rid: content['id']);
         break;
 
       // video
@@ -441,53 +467,46 @@ class ChatItem extends StatelessWidget {
           }
           bvid ??= IdUtils.av2bv(aid);
           SmartDialog.showLoading();
-          final int cid = await SearchHttp.ab2c(bvid: bvid);
-          SmartDialog.dismiss<dynamic>().then(
-            (e) => PageUtils.toVideoPage(
+          final int? cid = await SearchHttp.ab2c(bvid: bvid);
+          SmartDialog.dismiss();
+          if (cid != null) {
+            PageUtils.toVideoPage(
               'bvid=$bvid&cid=$cid',
               arguments: <String, String?>{
                 'pic': content['thumb'],
                 'heroTag': Utils.makeHeroTag(bvid),
               },
-            ),
-          );
+            );
+          }
         };
         break;
 
       // article
       case 6:
         type = '专栏';
-        onTap = () {
-          Get.toNamed(
-            '/articlePage',
-            parameters: {
-              'id': '${content['id']}',
-              'type': 'read',
-            },
-          );
-        };
+        onTap = () => Get.toNamed(
+              '/articlePage',
+              parameters: {
+                'id': '${content['id']}',
+                'type': 'read',
+              },
+            );
         break;
 
       // dynamic
       case 11:
         type = '动态';
-        onTap = () {
-          PageUtils.pushDynFromId(id: content['id']);
-        };
+        onTap = () => PageUtils.pushDynFromId(id: content['id']);
         break;
 
       // pgc
       case 16:
-        onTap = () {
-          PageUtils.viewBangumi(epId: content['id']);
-        };
+        onTap = () => PageUtils.viewBangumi(epId: content['id']);
         break;
 
       default:
-        onTap = () {
-          SmartDialog.showToast(
-              'unsupported source type: ${content['source']}');
-        };
+        onTap = () => SmartDialog.showToast(
+            'unsupported source type: ${content['source']}');
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -541,9 +560,8 @@ class ChatItem extends StatelessWidget {
 
   Widget msgTypePic_2(BuildContext context, content) {
     return GestureDetector(
-      onTap: () {
-        context.imageView(imgList: [SourceModel(url: content['url'])]);
-      },
+      onTap: () =>
+          context.imageView(imgList: [SourceModel(url: content['url'])]),
       child: Hero(
         tag: content['url'],
         child: NetworkImgLayer(
@@ -637,11 +655,6 @@ class ChatItem extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Text(
-              Utils.dateFormat(item.timestamp.toInt()),
-              style: theme.textTheme.labelSmall!
-                  .copyWith(color: theme.colorScheme.outline),
-            ),
             Divider(color: theme.colorScheme.primary.withValues(alpha: 0.05)),
             SelectableText(content['text']),
             if (modules?.isNotEmpty == true) ...[
@@ -667,9 +680,7 @@ class ChatItem extends StatelessWidget {
               Divider(color: theme.colorScheme.primary.withValues(alpha: 0.05)),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  PiliScheme.routePushFromUrl(content['jump_uri']);
-                },
+                onTap: () => PiliScheme.routePushFromUrl(content['jump_uri']),
                 child: SizedBox(
                   width: double.infinity,
                   child: Text(content['jump_text']),
@@ -681,9 +692,7 @@ class ChatItem extends StatelessWidget {
               Divider(color: theme.colorScheme.primary.withValues(alpha: 0.05)),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  PiliScheme.routePushFromUrl(content['jump_uri_2']);
-                },
+                onTap: () => PiliScheme.routePushFromUrl(content['jump_uri_2']),
                 child: SizedBox(
                   width: double.infinity,
                   child: Text(content['jump_text_2']),
@@ -695,9 +704,7 @@ class ChatItem extends StatelessWidget {
               Divider(color: theme.colorScheme.primary.withValues(alpha: 0.05)),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  PiliScheme.routePushFromUrl(content['jump_uri_3']);
-                },
+                onTap: () => PiliScheme.routePushFromUrl(content['jump_uri_3']),
                 child: SizedBox(
                   width: double.infinity,
                   child: Text(content['jump_text_3']),
@@ -719,9 +726,7 @@ class ChatItem extends StatelessWidget {
           child: GestureDetector(
             onTap: content['jump_url'] == null
                 ? null
-                : () {
-                    PiliScheme.routePushFromUrl(content['jump_url']);
-                  },
+                : () => PiliScheme.routePushFromUrl(content['jump_url']),
             child: CachedNetworkImage(
               imageUrl: Utils.thumbnailImgUrl(content['pic_url']),
             ),

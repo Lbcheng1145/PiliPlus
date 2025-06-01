@@ -19,7 +19,7 @@ class MemberReportPanel extends StatefulWidget {
 }
 
 class _MemberReportPanelState extends State<MemberReportPanel> {
-  final List<bool> _reasonList = List.generate(3, (_) => false).toList();
+  final List<bool> _reasonList = List.generate(3, (_) => false);
   final Set<int> _reason = {};
   int? _reasonV2;
 
@@ -83,7 +83,7 @@ class _MemberReportPanelState extends State<MemberReportPanel> {
                     SmartDialog.showToast('至少选择一项作为举报内容');
                   } else {
                     Get.back();
-                    dynamic result = await MemberHttp.reportMember(
+                    var result = await MemberHttp.reportMember(
                       widget.mid,
                       reason: _reason.join(','),
                       reasonV2: _reasonV2 != null ? _reasonV2! + 1 : null,

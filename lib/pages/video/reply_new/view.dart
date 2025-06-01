@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:PiliPlus/common/widgets/button/toolbar_icon_button.dart';
+import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
+    show ReplyInfo;
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/main.dart';
 import 'package:PiliPlus/models/common/publish_panel_type.dart';
-import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/pages/common/common_publish_page.dart';
 import 'package:PiliPlus/pages/emote/view.dart';
 import 'package:PiliPlus/utils/storage.dart';
@@ -13,11 +14,11 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
 class ReplyPage extends CommonPublishPage {
-  final int? oid;
-  final int? root;
-  final int? parent;
-  final ReplyType? replyType;
-  final dynamic replyItem;
+  final int oid;
+  final int root;
+  final int parent;
+  final int replyType;
+  final ReplyInfo? replyItem;
   final String? hint;
 
   const ReplyPage({
@@ -25,10 +26,10 @@ class ReplyPage extends CommonPublishPage {
     super.initialValue,
     super.imageLengthLimit,
     super.onSave,
-    this.oid,
-    this.root,
-    this.parent,
-    this.replyType,
+    required this.oid,
+    required this.root,
+    required this.parent,
+    required this.replyType,
     this.replyItem,
     this.hint,
   });
@@ -91,16 +92,19 @@ class _ReplyPageState extends CommonPublishPageState<ReplyPage> {
         if (pathList.isNotEmpty) {
           return Container(
             height: 85,
+            width: double.infinity,
             padding: const EdgeInsets.only(bottom: 10),
-            child: ListView.separated(
+            child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(),
-              ),
               padding: const EdgeInsets.symmetric(horizontal: 15),
-              itemCount: pathList.length,
-              itemBuilder: (context, index) => buildImage(index, 75),
-              separatorBuilder: (context, index) => const SizedBox(width: 10),
+              child: Row(
+                spacing: 10,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(
+                  pathList.length,
+                  (index) => buildImage(index, 75),
+                ),
+              ),
             ),
           );
         } else {
@@ -121,7 +125,6 @@ class _ReplyPageState extends CommonPublishPageState<ReplyPage> {
             onPointerUp: (event) {
               if (readOnly.value) {
                 updatePanelType(PanelType.keyboard);
-                selectKeyboard.value = true;
               }
             },
             child: Obx(
@@ -166,13 +169,12 @@ class _ReplyPageState extends CommonPublishPageState<ReplyPage> {
               () => ToolbarIconButton(
                 tooltip: '输入',
                 onPressed: () {
-                  if (!selectKeyboard.value) {
-                    selectKeyboard.value = true;
+                  if (panelType.value != PanelType.keyboard) {
                     updatePanelType(PanelType.keyboard);
                   }
                 },
                 icon: const Icon(Icons.keyboard, size: 22),
-                selected: selectKeyboard.value,
+                selected: panelType.value == PanelType.keyboard,
               ),
             ),
             const SizedBox(width: 10),
@@ -180,13 +182,12 @@ class _ReplyPageState extends CommonPublishPageState<ReplyPage> {
               () => ToolbarIconButton(
                 tooltip: '表情',
                 onPressed: () {
-                  if (selectKeyboard.value) {
-                    selectKeyboard.value = false;
+                  if (panelType.value != PanelType.emoji) {
                     updatePanelType(PanelType.emoji);
                   }
                 },
                 icon: const Icon(Icons.emoji_emotions, size: 22),
-                selected: !selectKeyboard.value,
+                selected: panelType.value == PanelType.emoji,
               ),
             ),
             if (widget.root == 0) ...[
@@ -209,9 +210,7 @@ class _ReplyPageState extends CommonPublishPageState<ReplyPage> {
                       ? themeData.colorScheme.secondary
                       : themeData.colorScheme.outline,
                 ),
-                onPressed: () {
-                  _syncToDynamic.value = !_syncToDynamic.value;
-                },
+                onPressed: () => _syncToDynamic.value = !_syncToDynamic.value,
                 icon: Icon(
                   _syncToDynamic.value
                       ? Icons.check_box
@@ -243,12 +242,12 @@ class _ReplyPageState extends CommonPublishPageState<ReplyPage> {
   Future<void> onCustomPublish(
       {required String message, List? pictures}) async {
     var result = await VideoHttp.replyAdd(
-      type: widget.replyType ?? ReplyType.video,
-      oid: widget.oid!,
-      root: widget.root!,
-      parent: widget.parent!,
-      message: widget.replyItem != null && widget.replyItem.root != 0
-          ? ' 回复 @${widget.replyItem.member.name} : $message'
+      type: widget.replyType,
+      oid: widget.oid,
+      root: widget.root,
+      parent: widget.parent,
+      message: widget.replyItem != null && widget.replyItem!.root != 0
+          ? ' 回复 @${widget.replyItem!.member.name} : $message'
           : message,
       pictures: pictures,
       syncToDynamic: _syncToDynamic.value,

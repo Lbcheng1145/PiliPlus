@@ -14,7 +14,6 @@ import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
-import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart' show DynamicStat;
 import 'package:PiliPlus/pages/article/controller.dart';
 import 'package:PiliPlus/pages/article/widgets/html_render.dart';
@@ -180,7 +179,6 @@ class _ArticlePageState extends State<ArticlePage>
         VoidCallback? onDispose,
       }) =>
           Scaffold(
-            resizeToAvoidBottomInset: false,
             appBar: AppBar(
               title: const Text('评论详情'),
               titleSpacing: automaticallyImplyLeading ? null : 12,
@@ -195,7 +193,7 @@ class _ArticlePageState extends State<ArticlePage>
                 oid: oid,
                 rpid: rpid,
                 source: 'dynamic',
-                replyType: ReplyType.values[_articleCtr.commentType],
+                replyType: _articleCtr.commentType,
                 firstFloor: replyItem,
                 onDispose: onDispose,
               ),
@@ -250,102 +248,109 @@ class _ArticlePageState extends State<ArticlePage>
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: _buildAppBar,
-      body: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          SafeArea(
-            top: false,
-            bottom: false,
-            child: Builder(
-              builder: (context) {
-                final isPortrait = context.orientation == Orientation.portrait;
-                double padding =
-                    max(context.width / 2 - Grid.smallCardWidth, 0);
-                if (isPortrait) {
-                  return LayoutBuilder(builder: (context, constraints) {
-                    final maxWidth = constraints.maxWidth - 2 * padding - 24;
-                    return Padding(
-                      padding: EdgeInsets.symmetric(horizontal: padding),
-                      child: CustomScrollView(
-                        controller: _articleCtr.scrollController,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        slivers: [
-                          _buildContent(theme, maxWidth),
-                          SliverToBoxAdapter(
-                            child: Divider(
-                              thickness: 8,
-                              color: theme.dividerColor.withValues(alpha: 0.05),
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            SafeArea(
+              top: false,
+              bottom: false,
+              child: Builder(
+                builder: (context) {
+                  final isPortrait =
+                      context.orientation == Orientation.portrait;
+                  double padding =
+                      max(context.width / 2 - Grid.smallCardWidth, 0);
+                  if (isPortrait) {
+                    return LayoutBuilder(builder: (context, constraints) {
+                      final maxWidth = constraints.maxWidth - 2 * padding - 24;
+                      return Padding(
+                        padding: EdgeInsets.symmetric(horizontal: padding),
+                        child: CustomScrollView(
+                          controller: _articleCtr.scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          slivers: [
+                            _buildContent(theme, maxWidth),
+                            SliverToBoxAdapter(
+                              child: Divider(
+                                thickness: 8,
+                                color:
+                                    theme.dividerColor.withValues(alpha: 0.05),
+                              ),
                             ),
-                          ),
-                          _buildReplyHeader(theme),
-                          Obx(() => _buildReplyList(
-                              theme, _articleCtr.loadingState.value)),
-                        ],
-                      ),
-                    );
-                  });
-                } else {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: _ratio[0].toInt(),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final maxWidth =
-                                constraints.maxWidth - padding / 4 - 24;
-                            return CustomScrollView(
-                              controller: _articleCtr.scrollController,
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              slivers: [
-                                SliverPadding(
-                                  padding: EdgeInsets.only(
-                                    left: padding / 4,
-                                    bottom:
-                                        MediaQuery.paddingOf(context).bottom +
-                                            80,
-                                  ),
-                                  sliver: _buildContent(theme, maxWidth),
-                                ),
-                              ],
-                            );
-                          },
+                            _buildReplyHeader(theme),
+                            Obx(() => _buildReplyList(
+                                theme, _articleCtr.loadingState.value)),
+                          ],
                         ),
-                      ),
-                      VerticalDivider(
-                        thickness: 8,
-                        color: theme.dividerColor.withValues(alpha: 0.05),
-                      ),
-                      Expanded(
-                        flex: _ratio[1].toInt(),
-                        child: Scaffold(
-                          key: _key,
-                          backgroundColor: Colors.transparent,
-                          body: refreshIndicator(
-                            onRefresh: _articleCtr.onRefresh,
-                            child: Padding(
-                              padding: EdgeInsets.only(right: padding / 4),
-                              child: CustomScrollView(
+                      );
+                    });
+                  } else {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: _ratio[0].toInt(),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final maxWidth =
+                                  constraints.maxWidth - padding / 4 - 24;
+                              return CustomScrollView(
                                 controller: _articleCtr.scrollController,
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 slivers: [
-                                  _buildReplyHeader(theme),
-                                  Obx(() => _buildReplyList(
-                                      theme, _articleCtr.loadingState.value)),
+                                  SliverPadding(
+                                    padding: EdgeInsets.only(
+                                      left: padding / 4,
+                                      bottom:
+                                          MediaQuery.paddingOf(context).bottom +
+                                              80,
+                                    ),
+                                    sliver: _buildContent(theme, maxWidth),
+                                  ),
                                 ],
+                              );
+                            },
+                          ),
+                        ),
+                        VerticalDivider(
+                          thickness: 8,
+                          color: theme.dividerColor.withValues(alpha: 0.05),
+                        ),
+                        Expanded(
+                          flex: _ratio[1].toInt(),
+                          child: Scaffold(
+                            key: _key,
+                            backgroundColor: Colors.transparent,
+                            body: refreshIndicator(
+                              onRefresh: _articleCtr.onRefresh,
+                              child: Padding(
+                                padding: EdgeInsets.only(right: padding / 4),
+                                child: CustomScrollView(
+                                  controller: _articleCtr.scrollController,
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  slivers: [
+                                    _buildReplyHeader(theme),
+                                    Obx(() => _buildReplyList(
+                                        theme, _articleCtr.loadingState.value)),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  );
-                }
-              },
+                      ],
+                    );
+                  }
+                },
+              ),
             ),
-          ),
-          _buildBottom(theme),
-        ],
+            _buildBottom(theme),
+          ],
+        ),
       ),
     );
   }
@@ -448,15 +453,13 @@ class _ArticlePageState extends State<ArticlePage>
                                     final pic = pics[index];
                                     return GestureDetector(
                                       behavior: HitTestBehavior.opaque,
-                                      onTap: () {
-                                        context.imageView(
-                                          imgList: pics
-                                              .map((e) =>
-                                                  SourceModel(url: e.url!))
-                                              .toList(),
-                                          initialPage: index,
-                                        );
-                                      },
+                                      onTap: () => context.imageView(
+                                        imgList: pics
+                                            .map(
+                                                (e) => SourceModel(url: e.url!))
+                                            .toList(),
+                                        initialPage: index,
+                                      ),
                                       child: Hero(
                                         tag: pic.url!,
                                         child: Stack(
@@ -603,19 +606,17 @@ class _ArticlePageState extends State<ArticlePage>
                     replyLevel: '1',
                     replyReply: (replyItem, id) =>
                         replyReply(context, replyItem, id),
-                    onReply: () {
-                      _articleCtr.onReply(
-                        context,
-                        replyItem: response[index],
-                        index: index,
-                      );
-                    },
+                    onReply: () => _articleCtr.onReply(
+                      context,
+                      replyItem: response[index],
+                      index: index,
+                    ),
                     onDelete: (subIndex) =>
                         _articleCtr.onRemove(index, subIndex),
                     upMid: _articleCtr.upMid,
                     callback: _getImageCallback,
                     onCheckReply: (item) =>
-                        _articleCtr.onCheckReply(context, item),
+                        _articleCtr.onCheckReply(context, item, isManual: true),
                     onToggleTop: (isUpTop, rpid) => _articleCtr.onToggleTop(
                       index,
                       _articleCtr.commentId,
@@ -681,41 +682,39 @@ class _ArticlePageState extends State<ArticlePage>
           if (context.orientation == Orientation.landscape)
             IconButton(
               tooltip: '页面比例调节',
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => Align(
-                    alignment: Alignment.topRight,
-                    child: Container(
-                      margin: const EdgeInsets.only(
-                        top: 56,
-                        right: 16,
-                      ),
-                      width: context.width / 4,
-                      height: 32,
-                      child: Builder(
-                        builder: (context) => Slider(
-                          min: 1,
-                          max: 100,
-                          value: _ratio.first,
-                          onChanged: (value) {
-                            if (value >= 10 && value <= 90) {
-                              _ratio[0] = value;
-                              _ratio[1] = 100 - value;
-                              GStorage.setting.put(
-                                SettingBoxKey.dynamicDetailRatio,
-                                _ratio,
-                              );
-                              (context as Element).markNeedsBuild();
-                              setState(() {});
-                            }
-                          },
-                        ),
+              onPressed: () => showDialog(
+                context: context,
+                builder: (context) => Align(
+                  alignment: Alignment.topRight,
+                  child: Container(
+                    margin: const EdgeInsets.only(
+                      top: 56,
+                      right: 16,
+                    ),
+                    width: context.width / 4,
+                    height: 32,
+                    child: Builder(
+                      builder: (context) => Slider(
+                        min: 1,
+                        max: 100,
+                        value: _ratio.first,
+                        onChanged: (value) {
+                          if (value >= 10 && value <= 90) {
+                            _ratio[0] = value;
+                            _ratio[1] = 100 - value;
+                            GStorage.setting.put(
+                              SettingBoxKey.dynamicDetailRatio,
+                              _ratio,
+                            );
+                            (context as Element).markNeedsBuild();
+                            setState(() {});
+                          }
+                        },
                       ),
                     ),
                   ),
-                );
-              },
+                ),
+              ),
               icon: Transform.rotate(
                 angle: pi / 2,
                 child: const Icon(Icons.splitscreen, size: 19),
@@ -723,9 +722,7 @@ class _ArticlePageState extends State<ArticlePage>
             ),
           IconButton(
             tooltip: '浏览器打开',
-            onPressed: () {
-              PageUtils.inAppWebview(_articleCtr.url);
-            },
+            onPressed: () => PageUtils.inAppWebview(_articleCtr.url),
             icon: const Icon(Icons.open_in_browser_outlined, size: 19),
           ),
           PopupMenuButton(
@@ -813,13 +810,13 @@ class _ArticlePageState extends State<ArticlePage>
                       _articleCtr.onReply(
                         context,
                         oid: _articleCtr.commentId,
-                        replyType: ReplyType.values[_articleCtr.commentType],
+                        replyType: _articleCtr.commentType,
                       );
                     },
                     tooltip: '评论动态',
                     child: const Icon(Icons.reply),
                   );
-              return _articleCtr.showDynActionBar.not
+              return !_articleCtr.showDynActionBar
                   ? Align(
                       alignment: Alignment.bottomRight,
                       child: Padding(

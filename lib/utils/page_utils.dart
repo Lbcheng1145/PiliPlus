@@ -4,11 +4,13 @@ import 'package:PiliPlus/common/widgets/interactiveviewer_gallery/interactivevie
 import 'package:PiliPlus/grpc/im.dart';
 import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/search.dart';
-import 'package:PiliPlus/models/bangumi/info.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart';
 import 'package:PiliPlus/models/common/search_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/models/live/live_room/item.dart';
+import 'package:PiliPlus/models/pgc/pgc_info_model/episode.dart';
+import 'package:PiliPlus/models/pgc/pgc_info_model/result.dart';
+import 'package:PiliPlus/models/pgc/pgc_info_model/section.dart';
 import 'package:PiliPlus/pages/contact/view.dart';
 import 'package:PiliPlus/pages/fav_panel/view.dart';
 import 'package:PiliPlus/pages/share/view.dart';
@@ -17,13 +19,14 @@ import 'package:PiliPlus/services/shutdown_timer_service.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
+import 'package:PiliPlus/utils/global_data.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/url_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -45,11 +48,9 @@ class PageUtils {
                 avatar: item.talkerIcon,
               ))
           .toList());
-    } else {
-      UserModel? userModel = await Get.dialog(
-        const ContactPage(),
-        useSafeArea: false,
-        transitionDuration: const Duration(milliseconds: 120),
+    } else if (context.mounted) {
+      UserModel? userModel = await Navigator.of(context).push(
+        GetPageRoute(page: () => const ContactPage()),
       );
       if (userModel != null) {
         selectedIndex = 0;
@@ -87,6 +88,53 @@ class PageUtils {
       isFullScreen: () => isFullScreen,
       child: StatefulBuilder(
         builder: (_, setState) {
+          void onTap(int choice) {
+            if (choice == -1) {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  final ThemeData theme = Theme.of(context);
+                  String duration = '';
+                  return AlertDialog(
+                    title: const Text('自定义时长'),
+                    content: TextField(
+                      autofocus: true,
+                      onChanged: (value) => duration = value,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'\d+')),
+                      ],
+                      decoration: const InputDecoration(suffixText: 'min'),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: Get.back,
+                        child: Text(
+                          '取消',
+                          style: TextStyle(color: theme.colorScheme.outline),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Get.back();
+                          int choice = int.tryParse(duration) ?? 0;
+                          shutdownTimerService.scheduledExitInMinutes = choice;
+                          shutdownTimerService.startShutdownTimer();
+                          setState(() {});
+                        },
+                        child: const Text('确定'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            } else {
+              Get.back();
+              shutdownTimerService.scheduledExitInMinutes = choice;
+              shutdownTimerService.startShutdownTimer();
+            }
+          }
+
           final ThemeData theme = Theme.of(context);
           return Theme(
             data: theme,
@@ -110,68 +158,15 @@ class PageUtils {
                     ...[
                       ...[
                         ...scheduleTimeChoices,
-                        if (scheduleTimeChoices
-                            .contains(
-                                shutdownTimerService.scheduledExitInMinutes)
-                            .not)
+                        if (!scheduleTimeChoices.contains(
+                            shutdownTimerService.scheduledExitInMinutes))
                           shutdownTimerService.scheduledExitInMinutes,
                       ]..sort(),
                       -1,
                     ].map(
                       (choice) => ListTile(
                         dense: true,
-                        onTap: () {
-                          if (choice == -1) {
-                            showDialog(
-                              context: context,
-                              builder: (context) {
-                                String duration = '';
-                                return AlertDialog(
-                                  title: const Text('自定义时长'),
-                                  content: TextField(
-                                    autofocus: true,
-                                    onChanged: (value) => duration = value,
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.allow(
-                                          RegExp(r'\d+')),
-                                    ],
-                                    decoration: const InputDecoration(
-                                        suffixText: 'min'),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: Get.back,
-                                      child: Text(
-                                        '取消',
-                                        style: TextStyle(
-                                            color: theme.colorScheme.outline),
-                                      ),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        Get.back();
-                                        int choice =
-                                            int.tryParse(duration) ?? 0;
-                                        shutdownTimerService
-                                            .scheduledExitInMinutes = choice;
-                                        shutdownTimerService
-                                            .startShutdownTimer();
-                                        setState(() {});
-                                      },
-                                      child: const Text('确定'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          } else {
-                            Get.back();
-                            shutdownTimerService.scheduledExitInMinutes =
-                                choice;
-                            shutdownTimerService.startShutdownTimer();
-                          }
-                        },
+                        onTap: () => onTap(choice),
                         contentPadding: EdgeInsets.zero,
                         title: Text(choice == -1
                             ? '自定义'
@@ -194,7 +189,7 @@ class PageUtils {
                         child: Divider(height: 1),
                       ),
                     ),
-                    if (isLive.not) ...[
+                    if (!isLive) ...[
                       const SizedBox(height: 10),
                       ListTile(
                         dense: true,
@@ -262,7 +257,7 @@ class PageUtils {
 
   static Future<void> pushDynFromId({id, rid, bool off = false}) async {
     SmartDialog.showLoading();
-    dynamic res = await DynamicsHttp.dynamicDetail(
+    var res = await DynamicsHttp.dynamicDetail(
       id: id,
       rid: rid,
       type: rid != null ? 2 : null,
@@ -284,8 +279,6 @@ class PageUtils {
           '/dynamicDetail',
           arguments: {
             'item': res['data'],
-            'floor': 1,
-            'action': 'detail',
           },
           off: off,
         );
@@ -303,9 +296,9 @@ class PageUtils {
       context: context,
       useSafeArea: true,
       isScrollControlled: true,
-      sheetAnimationStyle: AnimationStyle(curve: Curves.ease),
+      sheetAnimationStyle: const AnimationStyle(curve: Curves.ease),
       constraints: BoxConstraints(
-        maxWidth: min(640, min(Get.width, Get.height)),
+        maxWidth: min(640, context.mediaQueryShortestSide),
       ),
       builder: (BuildContext context) {
         return DraggableScrollableSheet(
@@ -333,37 +326,53 @@ class PageUtils {
     );
   }
 
-  static void enterPip(Floating floating, int width, int height) {
-    Rational aspectRatio = Rational(width, height);
-    floating.enable(
-      EnableManual(
-        aspectRatio: aspectRatio.fitsInAndroidRequirements
-            ? aspectRatio
-            : height > width
-                ? const Rational.vertical()
-                : const Rational.landscape(),
-      ),
-    );
+  static void enterPip({int? width, int? height}) {
+    if (width != null && height != null) {
+      Rational aspectRatio = Rational(width, height);
+      Floating().enable(
+        EnableManual(
+          aspectRatio: aspectRatio.fitsInAndroidRequirements
+              ? aspectRatio
+              : height > width
+                  ? const Rational.vertical()
+                  : const Rational.landscape(),
+        ),
+      );
+    } else {
+      Floating().enable(const EnableManual());
+    }
   }
 
   static Future<void> pushDynDetail(DynamicItemModel item, floor,
       {action = 'all'}) async {
     feedBack();
 
+    void push() {
+      if (item.basic?.commentType == 12) {
+        toDupNamed(
+          '/articlePage',
+          parameters: {
+            'id': item.idStr,
+            'type': 'opus',
+          },
+        );
+      } else {
+        toDupNamed(
+          '/dynamicDetail',
+          arguments: {
+            'item': item,
+          },
+        );
+      }
+    }
+
     /// 点击评论action 直接查看评论
     if (action == 'comment') {
-      toDupNamed(
-        '/dynamicDetail',
-        arguments: {
-          'item': item,
-          'floor': floor,
-          'action': action,
-        },
-      );
+      push();
       return;
     }
 
-    debugPrint('pushDynDetail: ${item.type}');
+    // debugPrint('pushDynDetail: ${item.type}');
 
     switch (item.type) {
       case 'DYNAMIC_TYPE_AV':
@@ -384,15 +393,17 @@ class PageUtils {
         try {
           String bvid = item.modules.moduleDynamic!.major!.archive!.bvid!;
           String cover = item.modules.moduleDynamic!.major!.archive!.cover!;
-          int cid = await SearchHttp.ab2c(bvid: bvid);
-          toVideoPage(
-            'bvid=$bvid&cid=$cid',
-            arguments: {
-              'pic': cover,
-              'heroTag': Utils.makeHeroTag(bvid),
-            },
-            preventDuplicates: false,
-          );
+          int? cid = await SearchHttp.ab2c(bvid: bvid);
+          if (cid != null) {
+            toVideoPage(
+              'bvid=$bvid&cid=$cid',
+              arguments: {
+                'pic': cover,
+                'heroTag': Utils.makeHeroTag(bvid),
+              },
+              preventDuplicates: false,
+            );
+          }
         } catch (err) {
           SmartDialog.showToast(err.toString());
         }
@@ -447,15 +458,17 @@ class PageUtils {
         int aid = ugcSeason.aid!;
         String bvid = IdUtils.av2bv(aid);
         String cover = ugcSeason.cover!;
-        int cid = await SearchHttp.ab2c(bvid: bvid);
-        toVideoPage(
-          'bvid=$bvid&cid=$cid',
-          arguments: {
-            'pic': cover,
-            'heroTag': Utils.makeHeroTag(bvid),
-          },
-          preventDuplicates: false,
-        );
+        int? cid = await SearchHttp.ab2c(bvid: bvid);
+        if (cid != null) {
+          toVideoPage(
+            'bvid=$bvid&cid=$cid',
+            arguments: {
+              'pic': cover,
+              'heroTag': Utils.makeHeroTag(bvid),
+            },
+            preventDuplicates: false,
+          );
+        }
         break;
 
       /// 番剧查看
@@ -469,15 +482,15 @@ class PageUtils {
       case 'DYNAMIC_TYPE_MEDIALIST':
         if (item.modules.moduleDynamic?.major?.medialist != null) {
           final String? url =
-              item.modules.moduleDynamic!.major!.medialist!['jump_url'];
+              item.modules.moduleDynamic!.major!.medialist!.jumpUrl;
           if (url?.contains('medialist/detail/ml') == true) {
             Get.toNamed(
               '/favDetail',
               parameters: {
                 'heroTag':
-                    '${item.modules.moduleDynamic!.major!.medialist!['cover']}',
+                    '${item.modules.moduleDynamic!.major!.medialist!.cover}',
                 'mediaId':
-                    '${item.modules.moduleDynamic!.major!.medialist!['id']}',
+                    '${item.modules.moduleDynamic!.major!.medialist!.id}',
               },
             );
           } else if (url != null) {
@@ -486,6 +499,7 @@ class PageUtils {
         }
         break;
 
+      // case 'DYNAMIC_TYPE_COURSES_SEASON':
       // 纯文字动态查看
       // case 'DYNAMIC_TYPE_WORD':
       // # 装扮/剧集点评/普通分享
@@ -495,13 +509,7 @@ class PageUtils {
       // 图文动态查看
       // case 'DYNAMIC_TYPE_DRAW':
       default:
-        toDupNamed(
-          '/dynamicDetail',
-          arguments: {
-            'item': item,
-            'floor': floor,
-          },
-        );
+        push();
         break;
     }
   }
@@ -523,6 +531,7 @@ class PageUtils {
             initIndex: index,
             setStatusBar: false,
             onClose: onClose,
+            quality: GlobalData().imgQuality,
           ),
         );
       },
@@ -530,7 +539,7 @@ class PageUtils {
       elevation: 0,
       backgroundColor: Colors.transparent,
       transitionAnimationController: transitionAnimationController,
-      sheetAnimationStyle: AnimationStyle(duration: Duration.zero),
+      sheetAnimationStyle: const AnimationStyle(duration: Duration.zero),
     );
   }
 
@@ -577,8 +586,8 @@ class PageUtils {
     bool inApp = false,
     Map? parameters,
   }) async {
-    if (inApp.not && GStorage.openInBrowser) {
-      if ((await PiliScheme.routePushFromUrl(url, selfHandle: true)).not) {
+    if (!inApp && GStorage.openInBrowser) {
+      if (!await PiliScheme.routePushFromUrl(url, selfHandle: true)) {
         launchURL(url);
       }
     } else {
@@ -688,7 +697,7 @@ class PageUtils {
   }
 
   static Future<void> viewBangumi(
-      {dynamic seasonId, dynamic epId, dynamic progress}) async {
+      {dynamic seasonId, dynamic epId, String? progress}) async {
     try {
       SmartDialog.showLoading(msg: '资源获取中');
       var result = await SearchHttp.bangumiInfo(seasonId: seasonId, epId: epId);

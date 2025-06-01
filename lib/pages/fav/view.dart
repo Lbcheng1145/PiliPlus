@@ -2,8 +2,11 @@ import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/fav_type.dart';
 import 'package:PiliPlus/models/user/fav_folder.dart';
+import 'package:PiliPlus/pages/fav/article/controller.dart';
+import 'package:PiliPlus/pages/fav/topic/controller.dart';
 import 'package:PiliPlus/pages/fav/video/controller.dart';
 import 'package:PiliPlus/pages/fav_folder_sort/view.dart';
+import 'package:PiliPlus/utils/extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -54,21 +57,22 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
           Obx(
             () => _showVideoFavMenu.value
                 ? IconButton(
-                    onPressed: () {
-                      Get.toNamed('/createFav')?.then(
-                        (data) {
-                          if (data != null) {
-                            List<FavFolderItemData> list = _favController
-                                    .loadingState.value is Success
-                                ? (_favController.loadingState.value as Success)
-                                    .response
-                                : <FavFolderItemData>[];
-                            list.insert(list.isNotEmpty ? 1 : 0, data);
+                    onPressed: () => Get.toNamed('/createFav')?.then(
+                      (data) {
+                        if (data != null) {
+                          List<FavFolderItemData>? list =
+                              _favController.loadingState.value.isSuccess
+                                  ? _favController.loadingState.value.data
+                                  : null;
+                          if (list?.isNotEmpty == true) {
+                            list!.insert(1, data);
                             _favController.loadingState.refresh();
+                          } else {
+                            _favController.loadingState.value = Success([data]);
                           }
-                        },
-                      );
-                    },
+                        }
+                      },
+                    ),
                     icon: const Icon(Icons.add),
                     tooltip: '新建收藏夹',
                   )
@@ -93,12 +97,10 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
             () => _showVideoFavMenu.value
                 ? IconButton(
                     onPressed: () {
-                      if (_favController.loadingState.value is Success) {
+                      if (_favController.loadingState.value.isSuccess) {
                         try {
                           final item =
-                              (_favController.loadingState.value as Success)
-                                  .response
-                                  .first;
+                              _favController.loadingState.value.data!.first;
                           Get.toNamed(
                             '/favSearch',
                             arguments: {
@@ -124,6 +126,23 @@ class _FavPageState extends State<FavPage> with SingleTickerProviderStateMixin {
           isScrollable: true,
           tabAlignment: TabAlignment.start,
           tabs: FavTabType.values.map((item) => Tab(text: item.title)).toList(),
+          onTap: (index) {
+            try {
+              if (!_tabController.indexIsChanging) {
+                switch (FavTabType.values[index]) {
+                  case FavTabType.video:
+                    _favController.scrollController.animToTop();
+                  case FavTabType.article:
+                    Get.find<FavArticleController>()
+                        .scrollController
+                        .animToTop();
+                  case FavTabType.topic:
+                    Get.find<FavTopicController>().scrollController.animToTop();
+                  default:
+                }
+              }
+            } catch (_) {}
+          },
         ),
       ),
       body: SafeArea(

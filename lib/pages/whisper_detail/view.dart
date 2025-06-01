@@ -6,6 +6,7 @@ import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/grpc/bilibili/im/type.pb.dart' show Msg;
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/msg.dart';
+import 'package:PiliPlus/models/bfs_res/data.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/common/publish_panel_type.dart';
 import 'package:PiliPlus/pages/common/common_publish_page.dart';
@@ -17,6 +18,7 @@ import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show LengthLimitingTextInputFormatter;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -98,11 +100,9 @@ class _WhisperDetailPageState
         ),
         actions: [
           IconButton(
-            onPressed: () {
-              Get.to(WhisperLinkSettingPage(
-                talkerUid: _whisperDetailController.talkerId,
-              ));
-            },
+            onPressed: () => Get.to(WhisperLinkSettingPage(
+              talkerUid: _whisperDetailController.talkerId,
+            )),
             icon: Icon(
               size: 20,
               Icons.settings,
@@ -149,7 +149,7 @@ class _WhisperDetailPageState
               shrinkWrap: true,
               reverse: true,
               itemCount: response!.length,
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               physics: const AlwaysScrollableScrollPhysics(
                 parent: ClampingScrollPhysics(),
               ),
@@ -162,42 +162,10 @@ class _WhisperDetailPageState
                 return ChatItem(
                   item: item,
                   eInfos: _whisperDetailController.eInfos,
-                  onLongPress: item.senderUid ==
-                          _whisperDetailController.ownerMid
-                      ? () {
-                          showDialog(
-                            context: context,
-                            builder: (context) {
-                              return AlertDialog(
-                                clipBehavior: Clip.hardEdge,
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                content: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ListTile(
-                                      onTap: () {
-                                        Get.back();
-                                        _whisperDetailController.sendMsg(
-                                          message: '${item.msgKey}',
-                                          onClearText: editController.clear,
-                                          msgType: 5,
-                                          index: index,
-                                        );
-                                      },
-                                      dense: true,
-                                      title: const Text(
-                                        '撤回',
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          );
-                        }
-                      : null,
+                  onLongPress:
+                      item.senderUid == _whisperDetailController.ownerMid
+                          ? () => onLongPress(index, item)
+                          : null,
                 );
               },
               separatorBuilder: (BuildContext context, int index) =>
@@ -211,6 +179,39 @@ class _WhisperDetailPageState
           onReload: _whisperDetailController.onReload,
         ),
     };
+  }
+
+  void onLongPress(int index, Msg item) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          clipBehavior: Clip.hardEdge,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                onTap: () {
+                  Get.back();
+                  _whisperDetailController.sendMsg(
+                    message: '${item.msgKey}',
+                    onClearText: editController.clear,
+                    msgType: 5,
+                    index: index,
+                  );
+                },
+                dense: true,
+                title: const Text(
+                  '撤回',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildInputView(theme) {
@@ -227,13 +228,11 @@ class _WhisperDetailPageState
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           IconButton(
-            onPressed: () {
-              updatePanelType(
-                PanelType.emoji == currentPanelType
-                    ? PanelType.keyboard
-                    : PanelType.emoji,
-              );
-            },
+            onPressed: () => updatePanelType(
+              panelType.value == PanelType.emoji
+                  ? PanelType.keyboard
+                  : PanelType.emoji,
+            ),
             icon: const Icon(Icons.emoji_emotions),
             tooltip: '表情',
           ),
@@ -272,6 +271,7 @@ class _WhisperDetailPageState
                     ),
                     contentPadding: const EdgeInsets.all(10),
                   ),
+                  inputFormatters: [LengthLimitingTextInputFormatter(500)],
                 ),
               ),
             ),
@@ -302,13 +302,14 @@ class _WhisperDetailPageState
                                   ?.split('/')
                                   .getOrNull(1) ??
                               'jpg';
+                          BfsResData data = result['data'];
                           Map picMsg = {
-                            'url': result['data']['image_url'],
-                            'height': result['data']['image_height'],
-                            'width': result['data']['image_width'],
+                            'url': data.imageUrl,
+                            'height': data.imageHeight,
+                            'width': data.imageWidth,
                             'imageType': mimeType,
                             'original': 1,
-                            'size': result['data']['img_size'] / 1024,
+                            'size': data.imgSize,
                           };
                           SmartDialog.showLoading(msg: '正在发送');
                           await _whisperDetailController.sendMsg(

@@ -6,7 +6,6 @@ import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/pages/home/controller.dart';
 import 'package:PiliPlus/pages/main/controller.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -32,51 +31,44 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(toolbarHeight: 0),
-      body: Column(
-        children: [
-          if (!_homeController.useSideBar &&
-              context.orientation == Orientation.portrait)
-            customAppBar(theme),
-          if (_homeController.tabs.length > 1)
-            Material(
-              color: theme.colorScheme.surface,
-              child: Container(
-                height: 42,
-                padding: const EdgeInsets.only(top: 4),
-                child: TabBar(
-                  controller: _homeController.tabController,
-                  tabs: [
-                    for (var i in _homeController.tabs) Tab(text: i['label'])
-                  ],
-                  isScrollable: true,
-                  dividerColor: Colors.transparent,
-                  dividerHeight: 0,
-                  enableFeedback: true,
-                  splashBorderRadius: StyleString.mdRadius,
-                  tabAlignment: TabAlignment.center,
-                  onTap: (value) {
-                    feedBack();
-                    if (_homeController.tabController.indexIsChanging.not) {
-                      _homeController.animateToTop();
-                    }
-                  },
-                ),
+    return Column(
+      children: [
+        if (!_homeController.useSideBar &&
+            context.orientation == Orientation.portrait)
+          customAppBar(theme),
+        if (_homeController.tabs.length > 1)
+          Material(
+            color: theme.colorScheme.surface,
+            child: Container(
+              height: 42,
+              padding: const EdgeInsets.only(top: 4),
+              child: TabBar(
+                controller: _homeController.tabController,
+                tabs: [for (var i in _homeController.tabs) Tab(text: i.label)],
+                isScrollable: true,
+                dividerColor: Colors.transparent,
+                dividerHeight: 0,
+                enableFeedback: true,
+                splashBorderRadius: StyleString.mdRadius,
+                tabAlignment: TabAlignment.center,
+                onTap: (value) {
+                  feedBack();
+                  if (!_homeController.tabController.indexIsChanging) {
+                    _homeController.animateToTop();
+                  }
+                },
               ),
-            )
-          else
-            const SizedBox(height: 6),
-          Expanded(
-            child: tabBarView(
-              controller: _homeController.tabController,
-              children:
-                  _homeController.tabs.map<Widget>((e) => e['page']).toList(),
             ),
+          )
+        else
+          const SizedBox(height: 6),
+        Expanded(
+          child: tabBarView(
+            controller: _homeController.tabController,
+            children: _homeController.tabs.map((e) => e.page).toList(),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -112,9 +104,7 @@ class _HomePageState extends State<HomePage>
                                 _homeController.showUserInfoDialog(context),
                             splashColor: theme.colorScheme.primaryContainer
                                 .withValues(alpha: 0.3),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(50),
-                            ),
+                            customBorder: const CircleBorder(),
                           ),
                         ),
                       ),

@@ -39,12 +39,10 @@ class _UpPanelState extends State<UpPanel> {
       slivers: [
         SliverToBoxAdapter(
           child: InkWell(
-            onTap: () {
-              setState(() {
-                widget.dynamicsController.showLiveItems =
-                    !widget.dynamicsController.showLiveItems;
-              });
-            },
+            onTap: () => setState(() {
+              widget.dynamicsController.showLiveItems =
+                  !widget.dynamicsController.showLiveItems;
+            }),
             child: Container(
               alignment: Alignment.center,
               height: isTop ? 76 : 60,
@@ -59,7 +57,7 @@ class _UpPanelState extends State<UpPanel> {
                   children: [
                     TextSpan(
                       text:
-                          'Live(${widget.dynamicsController.upData.value.liveUsers?.count})', // checked
+                          'Live(${widget.dynamicsController.upData.value.liveUsers?.count ?? 0})',
                     ),
                     if (!isTop) ...[
                       const TextSpan(text: '\n'),
@@ -123,36 +121,41 @@ class _UpPanelState extends State<UpPanel> {
     );
   }
 
-  Widget upItemBuild(theme, data) {
+  void _onSelect(UserItem data) {
+    widget.dynamicsController.currentMid = data.mid;
+    widget.dynamicsController.onSelectUp(data.mid);
+
+    data.hasUpdate = false;
+
+    setState(() {});
+  }
+
+  Widget upItemBuild(ThemeData theme, UserItem data) {
     bool isCurrent = widget.dynamicsController.currentMid == data.mid ||
         widget.dynamicsController.currentMid == -1;
+    final isLive = data is LiveUserItem;
     return SizedBox(
       height: 76,
       width: isTop ? 70 : null,
       child: InkWell(
         onTap: () {
           feedBack();
-          if (data.type == 'up') {
-            widget.dynamicsController.currentMid = data.mid;
-            widget.dynamicsController
-              ..upInfo.value = data
-              ..onSelectUp(data.mid);
-
-            data.hasUpdate = false;
-
-            setState(() {});
-          } else if (data.type == 'live') {
-            Get.toNamed('/liveRoom?roomid=${data.roomId}');
+          switch (data) {
+            case UpItem():
+              _onSelect(data);
+              break;
+            case LiveUserItem():
+              Get.toNamed('/liveRoom?roomid=${data.roomId}');
           }
         },
-        onLongPress: () {
-          if (data.mid == -1) {
-            return;
-          }
-          String heroTag = Utils.makeHeroTag(data.mid);
-          Get.toNamed('/member?mid=${data.mid}',
-              arguments: {'face': data.face, 'heroTag': heroTag});
-        },
+        onDoubleTap: data is LiveUserItem ? () => _onSelect(data) : null,
+        onLongPress: data.mid == -1
+            ? null
+            : () {
+                String heroTag = Utils.makeHeroTag(data.mid);
+                Get.toNamed('/member?mid=${data.mid}',
+                    arguments: {'face': data.face, 'heroTag': heroTag});
+              },
         child: AnimatedOpacity(
           opacity: isCurrent ? 1 : 0.6,
           duration: const Duration(milliseconds: 200),
@@ -181,16 +184,16 @@ class _UpPanelState extends State<UpPanel> {
                           ),
                   ),
                   Positioned(
-                    top: data.type == 'live' && !isTop ? -5 : 0,
-                    right: data.type == 'live' ? -6 : 4,
+                    top: isLive && !isTop ? -5 : 0,
+                    right: isLive ? -6 : 4,
                     child: Badge(
                       smallSize: 8,
-                      label: data.type == 'live' ? const Text(' Live ') : null,
+                      label: isLive ? const Text(' Live ') : null,
                       textColor: theme.colorScheme.onSecondaryContainer,
                       alignment: AlignmentDirectional.topStart,
-                      isLabelVisible: data.type == 'live' ||
-                          (data.type == 'up' && (data.hasUpdate ?? false)),
-                      backgroundColor: data.type == 'live'
+                      isLabelVisible: isLive ||
+                          (data is UpItem && (data.hasUpdate ?? false)),
+                      backgroundColor: isLive
                           ? theme.colorScheme.secondaryContainer
                               .withValues(alpha: 0.75)
                           : theme.colorScheme.primary,
@@ -202,7 +205,7 @@ class _UpPanelState extends State<UpPanel> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
-                  isTop ? '${data.uname}\n' : data.uname,
+                  isTop ? '${data.uname}\n' : data.uname!,
                   maxLines: 2,
                   textAlign: TextAlign.center,
                   style: TextStyle(

@@ -48,7 +48,7 @@ class Utils {
           return str;
         },
       );
-      if (hasMatch.not) {
+      if (!hasMatch) {
         src += '@${quality ?? GlobalData().imgQuality}q.webp';
       }
     }
@@ -58,7 +58,7 @@ class Utils {
   static bool? _isIpad;
 
   static Future<bool> isIpad() async {
-    if (Platform.isIOS.not) {
+    if (!Platform.isIOS) {
       return false;
     }
     if (_isIpad != null) {
@@ -214,7 +214,7 @@ class Utils {
 
   static String numFormat(dynamic number) {
     if (number == null) {
-      return '00:00';
+      return '0';
     }
     if (number is String) {
       number = int.tryParse(number) ?? number;
@@ -502,7 +502,7 @@ class Utils {
     try {
       final res = await Request().get(Api.latestApp, uaType: 'mob');
       if (res.data is Map || res.data.isEmpty) {
-        if (isAuto.not) {
+        if (!isAuto) {
           SmartDialog.showToast('检查更新失败，GitHub接口未返回数据，请检查网络');
         }
         return;
@@ -511,7 +511,7 @@ class Utils {
       DateTime current = DateTime.parse('${BuildConfig.buildTime}Z');
       current = current.copyWith(hour: current.hour - 8);
       if (current.compareTo(latest) >= 0) {
-        if (isAuto.not) {
+        if (!isAuto) {
           SmartDialog.showToast('已是最新版本');
         }
       } else {
@@ -536,10 +536,8 @@ class Utils {
                       const SizedBox(height: 8),
                       Text('${res.data[0]['body']}'),
                       TextButton(
-                        onPressed: () {
-                          PageUtils.launchURL(
-                              'https://github.com/bggRGjQaUbCoE/PiliPlus/commits/main');
-                        },
+                        onPressed: () => PageUtils.launchURL(
+                            'https://github.com/bggRGjQaUbCoE/PiliPlus/commits/main'),
                         child: Text(
                           "点此查看完整更新(即commit)内容",
                           style: TextStyle(
@@ -574,9 +572,7 @@ class Utils {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {
-                    onDownload(res.data[0]);
-                  },
+                  onPressed: () => onDownload(res.data[0]),
                   child: const Text('Github'),
                 ),
               ],

@@ -33,8 +33,7 @@ TextSpan? richNode(
         spanChildren.add(
           TextSpan(
             text: '${item.modules.moduleDynamic!.major!.opus!.title!}\n',
-            style: theme.textTheme.titleMedium!
-                .copyWith(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         );
       }
@@ -59,9 +58,7 @@ TextSpan? richNode(
                 text: ' ${i.text}',
                 style: style,
                 recognizer: TapGestureRecognizer()
-                  ..onTap = () {
-                    Get.toNamed('/member?mid=${i.rid}');
-                  },
+                  ..onTap = () => Get.toNamed('/member?mid=${i.rid}'),
               ),
             );
             break;
@@ -72,15 +69,13 @@ TextSpan? richNode(
                 text: i.origText!,
                 style: style,
                 recognizer: TapGestureRecognizer()
-                  ..onTap = () {
-                    Get.toNamed(
-                      '/searchResult',
-                      parameters: {
-                        'keyword':
-                            i.origText!.substring(1, i.origText!.length - 1),
-                      },
-                    );
-                  },
+                  ..onTap = () => Get.toNamed(
+                        '/searchResult',
+                        parameters: {
+                          'keyword':
+                              i.origText!.substring(1, i.origText!.length - 1),
+                        },
+                      ),
               ),
             );
             break;
@@ -99,17 +94,13 @@ TextSpan? richNode(
               )
               ..add(
                 TextSpan(
-                  text: i.text ?? '',
+                  text: i.text,
                   style: style,
-                  recognizer: TapGestureRecognizer()
-                    ..onTap = () {
-                      String? url = i.origText;
-                      if (url == null) {
-                        SmartDialog.showToast('未获取到链接');
-                        return;
-                      }
-                      PiliScheme.routePushFromUrl(url);
-                    },
+                  recognizer: i.origText == null
+                      ? null
+                      : (TapGestureRecognizer()
+                        ..onTap =
+                            () => PiliScheme.routePushFromUrl(i.origText!)),
                 ),
               );
             break;
@@ -172,15 +163,13 @@ TextSpan? richNode(
                   text: '${i.origText} ',
                   style: style,
                   recognizer: TapGestureRecognizer()
-                    ..onTap = () {
-                      Get.toNamed(
-                        '/webview',
-                        parameters: {
-                          'url':
-                              'https://www.bilibili.com/h5/lottery/result?business_id=${item.idStr}'
-                        },
-                      );
-                    },
+                    ..onTap = () => Get.toNamed(
+                          '/webview',
+                          parameters: {
+                            'url':
+                                'https://www.bilibili.com/h5/lottery/result?business_id=${item.idStr}'
+                          },
+                        ),
                 ),
               );
             break;
@@ -204,9 +193,8 @@ TextSpan? richNode(
                   recognizer: i.jumpUrl == null
                       ? null
                       : (TapGestureRecognizer()
-                        ..onTap = () {
-                          PiliScheme.routePushFromUrl(i.jumpUrl!);
-                        }),
+                        ..onTap =
+                            () => PiliScheme.routePushFromUrl(i.jumpUrl!)),
                 ),
               );
             break;
@@ -230,13 +218,15 @@ TextSpan? richNode(
                   recognizer: TapGestureRecognizer()
                     ..onTap = () async {
                       try {
-                        int cid = await SearchHttp.ab2c(bvid: i.rid);
-                        PageUtils.toVideoPage(
-                          'bvid=${i.rid}&cid=$cid',
-                          arguments: {
-                            'heroTag': Utils.makeHeroTag(i.rid),
-                          },
-                        );
+                        int? cid = await SearchHttp.ab2c(bvid: i.rid);
+                        if (cid != null) {
+                          PageUtils.toVideoPage(
+                            'bvid=${i.rid}&cid=$cid',
+                            arguments: {
+                              'heroTag': Utils.makeHeroTag(i.rid),
+                            },
+                          );
+                        }
                       } catch (err) {
                         SmartDialog.showToast(err.toString());
                       }
@@ -269,10 +259,7 @@ TextSpan? richNode(
             break;
           default:
             spanChildren.add(
-              TextSpan(
-                text: '${i.text}',
-                style: style,
-              ),
+              TextSpan(text: i.text, style: style),
             );
             break;
         }

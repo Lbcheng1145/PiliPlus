@@ -4,11 +4,13 @@ import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/tabs.dart';
 import 'package:PiliPlus/models/common/dynamic/dynamic_badge_mode.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
+import 'package:PiliPlus/models/common/nav_bar_config.dart';
 import 'package:PiliPlus/pages/dynamics/controller.dart';
 import 'package:PiliPlus/pages/dynamics/view.dart';
 import 'package:PiliPlus/pages/home/controller.dart';
 import 'package:PiliPlus/pages/home/view.dart';
 import 'package:PiliPlus/pages/main/controller.dart';
+import 'package:PiliPlus/pages/main/nav.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/event_bus.dart';
@@ -17,7 +19,8 @@ import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'
+    hide NavigationBar, NavigationDestination;
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -94,8 +97,8 @@ class _MainAppState extends State<MainApp>
   void _checkDefaultSearch([bool shouldCheck = false]) {
     if (_mainController.homeIndex != -1 && _homeController.enableSearchWord) {
       if (shouldCheck &&
-          _mainController.pages[_mainController.selectedIndex.value]
-              is! HomePage) {
+          _mainController.navigationBars[_mainController.selectedIndex.value] !=
+              NavigationBarType.home) {
         return;
       }
       int now = DateTime.now().millisecondsSinceEpoch;
@@ -112,8 +115,8 @@ class _MainAppState extends State<MainApp>
         _mainController.homeIndex != -1 &&
         _mainController.msgBadgeMode != DynamicBadgeMode.hidden) {
       if (shouldCheck &&
-          _mainController.pages[_mainController.selectedIndex.value]
-              is! HomePage) {
+          _mainController.navigationBars[_mainController.selectedIndex.value] !=
+              NavigationBarType.home) {
         return;
       }
       int now = DateTime.now().millisecondsSinceEpoch;
@@ -128,6 +131,7 @@ class _MainAppState extends State<MainApp>
   void setIndex(int value) {
     feedBack();
 
+    final currentPage = _mainController.navigationBars[value].page;
     if (value != _mainController.selectedIndex.value) {
       _mainController.selectedIndex.value = value;
       if (_mainController.mainTabBarView) {
@@ -135,7 +139,6 @@ class _MainAppState extends State<MainApp>
       } else {
         _mainController.controller.jumpToPage(value);
       }
-      dynamic currentPage = _mainController.pages[value];
       if (currentPage is HomePage) {
         _checkDefaultSearch();
         _checkUnread();
@@ -143,8 +146,6 @@ class _MainAppState extends State<MainApp>
         _mainController.setCount();
       }
     } else {
-      dynamic currentPage = _mainController.pages[value];
-
       int now = DateTime.now().millisecondsSinceEpoch;
       if (now - _lastSelectTime < 500) {
         EasyThrottle.throttle('topOrRefresh', const Duration(milliseconds: 500),
@@ -201,30 +202,27 @@ class _MainAppState extends State<MainApp>
           systemNavigationBarIconBrightness: theme.brightness.reverse,
         ),
         child: Scaffold(
-          resizeToAvoidBottomInset: false,
           extendBody: true,
-          body: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (useSideBar || !isPortrait) ...[
-                Obx(
-                  () => _mainController.navigationBars.length > 1
+          appBar: AppBar(toolbarHeight: 0),
+          body: SafeArea(
+            bottom: false,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (useSideBar || !isPortrait) ...[
+                  _mainController.navigationBars.length > 1
                       ? context.isTablet && GStorage.optTabletNav
                           ? Column(
                               children: [
-                                SizedBox(
-                                    height:
-                                        MediaQuery.paddingOf(context).top + 50),
+                                const SizedBox(height: 25),
                                 userAndSearchVertical(theme),
                                 const Spacer(flex: 2),
                                 Expanded(
                                   flex: 5,
                                   child: SizedBox(
                                     width: 130,
-                                    child: MediaQuery.removePadding(
-                                      context: context,
-                                      removeRight: true,
-                                      child: NavigationDrawer(
+                                    child: Obx(
+                                      () => NavigationDrawer(
                                         backgroundColor: Colors.transparent,
                                         tilePadding: const EdgeInsets.symmetric(
                                             vertical: 5, horizontal: 12),
@@ -237,94 +235,76 @@ class _MainAppState extends State<MainApp>
                                         onDestinationSelected: setIndex,
                                         selectedIndex:
                                             _mainController.selectedIndex.value,
-                                        children: [
-                                          ..._mainController.navigationBars
-                                              .map((e) {
-                                            return NavigationDrawerDestination(
-                                              label: Text(e['label']),
-                                              icon: _buildIcon(
-                                                id: e['id'],
-                                                count: e['count'],
-                                                icon: e['icon'],
-                                              ),
-                                              selectedIcon: _buildIcon(
-                                                id: e['id'],
-                                                count: e['count'],
-                                                icon: e['selectIcon'],
-                                              ),
-                                            );
-                                          }),
-                                        ],
+                                        children: _mainController.navigationBars
+                                            .map(
+                                              (e) =>
+                                                  NavigationDrawerDestination(
+                                                      label: Text(e.label),
+                                                      icon: _buildIcon(type: e),
+                                                      selectedIcon: _buildIcon(
+                                                        type: e,
+                                                        selected: true,
+                                                      )),
+                                            )
+                                            .toList(),
                                       ),
                                     ),
                                   ),
                                 ),
                               ],
                             )
-                          : NavigationRail(
-                              groupAlignment: 0.5,
-                              selectedIndex:
-                                  _mainController.selectedIndex.value,
-                              onDestinationSelected: setIndex,
-                              labelType: NavigationRailLabelType.selected,
-                              leading: userAndSearchVertical(theme),
-                              destinations: _mainController.navigationBars
-                                  .map(
-                                    (e) => NavigationRailDestination(
-                                      icon: _buildIcon(
-                                        id: e['id'],
-                                        count: e['count'],
-                                        icon: e['icon'],
-                                      ),
-                                      selectedIcon: _buildIcon(
-                                        id: e['id'],
-                                        count: e['count'],
-                                        icon: e['selectIcon'],
-                                      ),
-                                      label: Text(e['label']),
-                                    ),
-                                  )
-                                  .toList(),
+                          : Obx(
+                              () => NavigationRail(
+                                groupAlignment: 0.5,
+                                selectedIndex:
+                                    _mainController.selectedIndex.value,
+                                onDestinationSelected: setIndex,
+                                labelType: NavigationRailLabelType.selected,
+                                leading: userAndSearchVertical(theme),
+                                destinations: _mainController.navigationBars
+                                    .map((e) => NavigationRailDestination(
+                                          label: Text(e.label),
+                                          icon: _buildIcon(type: e),
+                                          selectedIcon: _buildIcon(
+                                            type: e,
+                                            selected: true,
+                                          ),
+                                        ))
+                                    .toList(),
+                              ),
                             )
-                      : SafeArea(
-                          right: false,
-                          child: Container(
-                            padding: const EdgeInsets.only(
-                              top: 10,
-                            ),
-                            width: 80,
-                            child: userAndSearchVertical(theme),
-                          ),
+                      : Container(
+                          padding: const EdgeInsets.only(top: 10),
+                          width: 80,
+                          child: userAndSearchVertical(theme),
                         ),
-                ),
-                VerticalDivider(
-                  width: 1,
-                  indent: MediaQuery.of(context).padding.top,
-                  endIndent: MediaQuery.of(context).padding.bottom,
-                  color: theme.colorScheme.outline.withValues(alpha: 0.06),
-                ),
-              ],
-              Expanded(
-                child: SafeArea(
-                  top: false,
-                  bottom: false,
-                  left: isPortrait,
+                  VerticalDivider(
+                    width: 1,
+                    endIndent: MediaQuery.paddingOf(context).bottom,
+                    color: theme.colorScheme.outline.withValues(alpha: 0.06),
+                  ),
+                ],
+                Expanded(
                   child: _mainController.mainTabBarView
                       ? CustomTabBarView(
                           scrollDirection:
                               isPortrait ? Axis.horizontal : Axis.vertical,
                           physics: const NeverScrollableScrollPhysics(),
                           controller: _mainController.controller,
-                          children: _mainController.pages,
+                          children: _mainController.navigationBars
+                              .map((i) => i.page)
+                              .toList(),
                         )
                       : PageView(
                           physics: const NeverScrollableScrollPhysics(),
                           controller: _mainController.controller,
-                          children: _mainController.pages,
+                          children: _mainController.navigationBars
+                              .map((i) => i.page)
+                              .toList(),
                         ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           bottomNavigationBar: useSideBar || !isPortrait
               ? null
@@ -343,63 +323,46 @@ class _MainAppState extends State<MainApp>
                       duration: const Duration(milliseconds: 500),
                       offset: Offset(0, snapshot.data ? 0 : 1),
                       child: enableMYBar
-                          ? Obx(
-                              () => _mainController.navigationBars.length > 1
-                                  ? NavigationBar(
-                                      onDestinationSelected: setIndex,
-                                      selectedIndex:
-                                          _mainController.selectedIndex.value,
-                                      destinations:
-                                          _mainController.navigationBars.map(
-                                        (e) {
-                                          return NavigationDestination(
-                                            icon: _buildIcon(
-                                              id: e['id'],
-                                              count: e['count'],
-                                              icon: e['icon'],
-                                            ),
+                          ? _mainController.navigationBars.length > 1
+                              ? Obx(
+                                  () => NavigationBar(
+                                    onDestinationSelected: setIndex,
+                                    selectedIndex:
+                                        _mainController.selectedIndex.value,
+                                    destinations: _mainController.navigationBars
+                                        .map((e) => NavigationDestination(
+                                            label: e.label,
+                                            icon: _buildIcon(type: e),
                                             selectedIcon: _buildIcon(
-                                              id: e['id'],
-                                              count: e['count'],
-                                              icon: e['selectIcon'],
-                                            ),
-                                            label: e['label'],
-                                          );
-                                        },
-                                      ).toList(),
-                                    )
-                                  : const SizedBox.shrink(),
-                            )
-                          : Obx(
-                              () => _mainController.navigationBars.length > 1
-                                  ? BottomNavigationBar(
-                                      currentIndex:
-                                          _mainController.selectedIndex.value,
-                                      onTap: setIndex,
-                                      iconSize: 16,
-                                      selectedFontSize: 12,
-                                      unselectedFontSize: 12,
-                                      type: BottomNavigationBarType.fixed,
-                                      items: _mainController.navigationBars
-                                          .map(
-                                            (e) => BottomNavigationBarItem(
-                                              icon: _buildIcon(
-                                                id: e['id'],
-                                                count: e['count'],
-                                                icon: e['icon'],
-                                              ),
-                                              activeIcon: _buildIcon(
-                                                id: e['id'],
-                                                count: e['count'],
-                                                icon: e['selectIcon'],
-                                              ),
-                                              label: e['label'],
-                                            ),
-                                          )
-                                          .toList(),
-                                    )
-                                  : const SizedBox.shrink(),
-                            ),
+                                              type: e,
+                                              selected: true,
+                                            )))
+                                        .toList(),
+                                  ),
+                                )
+                              : const SizedBox.shrink()
+                          : _mainController.navigationBars.length > 1
+                              ? Obx(
+                                  () => BottomNavigationBar(
+                                    currentIndex:
+                                        _mainController.selectedIndex.value,
+                                    onTap: setIndex,
+                                    iconSize: 16,
+                                    selectedFontSize: 12,
+                                    unselectedFontSize: 12,
+                                    type: BottomNavigationBarType.fixed,
+                                    items: _mainController.navigationBars
+                                        .map((e) => BottomNavigationBarItem(
+                                            label: e.label,
+                                            icon: _buildIcon(type: e),
+                                            activeIcon: _buildIcon(
+                                              type: e,
+                                              selected: true,
+                                            )))
+                                        .toList(),
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
                     );
                   },
                 ),
@@ -409,21 +372,23 @@ class _MainAppState extends State<MainApp>
   }
 
   Widget _buildIcon({
-    required int id,
-    required int count,
-    required Widget icon,
-  }) =>
-      id == 1 &&
-              _mainController.dynamicBadgeMode != DynamicBadgeMode.hidden &&
-              count > 0
-          ? Badge(
+    required NavigationBarType type,
+    bool selected = false,
+  }) {
+    final icon = selected ? type.selectIcon : type.icon;
+    return type == NavigationBarType.dynamics
+        ? Obx(
+            () => Badge(
+              isLabelVisible: _mainController.dynCount.value > 0,
               label: _mainController.dynamicBadgeMode == DynamicBadgeMode.number
-                  ? Text(count.toString())
+                  ? Text(_mainController.dynCount.value.toString())
                   : null,
-              padding: const EdgeInsets.fromLTRB(6, 0, 6, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
               child: icon,
-            )
-          : icon;
+            ),
+          )
+        : icon;
+  }
 
   Widget userAndSearchVertical(ThemeData theme) {
     return Column(
@@ -449,9 +414,7 @@ class _MainAppState extends State<MainApp>
                                 _homeController.showUserInfoDialog(context),
                             splashColor: theme.colorScheme.primaryContainer
                                 .withValues(alpha: 0.3),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(50),
-                            ),
+                            customBorder: const CircleBorder(),
                           ),
                         ),
                       ),

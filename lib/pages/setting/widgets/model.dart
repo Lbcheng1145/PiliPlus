@@ -14,6 +14,7 @@ import 'package:PiliPlus/models/common/audio_normalization.dart';
 import 'package:PiliPlus/models/common/dynamic/dynamic_badge_mode.dart';
 import 'package:PiliPlus/models/common/dynamic/dynamics_type.dart';
 import 'package:PiliPlus/models/common/dynamic/up_panel_position.dart';
+import 'package:PiliPlus/models/common/home_tab_type.dart';
 import 'package:PiliPlus/models/common/member/tab_type.dart';
 import 'package:PiliPlus/models/common/msg/msg_unread_type.dart';
 import 'package:PiliPlus/models/common/nav_bar_config.dart';
@@ -44,7 +45,6 @@ import 'package:PiliPlus/plugin/pl_player/models/fullscreen_mode.dart';
 import 'package:PiliPlus/plugin/pl_player/utils/fullscreen.dart';
 import 'package:PiliPlus/utils/accounts/account_manager/account_mgr.dart';
 import 'package:PiliPlus/utils/cache_manage.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/global_data.dart';
 import 'package:PiliPlus/utils/recommend_filter.dart';
@@ -52,7 +52,7 @@ import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:auto_orientation/auto_orientation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
@@ -591,8 +591,8 @@ List<SettingsModel> get styleSettings => [
               return SelectDialog<int>(
                 title: '首页启动页',
                 value: GStorage.defaultHomePage,
-                values: defaultNavigationBars.map((e) {
-                  return (e['id'] as int, e['label'] as String);
+                values: NavigationBarType.values.map((e) {
+                  return (e.index, e.label);
                 }).toList(),
               );
             },
@@ -606,7 +606,7 @@ List<SettingsModel> get styleSettings => [
         leading: const Icon(Icons.home_outlined),
         title: '默认启动页',
         getSubtitle: () =>
-            '当前启动页：${defaultNavigationBars.firstWhere((e) => e['id'] == GStorage.defaultHomePage)['label']}',
+            '当前启动页：${NavigationBarType.values.firstWhere((e) => e.index == GStorage.defaultHomePage).label}',
       ),
       SettingsModel(
         settingsType: SettingsType.normal,
@@ -682,7 +682,7 @@ List<SettingsModel> get styleSettings => [
       SettingsModel(
         settingsType: SettingsType.normal,
         onTap: (setState) async {
-          dynamic result = await Get.toNamed('/fontSizeSetting');
+          var result = await Get.toNamed('/fontSizeSetting');
           if (result != null) {
             Get.put(ColorSelectController()).currentTextScale.value = result;
           }
@@ -699,15 +699,24 @@ List<SettingsModel> get styleSettings => [
       ),
       SettingsModel(
         settingsType: SettingsType.normal,
-        onTap: (setState) => Get.toNamed('/tabbarSetting'),
+        onTap: (setState) => Get.toNamed('/barSetting', arguments: {
+          'key': SettingBoxKey.tabBarSort,
+          'defaultBars': HomeTabType.values,
+          'title': '首页标签页'
+        }),
         title: '首页标签页',
         subtitle: '删除或调换首页标签页',
         leading: const Icon(Icons.toc_outlined),
       ),
       SettingsModel(
         settingsType: SettingsType.normal,
-        onTap: (setState) => Get.toNamed('/navbarSetting'),
+        onTap: (setState) => Get.toNamed('/barSetting', arguments: {
+          'key': SettingBoxKey.navBarSort,
+          'defaultBars': NavigationBarType.values,
+          'title': 'Navbar'
+        }),
         title: 'Navbar编辑',
+        subtitle: '删除或调换Navbar',
         leading: const Icon(Icons.toc_outlined),
       ),
       if (Platform.isAndroid)
@@ -1384,7 +1393,7 @@ List<SettingsModel> get recommendSettings => [
           try {
             RcmdController ctr = Get.find<RcmdController>()
               ..savedRcmdTip = value;
-            if (value.not) {
+            if (!value) {
               ctr.lastRefreshAt = null;
             }
           } catch (e) {
@@ -1457,7 +1466,7 @@ List<SettingsModel> get privacySettings => [
       SettingsModel(
         settingsType: SettingsType.normal,
         onTap: (setState) {
-          if (Accounts.main.isLogin.not) {
+          if (!Accounts.main.isLogin) {
             SmartDialog.showToast('登录后查看');
             return;
           }

@@ -10,7 +10,7 @@ import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -358,6 +358,54 @@ class _SponsorBlockPageState extends State<SponsorBlockPage> {
         ),
       );
 
+  void onSelectColor(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        clipBehavior: Clip.hardEdge,
+        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+        title: Text.rich(
+          TextSpan(
+            children: [
+              const TextSpan(
+                text: 'Color Picker ',
+                style: TextStyle(fontSize: 15),
+              ),
+              WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: Container(
+                  height: 10,
+                  width: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _blockColor[index],
+                  ),
+                ),
+                style: const TextStyle(fontSize: 13, height: 1),
+              ),
+              TextSpan(
+                text: ' ${_blockSettings[index].first.title}',
+                style: const TextStyle(fontSize: 13, height: 1),
+              ),
+            ],
+          ),
+        ),
+        content: SlideColorPicker(
+          color: _blockColor[index],
+          callback: (Color? color) {
+            _blockColor[index] = color ?? _blockSettings[index].first.color;
+            setting.put(
+                SettingBoxKey.blockColor,
+                _blockColor
+                    .map((item) => item.value.toRadixString(16).substring(2))
+                    .toList());
+            setState(() {});
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -395,62 +443,14 @@ class _SponsorBlockPageState extends State<SponsorBlockPage> {
           divider,
           SliverToBoxAdapter(child: _blockToastItem(titleStyle)),
           divider,
-          SliverToBoxAdapter(child: _blockTrackItem(titleStyle, titleStyle)),
+          SliverToBoxAdapter(child: _blockTrackItem(titleStyle, subTitleStyle)),
           dividerL,
           SliverList.separated(
             itemCount: _blockSettings.length,
             itemBuilder: (context, index) => ListTile(
               dense: true,
               enabled: _blockSettings[index].second != SkipType.disable,
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    clipBehavior: Clip.hardEdge,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                    title: Text.rich(
-                      TextSpan(
-                        children: [
-                          const TextSpan(
-                            text: 'Color Picker ',
-                            style: TextStyle(fontSize: 15),
-                          ),
-                          WidgetSpan(
-                            alignment: PlaceholderAlignment.middle,
-                            child: Container(
-                              height: 10,
-                              width: 10,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _blockColor[index],
-                              ),
-                            ),
-                            style: const TextStyle(fontSize: 13, height: 1),
-                          ),
-                          TextSpan(
-                            text: ' ${_blockSettings[index].first.title}',
-                            style: const TextStyle(fontSize: 13, height: 1),
-                          ),
-                        ],
-                      ),
-                    ),
-                    content: SlideColorPicker(
-                      color: _blockColor[index],
-                      callback: (Color? color) {
-                        _blockColor[index] =
-                            color ?? _blockSettings[index].first.color;
-                        setting.put(
-                            SettingBoxKey.blockColor,
-                            _blockColor
-                                .map((item) =>
-                                    item.value.toRadixString(16).substring(2))
-                                .toList());
-                        setState(() {});
-                      },
-                    ),
-                  ),
-                );
-              },
+              onTap: () => onSelectColor(index),
               title: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

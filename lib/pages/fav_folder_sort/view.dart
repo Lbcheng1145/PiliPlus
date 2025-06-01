@@ -3,7 +3,6 @@ import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/models/user/fav_folder.dart';
 import 'package:PiliPlus/pages/fav/video/controller.dart';
 import 'package:PiliPlus/pages/fav/video/widgets/item.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -21,8 +20,8 @@ class _FavFolderSortPageState extends State<FavFolderSortPage> {
   FavController get _favController => widget.favController;
 
   final GlobalKey _key = GlobalKey();
-  late List<FavFolderItemData> sortList = List<FavFolderItemData>.from(
-      (_favController.loadingState.value as Success).response);
+  late List<FavFolderItemData> sortList =
+      List<FavFolderItemData>.from(_favController.loadingState.value.data!);
 
   final ScrollController _scrollController = ScrollController();
 
@@ -32,11 +31,11 @@ class _FavFolderSortPageState extends State<FavFolderSortPage> {
     }
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      _favController.onLoadMore().then((_) {
+      _favController.onLoadMore().whenComplete(() {
         try {
-          if (_favController.loadingState.value is Success) {
+          if (_favController.loadingState.value.isSuccess) {
             List<FavFolderItemData> list =
-                (_favController.loadingState.value as Success).response;
+                _favController.loadingState.value.data!;
             sortList.addAll(list.sublist(sortList.length));
             if (mounted) {
               setState(() {});
@@ -50,7 +49,7 @@ class _FavFolderSortPageState extends State<FavFolderSortPage> {
   @override
   void initState() {
     super.initState();
-    if (_favController.isEnd.not) {
+    if (!_favController.isEnd) {
       _scrollController.addListener(listener);
     }
   }
@@ -71,7 +70,7 @@ class _FavFolderSortPageState extends State<FavFolderSortPage> {
         actions: [
           TextButton(
             onPressed: () async {
-              dynamic res = await UserHttp.sortFavFolder(
+              var res = await UserHttp.sortFavFolder(
                 sort: sortList.map((item) => item.id).toList(),
               );
               if (res['status']) {
@@ -130,11 +129,8 @@ class _FavFolderSortPageState extends State<FavFolderSortPage> {
           child: FavItem(
             heroTag: key,
             favFolderItem: item,
-            onLongPress: index == 0
-                ? () {
-                    SmartDialog.showToast('默认收藏夹不支持排序');
-                  }
-                : null,
+            onLongPress:
+                index == 0 ? () => SmartDialog.showToast('默认收藏夹不支持排序') : null,
           ),
         );
       },

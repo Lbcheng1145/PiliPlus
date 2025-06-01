@@ -29,7 +29,6 @@ class DynamicItemModel {
   DynamicItemModel? orig;
   String? type;
   bool? visible;
-  bool? isForwarded;
 
   // opus
   Fallback? fallback;
@@ -41,7 +40,7 @@ class DynamicItemModel {
         ? ItemModulesModel()
         : ItemModulesModel.fromJson(json['modules']);
     if (json['orig'] != null) {
-      orig = DynamicItemModel.fromJson(json['orig'])..isForwarded = true;
+      orig = DynamicItemModel.fromJson(json['orig']);
     }
     type = json['type'];
     visible = json['visible'];
@@ -77,11 +76,6 @@ class Fallback {
         id: json['id'],
         type: json['type'],
       );
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type,
-      };
 }
 
 // 单个动态详情
@@ -241,11 +235,31 @@ class Button {
   String? icon;
   String? jumpUrl;
   String? text;
+  JumpStyle? jumpStyle;
+  int? status;
+  int? type;
+  Check? check;
 
   Button.fromJson(Map<String, dynamic> json) {
     handleType = json['handle_type'];
     icon = json['icon'];
     jumpUrl = json['jump_url'];
+    text = json['text'];
+    jumpStyle = json['jump_style'] == null
+        ? null
+        : JumpStyle.fromJson(json['jump_style']);
+    status = json['status'];
+    type = json['type'];
+    check = json['check'] == null ? null : Check.fromJson(json['check']);
+  }
+}
+
+class Check {
+  int? disable;
+  String? text;
+
+  Check.fromJson(Map<String, dynamic> json) {
+    disable = json['disable'];
     text = json['text'];
   }
 }
@@ -283,7 +297,7 @@ class ModuleAuthorModel extends Avatar {
   String? pubTime;
   int? pubTs;
   String? type;
-  Map? decorate;
+  Decorate? decorate;
 
   ModuleAuthorModel.fromJson(Map<String, dynamic> json) : super.fromJson(json) {
     if (json['official'] != null) {
@@ -297,11 +311,63 @@ class ModuleAuthorModel extends Avatar {
     pubTs = json['pub_ts'] == 0 ? null : json['pub_ts'];
     type = json['type'];
     if (PendantAvatar.showDynDecorate) {
-      decorate = json['decorate'];
+      decorate =
+          json['decorate'] == null ? null : Decorate.fromJson(json['decorate']);
     } else {
       pendant = null;
     }
   }
+}
+
+class Decorate {
+  String? cardUrl;
+  Fan? fan;
+  int? id;
+  String? jumpUrl;
+  String? name;
+  int? type;
+
+  Decorate({
+    this.cardUrl,
+    this.fan,
+    this.id,
+    this.jumpUrl,
+    this.name,
+    this.type,
+  });
+
+  factory Decorate.fromJson(Map<String, dynamic> json) => Decorate(
+        cardUrl: json["card_url"],
+        fan: json["fan"] == null ? null : Fan.fromJson(json["fan"]),
+        id: json["id"],
+        jumpUrl: json["jump_url"],
+        name: json["name"],
+        type: json["type"],
+      );
+}
+
+class Fan {
+  String? color;
+  bool? isFan;
+  String? numPrefix;
+  String? numStr;
+  int? number;
+
+  Fan({
+    this.color,
+    this.isFan,
+    this.numPrefix,
+    this.numStr,
+    this.number,
+  });
+
+  factory Fan.fromJson(Map<String, dynamic> json) => Fan(
+        color: json["color"],
+        isFan: json["is_fan"],
+        numPrefix: json["num_prefix"],
+        numStr: json["num_str"],
+        number: json["number"],
+      );
 }
 
 // 单个动态详情 - 动态信息
@@ -357,12 +423,9 @@ class DynamicAddModel {
   Ugc? ugc;
   Reserve? reserve;
   Good? goods;
-
-  /// TODO 比赛vs
-  String? match;
-
-  /// TODO 游戏信息
-  String? common;
+  UpowerLottery? upowerLottery;
+  AddCommon? common;
+  AddMatch? match;
 
   DynamicAddModel.fromJson(Map<String, dynamic> json) {
     type = json['type'];
@@ -371,7 +434,198 @@ class DynamicAddModel {
     reserve =
         json['reserve'] != null ? Reserve.fromJson(json['reserve']) : null;
     goods = json['goods'] != null ? Good.fromJson(json['goods']) : null;
+    upowerLottery = json['upower_lottery'] != null
+        ? UpowerLottery.fromJson(json['upower_lottery'])
+        : null;
+    common = json['common'] != null ? AddCommon.fromJson(json['common']) : null;
+    match = json['match'] != null ? AddMatch.fromJson(json['match']) : null;
   }
+}
+
+class AddMatch {
+  Button? button;
+  String? headText;
+  String? idStr;
+  String? jumpUrl;
+  MatchInfo? matchInfo;
+
+  AddMatch({
+    this.button,
+    this.headText,
+    this.idStr,
+    this.jumpUrl,
+    this.matchInfo,
+  });
+
+  factory AddMatch.fromJson(Map<String, dynamic> json) => AddMatch(
+        button: json["button"] == null ? null : Button.fromJson(json["button"]),
+        headText: json["head_text"],
+        idStr: json["id_str"],
+        jumpUrl: json["jump_url"],
+        matchInfo: json["match_info"] == null
+            ? null
+            : MatchInfo.fromJson(json["match_info"]),
+      );
+}
+
+class MatchInfo {
+  String? centerBottom;
+  List? centerTop;
+  TTeam? leftTeam;
+  TTeam? rightTeam;
+  int? status;
+  dynamic subTitle;
+  String? title;
+
+  MatchInfo({
+    this.centerBottom,
+    this.centerTop,
+    this.leftTeam,
+    this.rightTeam,
+    this.status,
+    this.subTitle,
+    this.title,
+  });
+
+  factory MatchInfo.fromJson(Map<String, dynamic> json) => MatchInfo(
+        centerBottom: json["center_bottom"],
+        centerTop: json["center_top"],
+        leftTeam: json["left_team"] == null
+            ? null
+            : TTeam.fromJson(json["left_team"]),
+        rightTeam: json["right_team"] == null
+            ? null
+            : TTeam.fromJson(json["right_team"]),
+        status: json["status"],
+        subTitle: json["sub_title"],
+        title: json["title"],
+      );
+}
+
+class TTeam {
+  int? id;
+  String? name;
+  String? pic;
+
+  TTeam({
+    this.id,
+    this.name,
+    this.pic,
+  });
+
+  factory TTeam.fromJson(Map<String, dynamic> json) => TTeam(
+        id: json["id"],
+        name: json["name"],
+        pic: json["pic"],
+      );
+}
+
+class AddCommon {
+  Button? button;
+  String? cover;
+  String? desc1;
+  String? desc2;
+  String? headText;
+  String? idStr;
+  String? jumpUrl;
+  int? style;
+  String? subType;
+  String? title;
+
+  AddCommon({
+    this.button,
+    this.cover,
+    this.desc1,
+    this.desc2,
+    this.headText,
+    this.idStr,
+    this.jumpUrl,
+    this.style,
+    this.subType,
+    this.title,
+  });
+
+  factory AddCommon.fromJson(Map<String, dynamic> json) => AddCommon(
+        button: json["button"] == null ? null : Button.fromJson(json["button"]),
+        cover: json["cover"],
+        desc1: json["desc1"],
+        desc2: json["desc2"],
+        headText: json["head_text"],
+        idStr: json["id_str"],
+        jumpUrl: json["jump_url"],
+        style: json["style"],
+        subType: json["sub_type"],
+        title: json["title"],
+      );
+}
+
+class UpowerLottery {
+  Button? button;
+  Desc? desc;
+  Hint? hint;
+  String? jumpUrl;
+  int? rid;
+  int? state;
+  String? title;
+  int? upMid;
+  int? upowerActionState;
+  int? upowerLevel;
+
+  UpowerLottery({
+    this.button,
+    this.desc,
+    this.hint,
+    this.jumpUrl,
+    this.rid,
+    this.state,
+    this.title,
+    this.upMid,
+    this.upowerActionState,
+    this.upowerLevel,
+  });
+
+  factory UpowerLottery.fromJson(Map<String, dynamic> json) => UpowerLottery(
+        button: json["button"] == null ? null : Button.fromJson(json["button"]),
+        desc: json["desc"] == null ? null : Desc.fromJson(json["desc"]),
+        hint: json["hint"] == null ? null : Hint.fromJson(json["hint"]),
+        jumpUrl: json["jump_url"],
+        rid: json["rid"],
+        state: json["state"],
+        title: json["title"],
+        upMid: json["up_mid"],
+        upowerActionState: json["upower_action_state"],
+        upowerLevel: json["upower_level"],
+      );
+}
+
+class Hint {
+  int? style;
+  String? text;
+
+  Hint({
+    this.style,
+    this.text,
+  });
+
+  factory Hint.fromJson(Map<String, dynamic> json) => Hint(
+        style: json["style"],
+        text: json["text"],
+      );
+}
+
+class JumpStyle {
+  String? iconUrl;
+  String? text;
+
+  JumpStyle({
+    this.iconUrl,
+    this.text,
+  });
+
+  factory JumpStyle.fromJson(Map<String, dynamic> json) => JumpStyle(
+        iconUrl: json["icon_url"],
+        text: json["text"],
+      );
 }
 
 class Vote {
@@ -452,6 +706,7 @@ class Reserve {
     this.button,
     this.desc1,
     this.desc2,
+    this.desc3,
     this.jumpUrl,
     this.reserveTotal,
     this.rid,
@@ -464,6 +719,7 @@ class Reserve {
   ReserveBtn? button;
   Desc? desc1;
   Desc? desc2;
+  Desc? desc3;
   String? jumpUrl;
   int? reserveTotal;
   int? rid;
@@ -477,6 +733,7 @@ class Reserve {
         json['button'] == null ? null : ReserveBtn.fromJson(json['button']);
     desc1 = json['desc1'] == null ? null : Desc.fromJson(json['desc1']);
     desc2 = json['desc2'] == null ? null : Desc.fromJson(json['desc2']);
+    desc3 = json['desc3'] == null ? null : Desc.fromJson(json['desc3']);
     jumpUrl = json['jump_url'];
     reserveTotal = json['reserve_total'];
     rid = json['rid'];
@@ -520,16 +777,19 @@ class Desc {
     this.style,
     this.text,
     this.visible,
+    this.jumpUrl,
   });
 
   int? style;
   String? text;
   bool? visible;
+  String? jumpUrl;
 
   Desc.fromJson(Map<String, dynamic> json) {
     style = json['style'];
     text = json['text'];
     visible = json['visible'];
+    jumpUrl = json["jump_url"];
   }
 }
 
@@ -635,10 +895,12 @@ class DynamicMajorModel {
   // MAJOR_TYPE_OPUS 图文/文章
   String? type;
   Map? courses;
-  Map? common;
+  Common? common;
   Map? music;
   ModuleBlocked? blocked;
-  Map? medialist;
+  Medialist? medialist;
+
+  SubscriptionNew? subscriptionNew;
 
   DynamicMajorModel.fromJson(Map<String, dynamic> json) {
     archive = json['archive'] != null
@@ -661,14 +923,173 @@ class DynamicMajorModel {
     none =
         json['none'] != null ? DynamicNoneModel.fromJson(json['none']) : null;
     type = json['type'];
-    courses = json['courses'] ?? {};
-    common = json['common'] ?? {};
-    music = json['music'] ?? {};
+    courses = json['courses'];
+    common = json['common'] == null ? null : Common.fromJson(json['common']);
+    music = json['music'];
     blocked = json['blocked'] == null
         ? null
         : ModuleBlocked.fromJson(json['blocked']);
-    medialist = json['medialist'];
+    medialist = json['medialist'] == null
+        ? null
+        : Medialist.fromJson(json['medialist']);
+    subscriptionNew = json['subscription_new'] == null
+        ? null
+        : SubscriptionNew.fromJson(json['subscription_new']);
   }
+}
+
+class Medialist {
+  dynamic id;
+  String? cover;
+  String? title;
+  String? subTitle;
+  String? jumpUrl;
+  Badge? badge;
+
+  Medialist.fromJson(Map<String, dynamic> json) {
+    id = json['id'];
+    cover = json['cover'];
+    title = json['title'];
+    subTitle = json['sub_title'];
+    jumpUrl = json['jump_url'];
+    badge = json['badge'] == null ? null : Badge.fromJson(json['badge']);
+  }
+}
+
+class SubscriptionNew {
+  LiveRcmd? liveRcmd;
+  String? style;
+
+  SubscriptionNew({
+    this.liveRcmd,
+    this.style,
+  });
+
+  factory SubscriptionNew.fromJson(Map<String, dynamic> json) =>
+      SubscriptionNew(
+        liveRcmd: json["live_rcmd"] == null
+            ? null
+            : LiveRcmd.fromJson(json["live_rcmd"]),
+        style: json["style"],
+      );
+}
+
+class LiveRcmd {
+  LiveRcmdContent? content;
+  int? reserveType;
+
+  LiveRcmd({
+    this.content,
+    this.reserveType,
+  });
+
+  factory LiveRcmd.fromJson(Map<String, dynamic> json) => LiveRcmd(
+        content: json["content"] == null
+            ? null
+            : LiveRcmdContent.fromJson(jsonDecode(json["content"])),
+        reserveType: json["reserve_type"],
+      );
+}
+
+class LiveRcmdContent {
+  int? type;
+  LivePlayInfo? livePlayInfo;
+
+  LiveRcmdContent({
+    this.type,
+    this.livePlayInfo,
+  });
+
+  factory LiveRcmdContent.fromJson(Map<String, dynamic> json) =>
+      LiveRcmdContent(
+        type: json["type"],
+        livePlayInfo: json["live_play_info"] == null
+            ? null
+            : LivePlayInfo.fromJson(json["live_play_info"]),
+      );
+}
+
+class LivePlayInfo {
+  int? roomId;
+  int? uid;
+  int? liveStatus;
+  int? roomType;
+  int? playType;
+  String? title;
+  String? cover;
+  int? online;
+  int? areaId;
+  String? areaName;
+  int? parentAreaId;
+  String? parentAreaName;
+  int? liveScreenType;
+  int? liveStartTime;
+  String? link;
+  WatchedShow? watchedShow;
+  int? roomPaidType;
+
+  LivePlayInfo({
+    this.roomId,
+    this.uid,
+    this.liveStatus,
+    this.roomType,
+    this.playType,
+    this.title,
+    this.cover,
+    this.online,
+    this.areaId,
+    this.areaName,
+    this.parentAreaId,
+    this.parentAreaName,
+    this.liveScreenType,
+    this.liveStartTime,
+    this.link,
+    this.watchedShow,
+    this.roomPaidType,
+  });
+
+  factory LivePlayInfo.fromJson(Map<String, dynamic> json) => LivePlayInfo(
+        roomId: json["room_id"],
+        uid: json["uid"],
+        liveStatus: json["live_status"],
+        roomType: json["room_type"],
+        playType: json["play_type"],
+        title: json["title"],
+        cover: json["cover"],
+        online: json["online"],
+        areaId: json["area_id"],
+        areaName: json["area_name"],
+        parentAreaId: json["parent_area_id"],
+        parentAreaName: json["parent_area_name"],
+        liveScreenType: json["live_screen_type"],
+        liveStartTime: json["live_start_time"],
+        link: json["link"],
+        watchedShow: json["watched_show"] == null
+            ? null
+            : WatchedShow.fromJson(json["watched_show"]),
+        roomPaidType: json["room_paid_type"],
+      );
+}
+
+class WatchedShow {
+  bool? watchedShowSwitch;
+  int? num;
+  String? textSmall;
+  String? textLarge;
+
+  WatchedShow({
+    this.watchedShowSwitch,
+    this.num,
+    this.textSmall,
+    this.textLarge,
+  });
+
+  factory WatchedShow.fromJson(Map<String, dynamic> json) => WatchedShow(
+        watchedShowSwitch: json["switch"],
+        num: json["num"],
+        textSmall: json["text_small"],
+        textLarge: json["text_large"],
+      );
 }
 
 class DynamicTopicModel {
@@ -707,7 +1128,7 @@ class DynamicArchiveModel {
   });
 
   int? aid;
-  Map? badge;
+  Badge? badge;
   String? bvid;
   String? cover;
   String? desc;
@@ -722,7 +1143,7 @@ class DynamicArchiveModel {
 
   DynamicArchiveModel.fromJson(Map<String, dynamic> json) {
     aid = json['aid'] is String ? int.parse(json['aid']) : json['aid'];
-    badge = json['badge'];
+    badge = json['badge'] == null ? null : Badge.fromJson(json['badge']);
     bvid = json['bvid'] ?? json['epid'].toString() ?? ' ';
     cover = json['cover'];
     disablePreview = json['disable_preview'];
@@ -733,6 +1154,18 @@ class DynamicArchiveModel {
     type = json['type'];
     epid = json['epid'];
     seasonId = json['season_id'];
+  }
+}
+
+class Badge {
+  Badge({
+    this.text,
+  });
+
+  String? text;
+
+  Badge.fromJson(Map<String, dynamic> json) {
+    text = json['text'] == '投稿视频' ? null : json['text'];
   }
 }
 
@@ -920,7 +1353,7 @@ class DynamicLiveModel {
   String? areaName;
   String? title;
   int? liveStartTime;
-  Map? watchedShow;
+  WatchedShow? watchedShow;
 
   DynamicLiveModel.fromJson(Map<String, dynamic> json) {
     content = json['content'];
@@ -939,7 +1372,9 @@ class DynamicLiveModel {
       areaName = livePlayInfo['area_name'];
       title = livePlayInfo['title'];
       liveStartTime = livePlayInfo['live_start_time'];
-      watchedShow = livePlayInfo['watched_show'];
+      watchedShow = livePlayInfo['watched_show'] == null
+          ? null
+          : WatchedShow.fromJson(livePlayInfo['watched_show']);
     }
   }
 }
@@ -957,7 +1392,7 @@ class DynamicLive2Model {
     this.title,
   });
 
-  Map? badge;
+  Badge? badge;
   String? cover;
   String? descFirst;
   String? descSecond;
@@ -968,7 +1403,7 @@ class DynamicLive2Model {
   String? title;
 
   DynamicLive2Model.fromJson(Map<String, dynamic> json) {
-    badge = json['badge'];
+    badge = json['badge'] == null ? null : Badge.fromJson(json['badge']);
     cover = json['cover'];
     descFirst = json['desc_first'];
     descSecond = json['desc_second'];

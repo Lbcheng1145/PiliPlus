@@ -6,7 +6,7 @@ import 'package:PiliPlus/common/widgets/pendant_avatar.dart';
 import 'package:PiliPlus/common/widgets/self_sized_horizontal_list.dart';
 import 'package:PiliPlus/common/widgets/stat/stat.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
-import 'package:PiliPlus/models/video_detail_res.dart';
+import 'package:PiliPlus/models/video_detail/data.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/pages/search/widgets/search_text.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
@@ -27,7 +27,7 @@ import 'package:expandable/expandable.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
@@ -203,7 +203,7 @@ class _VideoInfoState extends State<VideoInfo> {
             );
 
   Future<void> handleState(FutureOr Function() action) async {
-    if (isProcessing.not) {
+    if (!isProcessing) {
       isProcessing = true;
       await action();
       isProcessing = false;
@@ -223,7 +223,7 @@ class _VideoInfoState extends State<VideoInfo> {
         initialExpanded: alwaysExapndIntroPanel,
       );
 
-      if (alwaysExapndIntroPanel.not && GStorage.exapndIntroPanelH) {
+      if (!alwaysExapndIntroPanel && GStorage.exapndIntroPanelH) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (context.orientation == Orientation.landscape &&
               videoIntroController.expandableCtr?.expanded == false) {
@@ -397,7 +397,8 @@ class _VideoInfoState extends State<VideoInfo> {
                                           fadeOutDuration: Duration.zero,
                                         ),
                                         if ((videoItem['staff'][index]
-                                                    .official?['type'] ??
+                                                    .official
+                                                    ?.type ??
                                                 -1) !=
                                             -1)
                                           Positioned(
@@ -412,8 +413,8 @@ class _VideoInfoState extends State<VideoInfo> {
                                               child: Icon(
                                                 Icons.offline_bolt,
                                                 color: videoItem['staff'][index]
-                                                                .official?[
-                                                            'type'] ==
+                                                            .official
+                                                            ?.type ==
                                                         0
                                                     ? const Color(0xFFFFCC00)
                                                     : Colors.lightBlueAccent,
@@ -437,21 +438,19 @@ class _VideoInfoState extends State<VideoInfo> {
                                                   child: InkWell(
                                                     customBorder:
                                                         const CircleBorder(),
-                                                    onTap: () {
-                                                      RequestUtils
-                                                          .actionRelationMod(
-                                                        context: context,
-                                                        mid: videoItem['staff']
-                                                                [index]
-                                                            .mid,
-                                                        isFollow: false,
-                                                        callback: (val) {
-                                                          videoIntroController
-                                                                  .staffRelations[
-                                                              '${videoItem['staff'][index].mid}'] = true;
-                                                        },
-                                                      );
-                                                    },
+                                                    onTap: () => RequestUtils
+                                                        .actionRelationMod(
+                                                      context: context,
+                                                      mid: videoItem['staff']
+                                                              [index]
+                                                          .mid,
+                                                      isFollow: false,
+                                                      callback: (val) {
+                                                        videoIntroController
+                                                                .staffRelations[
+                                                            '${videoItem['staff'][index].mid}'] = true;
+                                                      },
+                                                    ),
                                                     child: Ink(
                                                       padding:
                                                           const EdgeInsets.all(
@@ -636,8 +635,8 @@ class _VideoInfoState extends State<VideoInfo> {
                         )
                     ],
                   ),
-                  if (videoIntroController
-                              .videoDetail.value.argueMsg?.isNotEmpty ==
+                  if (videoIntroController.videoDetail.value.argueInfo?.argueMsg
+                              ?.isNotEmpty ==
                           true &&
                       videoIntroController.showArgueMsg) ...[
                     const SizedBox(height: 2),
@@ -655,7 +654,7 @@ class _VideoInfoState extends State<VideoInfo> {
                           const WidgetSpan(child: SizedBox(width: 2)),
                           TextSpan(
                             text:
-                                '${videoIntroController.videoDetail.value.argueMsg}',
+                                '${videoIntroController.videoDetail.value.argueInfo!.argueMsg}',
                           )
                         ],
                       ),
@@ -674,10 +673,8 @@ class _VideoInfoState extends State<VideoInfo> {
                       children: [
                         const SizedBox(height: 8),
                         GestureDetector(
-                          onTap: () {
-                            Utils.copyText(
-                                '${videoIntroController.videoDetail.value.bvid}');
-                          },
+                          onTap: () => Utils.copyText(
+                              '${videoIntroController.videoDetail.value.bvid}'),
                           child: Text(
                             videoIntroController.videoDetail.value.bvid ?? '',
                             style: TextStyle(
@@ -687,7 +684,8 @@ class _VideoInfoState extends State<VideoInfo> {
                           ),
                         ),
                         if (videoIntroController
-                            .videoDetail.value.descV2.isNullOrEmpty.not) ...[
+                                .videoDetail.value.descV2?.isNotEmpty ==
+                            true) ...[
                           const SizedBox(height: 8),
                           SelectableText.rich(
                             style: const TextStyle(
@@ -701,8 +699,8 @@ class _VideoInfoState extends State<VideoInfo> {
                             ),
                           ),
                         ],
-                        if (videoIntroController.videoTags is List &&
-                            videoIntroController.videoTags.isNotEmpty) ...[
+                        if (videoIntroController.videoTags?.isNotEmpty ==
+                            true) ...[
                           GestureDetector(
                             onTap: () {},
                             behavior: HitTestBehavior.opaque,
@@ -712,20 +710,16 @@ class _VideoInfoState extends State<VideoInfo> {
                               child: Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
-                                children: (videoIntroController.videoTags
-                                        as List)
+                                children: videoIntroController.videoTags!
                                     .map(
                                       (item) => SearchText(
                                         fontSize: 13,
-                                        text: item['tag_name'],
-                                        onTap: (_) => Get.toNamed(
+                                        text: item.tagName!,
+                                        onTap: (tagName) => Get.toNamed(
                                           '/searchResult',
-                                          parameters: {
-                                            'keyword': item['tag_name']
-                                          },
+                                          parameters: {'keyword': tagName},
                                         ),
-                                        onLongPress: (_) =>
-                                            Utils.copyText(item['tag_name']),
+                                        onLongPress: Utils.copyText,
                                       ),
                                     )
                                     .toList(),
@@ -754,7 +748,7 @@ class _VideoInfoState extends State<VideoInfo> {
                                     .queryVideoIntroData["status"] = true;
                                 videoIntroController.queryVideoIntro();
                                 if (videoDetailCtr.videoUrl.isNullOrEmpty &&
-                                    videoDetailCtr.isQuerying.not) {
+                                    !videoDetailCtr.isQuerying) {
                                   videoDetailCtr.queryVideoUrl();
                                 }
                               },
@@ -772,8 +766,8 @@ class _VideoInfoState extends State<VideoInfo> {
                       videoDetail.ugcSeason != null &&
                       (context.orientation != Orientation.landscape ||
                           (context.orientation == Orientation.landscape &&
-                              videoDetailCtr.plPlayerController
-                                  .horizontalSeasonPanel.not)))
+                              !videoDetailCtr
+                                  .plPlayerController.horizontalSeasonPanel)))
                     Obx(
                       () => SeasonPanel(
                         key: ValueKey(videoIntroController.videoDetail.value),
@@ -788,8 +782,8 @@ class _VideoInfoState extends State<VideoInfo> {
                       videoDetail.pages!.length > 1 &&
                       (context.orientation != Orientation.landscape ||
                           (context.orientation == Orientation.landscape &&
-                              videoDetailCtr.plPlayerController
-                                  .horizontalSeasonPanel.not))) ...[
+                              !videoDetailCtr.plPlayerController
+                                  .horizontalSeasonPanel))) ...[
                     Obx(
                       () => PagesPanel(
                         key: ValueKey(videoIntroController.videoDetail.value),
@@ -988,9 +982,7 @@ class _VideoInfoState extends State<VideoInfo> {
       const SizedBox(width: 8),
       ActionRowItem(
         icon: const Icon(FontAwesomeIcons.comment),
-        onTap: () {
-          videoDetailCtr.tabCtr.animateTo(1);
-        },
+        onTap: () => videoDetailCtr.tabCtr.animateTo(1),
         selectStatus: false,
         isLoading: widget.isLoading,
         text: !widget.isLoading ? videoDetail.stat!.reply!.toString() : '-',
@@ -1034,9 +1026,7 @@ class _VideoInfoState extends State<VideoInfo> {
                       text: matchStr,
                       style: TextStyle(color: theme.colorScheme.primary),
                       recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          PiliScheme.videoPush(aid, null);
-                        },
+                        ..onTap = () => PiliScheme.videoPush(aid, null),
                     ),
                   );
                 } catch (e) {
@@ -1051,9 +1041,7 @@ class _VideoInfoState extends State<VideoInfo> {
                       text: matchStr,
                       style: TextStyle(color: theme.colorScheme.primary),
                       recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          PiliScheme.videoPush(null, matchStr);
-                        },
+                        ..onTap = () => PiliScheme.videoPush(null, matchStr),
                     ),
                   );
                 } catch (e) {
@@ -1090,12 +1078,10 @@ class _VideoInfoState extends State<VideoInfo> {
             text: '@${currentDesc.rawText}',
             style: TextStyle(color: colorSchemePrimary),
             recognizer: TapGestureRecognizer()
-              ..onTap = () {
-                Get.toNamed(
-                  '/member?mid=${currentDesc.bizId}',
-                  arguments: {'face': '', 'heroTag': heroTag},
-                );
-              },
+              ..onTap = () => Get.toNamed(
+                    '/member?mid=${currentDesc.bizId}',
+                    arguments: {'face': '', 'heroTag': heroTag},
+                  ),
           );
         default:
           return const TextSpan();

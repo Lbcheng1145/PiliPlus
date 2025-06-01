@@ -22,7 +22,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show MethodChannel, SystemUiOverlayStyle;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:screen_brightness/screen_brightness.dart';
@@ -44,7 +44,6 @@ class _LiveRoomPageState extends State<LiveRoomPage>
 
   bool isShowCover = true;
   bool isPlay = true;
-  Floating? floating;
 
   StreamSubscription? _listener;
 
@@ -69,9 +68,6 @@ class _LiveRoomPageState extends State<LiveRoomPage>
       tag: heroTag,
     );
     PlPlayerController.setPlayCallBack(playCallBack);
-    if (Platform.isAndroid) {
-      floating = Floating();
-    }
     videoSourceInit();
     _futureBuilderFuture = _liveRoomController.queryLiveInfo();
     plPlayerController
@@ -145,7 +141,6 @@ class _LiveRoomPageState extends State<LiveRoomPage>
 
   final GlobalKey videoPlayerKey = GlobalKey();
   final GlobalKey playerKey = GlobalKey();
-  double? padding;
 
   Widget videoPlayerPanel({Color? fill, Alignment? alignment}) {
     return PopScope(
@@ -167,7 +162,6 @@ class _LiveRoomPageState extends State<LiveRoomPage>
               plPlayerController: plPlayerController,
               headerControl: LiveHeaderControl(
                 plPlayerController: plPlayerController,
-                floating: floating,
                 onSendDanmaku: onSendDanmaku,
               ),
               bottomControl: BottomControl(
@@ -213,130 +207,132 @@ class _LiveRoomPageState extends State<LiveRoomPage>
     );
   }
 
-  Widget childWhenDisabled(bool isPortrait) {
-    return ColoredBox(
-      color: Colors.black,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Obx(
-            () => isFullScreen
-                ? const SizedBox.shrink()
-                : Positioned.fill(
-                    child: Opacity(
-                      opacity: 0.6,
-                      child: _liveRoomController.roomInfoH5.value?.roomInfo
-                                  ?.appBackground?.isNotEmpty ==
-                              true
-                          ? CachedNetworkImage(
-                              fit: BoxFit.cover,
-                              width: Get.width,
-                              height: Get.height,
-                              imageUrl: _liveRoomController.roomInfoH5.value!
-                                  .roomInfo!.appBackground!.http2https,
-                            )
-                          : Image.asset(
-                              'assets/images/live/default_bg.webp',
-                              fit: BoxFit.cover,
-                            ),
-                    ),
-                  ),
-          ),
-          SafeArea(
-            top: false,
-            left: !isFullScreen,
-            right: !isFullScreen,
-            bottom: false,
-            child: isPortrait
-                ? Obx(
-                    () {
-                      if (_liveRoomController.isPortrait.value) {
-                        if (padding == null) {
-                          final padding = MediaQuery.paddingOf(context);
-                          this.padding = padding.bottom + padding.top;
-                        }
-                        return _buildPP;
-                      }
-                      return _buildPH;
-                    },
-                  )
-                : Column(
-                    children: [
-                      Obx(() => _buildAppBar),
-                      _buildBodyH,
-                    ],
-                  ),
-          ),
-        ],
-      ),
+  SystemUiOverlayStyle _systemOverlayStyleForBrightness(
+    Brightness brightness, [
+    Color? backgroundColor,
+  ]) {
+    final SystemUiOverlayStyle style = brightness == Brightness.dark
+        ? SystemUiOverlayStyle.light
+        : SystemUiOverlayStyle.dark;
+    // For backward compatibility, create an overlay style without system navigation bar settings.
+    return SystemUiOverlayStyle(
+      statusBarColor: backgroundColor,
+      statusBarBrightness: style.statusBarBrightness,
+      statusBarIconBrightness: style.statusBarIconBrightness,
+      systemStatusBarContrastEnforced: style.systemStatusBarContrastEnforced,
     );
   }
 
-  Widget get _buildPH => Scaffold(
-        resizeToAvoidBottomInset: false,
-        appBar: _buildAppBar,
-        backgroundColor: Colors.transparent,
-        body: Column(
-          children: _buildBodyP,
-        ),
-      );
-
-  Widget get _buildPP => Scaffold(
-        resizeToAvoidBottomInset: false,
-        backgroundColor: Colors.transparent,
-        body: Stack(
+  Widget childWhenDisabled(bool isPortrait) {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: _systemOverlayStyleForBrightness(
+        Brightness.dark,
+        Theme.of(context).useMaterial3 ? const Color(0x00000000) : null,
+      ),
+      child: ColoredBox(
+        color: Colors.black,
+        child: Stack(
           clipBehavior: Clip.none,
           children: [
-            _buildAppBar,
-            Column(
-              children: [
-                Obx(
-                  () => Container(
-                    color: Colors.black,
-                    width: Get.width,
-                    margin: isFullScreen
-                        ? null
-                        : EdgeInsets.only(
-                            top: 56 + MediaQuery.paddingOf(context).top,
-                          ),
-                    height: isFullScreen
-                        ? Get.height -
-                            (context.orientation == Orientation.landscape
-                                ? 0
-                                : MediaQuery.paddingOf(context).top)
-                        : Get.height - 56 - 85 - padding!,
-                    child: videoPlayerPanel(
-                      alignment: isFullScreen ? null : Alignment.topCenter,
-                    ),
-                  ),
-                ),
-              ],
-            ),
             Obx(
               () => isFullScreen
                   ? const SizedBox.shrink()
-                  : Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 125 + MediaQuery.paddingOf(context).bottom,
-                      child: SizedBox(
-                        height: 125,
-                        child: _buildChatWidget(true),
+                  : Positioned.fill(
+                      child: Opacity(
+                        opacity: 0.6,
+                        child: _liveRoomController.roomInfoH5.value?.roomInfo
+                                    ?.appBackground?.isNotEmpty ==
+                                true
+                            ? CachedNetworkImage(
+                                fit: BoxFit.cover,
+                                width: Get.width,
+                                height: Get.height,
+                                imageUrl: _liveRoomController.roomInfoH5.value!
+                                    .roomInfo!.appBackground!.http2https,
+                              )
+                            : Image.asset(
+                                'assets/images/live/default_bg.webp',
+                                fit: BoxFit.cover,
+                              ),
                       ),
                     ),
             ),
-            Obx(
-              () => isFullScreen
-                  ? const SizedBox.shrink()
-                  : Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: _buildInputWidget,
+            SafeArea(
+              top: !isFullScreen,
+              left: !isFullScreen,
+              right: !isFullScreen,
+              bottom: false,
+              child: isPortrait
+                  ? Obx(
+                      () {
+                        if (_liveRoomController.isPortrait.value) {
+                          return _buildPP;
+                        }
+                        return _buildPH;
+                      },
+                    )
+                  : Column(
+                      children: [
+                        Obx(() => _buildAppBar),
+                        _buildBodyH,
+                      ],
                     ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget get _buildPH => Column(
+        children: [
+          _buildAppBar,
+          ..._buildBodyP,
+        ],
+      );
+
+  Widget get _buildPP => Stack(
+        clipBehavior: Clip.none,
+        children: [
+          _buildAppBar,
+          Column(
+            children: [
+              Expanded(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Obx(
+                      () => Container(
+                        margin: isFullScreen
+                            ? null
+                            : const EdgeInsets.only(top: 56),
+                        color: Colors.black,
+                        child: videoPlayerPanel(
+                          alignment: isFullScreen ? null : Alignment.topCenter,
+                        ),
+                      ),
+                    ),
+                    Obx(
+                      () => isFullScreen
+                          ? const SizedBox.shrink()
+                          : Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 55,
+                              child: SizedBox(
+                                height: 125,
+                                child: _buildChatWidget(true),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+              Obx(() =>
+                  isFullScreen ? const SizedBox.shrink() : _buildInputWidget),
+            ],
+          ),
+        ],
       );
 
   @override
@@ -347,12 +343,9 @@ class _LiveRoomPageState extends State<LiveRoomPage>
     return OrientationBuilder(
       builder: (BuildContext context, Orientation orientation) {
         if (Platform.isAndroid) {
-          return PiPSwitcher(
-            getChildWhenDisabled: () =>
-                childWhenDisabled(orientation == Orientation.portrait),
-            getChildWhenEnabled: () => videoPlayerPanel(),
-            floating: floating,
-          );
+          return Floating().isPipMode
+              ? videoPlayerPanel()
+              : childWhenDisabled(orientation == Orientation.portrait);
         } else {
           return childWhenDisabled(orientation == Orientation.portrait);
         }
@@ -369,27 +362,19 @@ class _LiveRoomPageState extends State<LiveRoomPage>
         titleTextStyle: const TextStyle(color: Colors.white),
         title: Obx(
           () {
-            return _liveRoomController.roomInfoH5.value == null
+            RoomInfoH5Model? roomInfoH5 = _liveRoomController.roomInfoH5.value;
+            return roomInfoH5 == null
                 ? const SizedBox.shrink()
                 : Row(
                     children: [
                       GestureDetector(
-                        onTap: () {
-                          dynamic uid = _liveRoomController
-                              .roomInfoH5.value!.roomInfo?.uid;
-                          Get.toNamed(
-                            '/member?mid=$uid',
-                            arguments: {
-                              'heroTag': Utils.makeHeroTag(uid),
-                            },
-                          );
-                        },
+                        onTap: () => Get.toNamed(
+                            '/member?mid=${roomInfoH5.roomInfo?.uid}'),
                         child: NetworkImgLayer(
                           width: 34,
                           height: 34,
                           type: ImageType.avatar,
-                          src: _liveRoomController
-                              .roomInfoH5.value!.anchorInfo!.baseInfo!.face,
+                          src: roomInfoH5.anchorInfo!.baseInfo!.face,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -397,18 +382,14 @@ class _LiveRoomPageState extends State<LiveRoomPage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _liveRoomController
-                                .roomInfoH5.value!.anchorInfo!.baseInfo!.uname!,
+                            roomInfoH5.anchorInfo!.baseInfo!.uname!,
                             style: const TextStyle(fontSize: 14),
                           ),
                           const SizedBox(height: 1),
-                          if (_liveRoomController
-                                  .roomInfoH5.value!.watchedShow !=
-                              null)
+                          if (roomInfoH5.watchedShow?.textLarge?.isNotEmpty ==
+                              true)
                             Text(
-                              _liveRoomController.roomInfoH5.value!
-                                      .watchedShow!['text_large'] ??
-                                  '',
+                              roomInfoH5.watchedShow!.textLarge!,
                               style: const TextStyle(fontSize: 12),
                             ),
                         ],
@@ -420,21 +401,18 @@ class _LiveRoomPageState extends State<LiveRoomPage>
         actions: [
           IconButton(
             tooltip: '刷新',
-            onPressed: () {
-              _futureBuilderFuture = _liveRoomController.queryLiveInfo();
-            },
+            onPressed: () =>
+                _futureBuilderFuture = _liveRoomController.queryLiveInfo(),
             icon: const Icon(Icons.refresh),
           ),
           PopupMenuButton(
             icon: const Icon(Icons.more_vert, size: 19),
             itemBuilder: (BuildContext context) => <PopupMenuEntry>[
               PopupMenuItem(
-                onTap: () {
-                  PageUtils.inAppWebview(
-                    'https://live.bilibili.com/h5/${_liveRoomController.roomId}',
-                    off: true,
-                  );
-                },
+                onTap: () => PageUtils.inAppWebview(
+                  'https://live.bilibili.com/h5/${_liveRoomController.roomId}',
+                  off: true,
+                ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -590,9 +568,7 @@ class _LiveRoomPageState extends State<LiveRoomPage>
               ),
             ),
             IconButton(
-              onPressed: () {
-                onSendDanmaku(true);
-              },
+              onPressed: () => onSendDanmaku(true),
               icon: Icon(Icons.emoji_emotions_outlined, color: _color),
             ),
           ],

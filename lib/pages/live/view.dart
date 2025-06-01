@@ -43,9 +43,7 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
       clipBehavior: Clip.hardEdge,
       margin: const EdgeInsets.only(
           left: StyleString.safeSpace, right: StyleString.safeSpace),
-      decoration: const BoxDecoration(
-        borderRadius: StyleString.mdRadius,
-      ),
+      decoration: const BoxDecoration(borderRadius: StyleString.mdRadius),
       child: refreshIndicator(
         onRefresh: controller.onRefresh,
         child: CustomScrollView(
@@ -118,9 +116,7 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
                   context: context,
                   tooltip: '全部标签',
                   icon: Icons.widgets,
-                  onPressed: () {
-                    Get.to(const LiveAreaPage());
-                  },
+                  onPressed: () => Get.to(const LiveAreaPage()),
                 ),
               ],
             ),
@@ -250,9 +246,7 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
             ),
             const Spacer(),
             GestureDetector(
-              onTap: () {
-                Get.to(const LiveFollowPage());
-              },
+              onTap: () => Get.to(const LiveFollowPage()),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -279,60 +273,54 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
   }
 
   Widget _buildFollowBody(ThemeData theme, List<CardLiveItem> followList) {
-    return MediaQuery.removePadding(
-      context: context,
-      removeLeft: context.orientation == Orientation.landscape,
-      child: SelfSizedHorizontalList(
-        gapSize: 5,
-        childBuilder: (index) {
-          final item = followList[index];
-          return SizedBox(
-            width: 65,
-            child: GestureDetector(
-              onTap: () {
-                Get.toNamed('/liveRoom?roomid=${item.roomid}');
-              },
-              onLongPress: () {
-                Feedback.forLongPress(context);
-                Get.toNamed('/member?mid=${item.uid}');
-              },
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 8),
-                  Container(
-                    margin: const EdgeInsets.all(2),
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        width: 1.5,
-                        color: theme.colorScheme.primary,
-                        strokeAlign: BorderSide.strokeAlignOutside,
-                      ),
-                      shape: BoxShape.circle,
+    return SelfSizedHorizontalList(
+      gapSize: 5,
+      childBuilder: (index) {
+        final item = followList[index];
+        return SizedBox(
+          width: 65,
+          child: GestureDetector(
+            onTap: () => Get.toNamed('/liveRoom?roomid=${item.roomid}'),
+            onLongPress: () {
+              Feedback.forLongPress(context);
+              Get.toNamed('/member?mid=${item.uid}');
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  margin: const EdgeInsets.all(2),
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      width: 1.5,
+                      color: theme.colorScheme.primary,
+                      strokeAlign: BorderSide.strokeAlignOutside,
                     ),
-                    child: NetworkImgLayer(
-                      type: ImageType.avatar,
-                      width: 45,
-                      height: 45,
-                      src: item.face,
-                    ),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.uname!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12),
-                    textAlign: TextAlign.center,
+                  child: NetworkImgLayer(
+                    type: ImageType.avatar,
+                    width: 45,
+                    height: 45,
+                    src: item.face,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.uname!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          );
-        },
-        itemCount: followList.length,
-      ),
+          ),
+        );
+      },
+      itemCount: followList.length,
     );
   }
 }

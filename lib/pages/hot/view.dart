@@ -80,9 +80,8 @@ class _HotPageState extends CommonPageState<HotPage, HotController>
                               try {
                                 HomeController homeController =
                                     Get.find<HomeController>();
-                                int index = homeController.tabs.indexWhere(
-                                  (item) => item['type'] == HomeTabType.rank,
-                                );
+                                int index = homeController.tabs
+                                    .indexOf(HomeTabType.rank);
                                 if (index != -1) {
                                   homeController.tabController.animateTo(index);
                                 } else {
@@ -104,31 +103,25 @@ class _HotPageState extends CommonPageState<HotPage, HotController>
                             iconUrl:
                                 'http://i0.hdslb.com/bfs/archive/552ebe8c4794aeef30ebd1568b59ad35f15e21ad.png',
                             title: '每周必看',
-                            onTap: () {
-                              Get.toNamed(
-                                '/webview',
-                                parameters: {
-                                  'url':
-                                      'https://www.bilibili.com/h5/weekly-recommend'
-                                },
-                                arguments: {'off': false},
-                              );
-                            },
+                            onTap: () => Get.toNamed(
+                              '/webview',
+                              parameters: {
+                                'url':
+                                    'https://www.bilibili.com/h5/weekly-recommend'
+                              },
+                            ),
                           ),
                           _buildEntranceItem(
                             iconUrl:
                                 'http://i0.hdslb.com/bfs/archive/3693ec9335b78ca57353ac0734f36a46f3d179a9.png',
                             title: '入站必刷',
-                            onTap: () {
-                              Get.toNamed(
-                                '/webview',
-                                parameters: {
-                                  'url':
-                                      'https://www.bilibili.com/h5/good-history'
-                                },
-                                arguments: {'off': false},
-                              );
-                            },
+                            onTap: () => Get.toNamed(
+                              '/webview',
+                              parameters: {
+                                'url':
+                                    'https://www.bilibili.com/h5/good-history'
+                              },
+                            ),
                           ),
                         ],
                       ),

@@ -9,15 +9,15 @@ import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/models/common/sponsor_block/action_type.dart';
 import 'package:PiliPlus/models/common/sponsor_block/post_segment_model.dart';
 import 'package:PiliPlus/models/common/sponsor_block/segment_type.dart';
+import 'package:PiliPlus/models/sponsor_block/segment_item.dart';
 import 'package:PiliPlus/pages/common/common_collapse_slide_page.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -166,10 +166,8 @@ class _PostPanelState extends CommonCollapseSlidePageState<PostPanel> {
                                             list![index].category = item;
                                             List<ActionType> constraintList =
                                                 item.toActionType;
-                                            if (constraintList
-                                                .contains(
-                                                    list![index].actionType)
-                                                .not) {
+                                            if (!constraintList.contains(
+                                                list![index].actionType)) {
                                               list![index].actionType =
                                                   constraintList.first;
                                             }
@@ -334,12 +332,8 @@ class _PostPanelState extends CommonCollapseSlidePageState<PostPanel> {
                                       .seek(
                                     Duration(milliseconds: start),
                                   );
-                                  if (widget
-                                      .plPlayerController
-                                      .videoPlayerController!
-                                      .state
-                                      .playing
-                                      .not) {
+                                  if (!widget.plPlayerController
+                                      .videoPlayerController!.state.playing) {
                                     await widget.plPlayerController
                                         .videoPlayerController!
                                         .play();
@@ -375,32 +369,30 @@ class _PostPanelState extends CommonCollapseSlidePageState<PostPanel> {
                 bottom: 16 + MediaQuery.paddingOf(context).bottom,
                 child: FloatingActionButton(
                   tooltip: '提交',
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('确定无误再提交'),
-                        actions: [
-                          TextButton(
-                            onPressed: Get.back,
-                            child: Text(
-                              '取消',
-                              style: TextStyle(
-                                color: theme.colorScheme.outline,
-                              ),
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('确定无误再提交'),
+                      actions: [
+                        TextButton(
+                          onPressed: Get.back,
+                          child: Text(
+                            '取消',
+                            style: TextStyle(
+                              color: theme.colorScheme.outline,
                             ),
                           ),
-                          TextButton(
-                            onPressed: () {
-                              Get.back();
-                              _onPost();
-                            },
-                            child: const Text('确定提交'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Get.back();
+                            _onPost();
+                          },
+                          child: const Text('确定提交'),
+                        ),
+                      ],
+                    ),
+                  ),
                   child: const Icon(Icons.check),
                 ),
               )
@@ -487,9 +479,7 @@ class _PostPanelState extends CommonCollapseSlidePageState<PostPanel> {
                     initV = value;
                   },
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'[\d:.]+'),
-                    ),
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d:.]+')),
                   ],
                 ),
                 actions: [
@@ -573,7 +563,10 @@ class _PostPanelState extends CommonCollapseSlidePageState<PostPanel> {
           Get.back();
           SmartDialog.showToast('提交成功');
           list?.clear();
-          videoDetailController.handleSBData(res);
+          if (res.data case List list) {
+            videoDetailController.handleSBData(
+                list.map((e) => SegmentItemModel.fromJson(e)).toList());
+          }
           plPlayerController.segmentList.value =
               videoDetailController.segmentProgressList ?? <Segment>[];
           if (videoDetailController.positionSubscription == null) {

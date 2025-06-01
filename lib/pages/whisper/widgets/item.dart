@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:PiliPlus/common/widgets/badge.dart';
+import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/pendant_avatar.dart';
 import 'package:PiliPlus/grpc/bilibili/app/im/v1.pb.dart'
     show Session, SessionId, SessionPageType, SessionType, UnreadStyle;
@@ -38,51 +39,54 @@ class WhisperSessionItem extends StatelessWidget {
           ? theme.colorScheme.onInverseSurface
               .withValues(alpha: Get.isDarkMode ? 0.4 : 0.8)
           : null,
-      onLongPress: () {
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              clipBehavior: Clip.hardEdge,
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              content: DefaultTextStyle(
-                style: const TextStyle(fontSize: 14),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+      onLongPress: () => showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            clipBehavior: Clip.hardEdge,
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            content: DefaultTextStyle(
+              style: const TextStyle(fontSize: 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    dense: true,
+                    onTap: () {
+                      Get.back();
+                      onSetTop(item.isPinned, item.id);
+                    },
+                    title: Text(item.isPinned ? '移除置顶' : '置顶'),
+                  ),
+                  if (item.id.privateId.hasTalkerUid())
                     ListTile(
                       dense: true,
                       onTap: () {
                         Get.back();
-                        onSetTop(item.isPinned, item.id);
+                        onSetMute(item.isMuted, item.id.privateId.talkerUid);
                       },
-                      title: Text(item.isPinned ? '移除置顶' : '置顶'),
+                      title: Text('${item.isMuted ? '关闭' : '开启'}免打扰'),
                     ),
-                    if (item.id.privateId.hasTalkerUid())
-                      ListTile(
-                        dense: true,
-                        onTap: () {
-                          Get.back();
-                          onSetMute(item.isMuted, item.id.privateId.talkerUid);
-                        },
-                        title: Text('${item.isMuted ? '关闭' : '开启'}免打扰'),
-                      ),
-                    if (item.id.privateId.hasTalkerUid())
-                      ListTile(
-                        dense: true,
-                        onTap: () {
-                          Get.back();
-                          onRemove(item.id.privateId.talkerUid.toInt());
-                        },
-                        title: const Text('删除'),
-                      ),
-                  ],
-                ),
+                  if (item.id.privateId.hasTalkerUid())
+                    ListTile(
+                      dense: true,
+                      onTap: () {
+                        Get.back();
+                        showConfirmDialog(
+                          context: context,
+                          title: '确定删除该对话？',
+                          onConfirm: () =>
+                              onRemove(item.id.privateId.talkerUid.toInt()),
+                        );
+                      },
+                      title: const Text('删除'),
+                    ),
+                ],
               ),
-            );
-          },
-        );
-      },
+            ),
+          );
+        },
+      ),
       onTap: () {
         if (item.hasUnread()) {
           item.clearUnread();
@@ -141,13 +145,18 @@ class WhisperSessionItem extends StatelessWidget {
       },
       leading: Builder(
         builder: (context) {
-          Widget buildAvatar() {
-            final pendant = item.sessionInfo.avatar.fallbackLayers.layers
-                .getOrNull(1)
-                ?.resource;
-            final offcial = item.sessionInfo.avatar.fallbackLayers.layers
-                .lastOrNull?.resource.resImage.imageSrc;
-            return PendantAvatar(
+          final pendant = item.sessionInfo.avatar.fallbackLayers.layers
+              .getOrNull(1)
+              ?.resource;
+          final offcial = item.sessionInfo.avatar.fallbackLayers.layers
+              .lastOrNull?.resource.resImage.imageSrc;
+
+          return GestureDetector(
+            onTap: item.sessionInfo.avatar.hasMid()
+                ? () =>
+                    Get.toNamed('/member?mid=${item.sessionInfo.avatar.mid}')
+                : null,
+            child: PendantAvatar(
               size: 42,
               badgeSize: 14,
               avatar: item.sessionInfo.avatar.fallbackLayers.layers.first
@@ -164,27 +173,7 @@ class WhisperSessionItem extends StatelessWidget {
                       _ => null,
                     }
                   : null,
-            );
-          }
-
-          return GestureDetector(
-            onTap: item.sessionInfo.avatar.hasMid()
-                ? () {
-                    Get.toNamed(
-                      '/member?mid=${item.sessionInfo.avatar.mid}',
-                    );
-                  }
-                : null,
-            child: item.hasUnread() &&
-                    item.unread.style != UnreadStyle.UNREAD_STYLE_NONE
-                ? Badge(
-                    label: item.unread.style == UnreadStyle.UNREAD_STYLE_NUMBER
-                        ? Text(" ${item.unread.number} ")
-                        : null,
-                    alignment: Alignment.topRight,
-                    child: buildAvatar(),
-                  )
-                : buildAvatar(),
+            ),
           );
         },
       ),
@@ -236,15 +225,30 @@ class WhisperSessionItem extends StatelessWidget {
             ),
             if (item.hasTimestamp()) const SizedBox(width: 4),
           ],
-          if (item.hasTimestamp())
-            Text(
-              Utils.dateFormat((item.timestamp ~/ 1000000).toInt(),
-                  formatType: "day"),
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.colorScheme.outline,
-              ),
-            ),
+          Column(
+            spacing: 10,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (item.hasTimestamp())
+                Text(
+                  Utils.dateFormat((item.timestamp ~/ 1000000).toInt(),
+                      formatType: "day"),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.colorScheme.outline,
+                  ),
+                ),
+              if (item.hasUnread() &&
+                  item.unread.style != UnreadStyle.UNREAD_STYLE_NONE)
+                Badge(
+                  label: item.unread.style == UnreadStyle.UNREAD_STYLE_NUMBER
+                      ? Text(item.unread.number.toString())
+                      : null,
+                  alignment: Alignment.topRight,
+                )
+            ],
+          ),
         ],
       ),
     );

@@ -1,8 +1,8 @@
 import 'package:PiliPlus/http/bangumi.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/bangumi/list.dart';
-import 'package:PiliPlus/models/bangumi/pgc_timeline/result.dart';
 import 'package:PiliPlus/models/common/home_tab_type.dart';
+import 'package:PiliPlus/models/pgc/list.dart';
+import 'package:PiliPlus/models/pgc/pgc_timeline/result.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/storage.dart';
@@ -68,18 +68,18 @@ class BangumiController extends CommonListController<
 
   // 我的订阅
   Future<void> queryBangumiFollow([bool isRefresh = true]) async {
-    if (isLogin.value.not || followLoading || (isRefresh.not && followEnd)) {
+    if (!isLogin.value || followLoading || (!isRefresh && followEnd)) {
       return;
     }
     followLoading = true;
-    dynamic res = await BangumiHttp.bangumiFollowList(
+    var res = await BangumiHttp.bangumiFollowList(
       mid: mid,
       type: tabType == HomeTabType.bangumi ? 1 : 2,
       pn: followPage,
     );
 
-    if (res is Success) {
-      BangumiListDataModel data = res.response;
+    if (res.isSuccess) {
+      BangumiListDataModel data = res.data;
       List<BangumiListItemModel>? list = data.list;
       followCount.value = data.total ?? -1;
       if (data.hasNext == 0) {
@@ -101,7 +101,7 @@ class BangumiController extends CommonListController<
         }
         followState.value = Success(list);
         followController?.animToTop();
-      } else if (followState.value is Success) {
+      } else if (followState.value.isSuccess) {
         final currentList = followState.value.data!..addAll(list!);
         if (currentList.length >= followCount.value) {
           followEnd = true;
@@ -110,7 +110,7 @@ class BangumiController extends CommonListController<
       }
       followPage++;
     } else if (isRefresh) {
-      followState.value = res;
+      followState.value = res as Error;
     }
     followLoading = false;
   }
@@ -119,7 +119,7 @@ class BangumiController extends CommonListController<
   Future<LoadingState<List<BangumiListItemModel>?>> customGetData() =>
       BangumiHttp.bangumiList(
         page: page,
-        indexType: tabType == HomeTabType.cinema ? 102 : null, // TODO: sort
+        indexType: tabType == HomeTabType.cinema ? 102 : null,
       );
 
   @override

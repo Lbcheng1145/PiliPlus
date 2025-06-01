@@ -4,7 +4,6 @@ import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
     show ReplyInfo, Mode;
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/pages/common/common_slide_page.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/pages/video/reply_new/view.dart';
@@ -39,7 +38,7 @@ class VideoReplyReplyPanel extends CommonSlidePage {
   final int? dialog;
   final ReplyInfo? firstFloor;
   final String? source;
-  final ReplyType replyType;
+  final int replyType;
   final bool isDialogue;
   final VoidCallback? onViewImage;
   final ValueChanged<int>? onDismissed;
@@ -181,20 +180,18 @@ class _VideoReplyReplyPanelState
                         replyItem: firstFloor!,
                         replyLevel: '2',
                         needDivider: false,
-                        onReply: () {
-                          _onReply(firstFloor!, -1);
-                        },
+                        onReply: () => _onReply(firstFloor!, -1),
                         upMid: _videoReplyReplyController.upMid,
                         onViewImage: widget.onViewImage,
                         onDismissed: widget.onDismissed,
                         callback: _getImageCallback,
                         onCheckReply: (item) => _videoReplyReplyController
-                            .onCheckReply(context, item),
+                            .onCheckReply(context, item, isManual: true),
                         onToggleTop: (isUpTop, rpid) =>
                             _videoReplyReplyController.onToggleTop(
                           index,
                           _videoReplyReplyController.oid,
-                          _videoReplyReplyController.replyType.index,
+                          _videoReplyReplyController.replyType,
                           isUpTop,
                           rpid,
                         ),
@@ -228,7 +225,7 @@ class _VideoReplyReplyPanelState
                 },
               ),
               if (!widget.isDialogue &&
-                  _videoReplyReplyController.loadingState.value is Success)
+                  _videoReplyReplyController.loadingState.value.isSuccess)
                 _header(theme),
             ],
           ),
@@ -357,12 +354,13 @@ class _VideoReplyReplyPanelState
       if (res != null) {
         _savedReplies.remove(key);
         ReplyInfo replyInfo = RequestUtils.replyCast(res);
-        _videoReplyReplyController.loadingState.value.dataOrNull
-            ?.insert(index + 1, replyInfo);
-        _videoReplyReplyController.count.value += 1;
-        _videoReplyReplyController.loadingState.refresh();
+        _videoReplyReplyController
+          ..count.value += 1
+          ..loadingState.value.dataOrNull?.insert(index + 1, replyInfo)
+          ..loadingState.refresh();
         if (_videoReplyReplyController.enableCommAntifraud && mounted) {
-          _videoReplyReplyController.onCheckReply(context, replyInfo);
+          _videoReplyReplyController.onCheckReply(context, replyInfo,
+              isManual: false);
         }
       }
     });
@@ -429,35 +427,31 @@ class _VideoReplyReplyPanelState
     return ReplyItemGrpc(
       replyItem: replyItem,
       replyLevel: widget.isDialogue ? '3' : '2',
-      onReply: () {
-        _onReply(replyItem, index);
-      },
+      onReply: () => _onReply(replyItem, index),
       onDelete: (subIndex) {
         _videoReplyReplyController.onRemove(index, null);
       },
       upMid: _videoReplyReplyController.upMid,
-      showDialogue: () {
-        _key.currentState?.showBottomSheet(
-          backgroundColor: Colors.transparent,
-          (context) => VideoReplyReplyPanel(
-            oid: replyItem.oid.toInt(),
-            rpid: replyItem.root.toInt(),
-            dialog: replyItem.dialog.toInt(),
-            replyType: widget.replyType,
-            source: 'videoDetail',
-            isDialogue: true,
-          ),
-        );
-      },
+      showDialogue: () => _key.currentState?.showBottomSheet(
+        backgroundColor: Colors.transparent,
+        (context) => VideoReplyReplyPanel(
+          oid: replyItem.oid.toInt(),
+          rpid: replyItem.root.toInt(),
+          dialog: replyItem.dialog.toInt(),
+          replyType: widget.replyType,
+          source: 'videoDetail',
+          isDialogue: true,
+        ),
+      ),
       onViewImage: widget.onViewImage,
       onDismissed: widget.onDismissed,
       callback: _getImageCallback,
-      onCheckReply: (item) =>
-          _videoReplyReplyController.onCheckReply(context, item),
+      onCheckReply: (item) => _videoReplyReplyController
+          .onCheckReply(context, item, isManual: true),
       onToggleTop: (isUpTop, rpid) => _videoReplyReplyController.onToggleTop(
         index,
         _videoReplyReplyController.oid,
-        _videoReplyReplyController.replyType.index,
+        _videoReplyReplyController.replyType,
         isUpTop,
         rpid,
       ),

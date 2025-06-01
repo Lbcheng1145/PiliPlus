@@ -3,11 +3,12 @@ import 'dart:convert';
 import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/bangumi/info.dart';
 import 'package:PiliPlus/models/common/search_type.dart';
+import 'package:PiliPlus/models/pgc/pgc_info_model/result.dart';
 import 'package:PiliPlus/models/search/result.dart';
 import 'package:PiliPlus/models/search/search_trending/trending_data.dart';
 import 'package:PiliPlus/models/search/suggest.dart';
+import 'package:PiliPlus/models/topic_pub_search/data.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
@@ -158,28 +159,31 @@ class SearchHttp {
     }
   }
 
-  static Future<int> ab2c({dynamic aid, dynamic bvid, int? part}) async {
-    Map<String, dynamic> data = {};
-    if (aid != null) {
-      data['aid'] = aid;
-    } else if (bvid != null) {
-      data['bvid'] = bvid;
-    }
-    final dynamic res = await Request().get(Api.ab2c, queryParameters: data);
+  static Future<int?> ab2c({dynamic aid, dynamic bvid, int? part}) async {
+    var res = await Request().get(
+      Api.ab2c,
+      queryParameters: {
+        if (aid != null) 'aid': aid,
+        if (bvid != null) 'bvid': bvid,
+      },
+    );
     if (res.data['code'] == 0) {
-      return part != null
-          ? ((res.data['data'] as List).getOrNull(part - 1)?['cid'] ??
-              res.data['data'].first['cid'])
-          : res.data['data'].first['cid'];
+      if (res.data['data'] case List list) {
+        return part != null
+            ? (list.getOrNull(part - 1)?['cid'] ?? list.firstOrNull?['cid'])
+            : list.firstOrNull?['cid'];
+      } else {
+        return null;
+      }
     } else {
       SmartDialog.showToast("ab2c error: ${res.data['message']}");
-      return -1;
+      return null;
     }
   }
 
   static Future<LoadingState<BangumiInfoModel>> bangumiInfoNew(
       {int? seasonId, int? epId}) async {
-    final dynamic res = await Request().get(
+    var res = await Request().get(
       Api.bangumiInfo,
       queryParameters: {
         if (seasonId != null) 'season_id': seasonId,
@@ -194,7 +198,7 @@ class SearchHttp {
   }
 
   static Future<LoadingState> episodeInfo({int? epId}) async {
-    final dynamic res = await Request().get(
+    var res = await Request().get(
       Api.episodeInfo,
       queryParameters: {
         if (epId != null) 'ep_id': epId,
@@ -211,15 +215,13 @@ class SearchHttp {
     dynamic seasonId,
     dynamic epId,
   }) async {
-    final Map<String, dynamic> data = {};
-    if (seasonId != null) {
-      data['season_id'] = seasonId;
-    } else if (epId != null) {
-      data['ep_id'] = epId;
-    }
-    final dynamic res =
-        await Request().get(Api.bangumiInfo, queryParameters: data);
-
+    var res = await Request().get(
+      Api.bangumiInfo,
+      queryParameters: {
+        if (seasonId != null) 'season_id': seasonId,
+        if (epId != null) 'ep_id': epId,
+      },
+    );
     if (res.data['code'] == 0) {
       return {
         'status': true,
@@ -255,6 +257,31 @@ class SearchHttp {
     });
     if (res.data['code'] == 0) {
       return Success(SearchKeywordData.fromJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<TopicPubSearchData>> topicPubSearch({
+    required String keywords,
+    String content = '',
+    required int pageNum,
+  }) async {
+    final res = await Request().get(
+      Api.topicPubSearch,
+      queryParameters: {
+        'keywords': keywords,
+        'content': content,
+        if (pageNum == 1) ...{
+          'page_size': 20,
+          'page_num': 1,
+        } else
+          'offset': 20 * (pageNum - 1),
+        'web_location': 333.1365,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return Success(TopicPubSearchData.fromJson(res.data['data']));
     } else {
       return Error(res.data['message']);
     }

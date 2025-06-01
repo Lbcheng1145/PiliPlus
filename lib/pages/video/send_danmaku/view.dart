@@ -6,11 +6,10 @@ import 'package:PiliPlus/main.dart';
 import 'package:PiliPlus/models/common/publish_panel_type.dart';
 import 'package:PiliPlus/pages/common/common_publish_page.dart';
 import 'package:PiliPlus/pages/setting/slide_color_picker.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show LengthLimitingTextInputFormatter;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
@@ -93,7 +92,7 @@ class _SendDanmakuPanelState extends CommonPublishPageState<SendDanmakuPanel> {
             key: ValueKey(_color.value),
             builder: (context, constraints) {
               final int crossAxisCount = (constraints.maxWidth / 40).toInt();
-              final bool isCustomColor = _colorList.contains(_color.value).not;
+              final bool isCustomColor = !_colorList.contains(_color.value);
               final int length =
                   _colorList.length + (isCustomColor ? 1 : 0) + 1;
               return GridView.builder(
@@ -109,9 +108,7 @@ class _SendDanmakuPanelState extends CommonPublishPageState<SendDanmakuPanel> {
                 itemBuilder: (context, index) {
                   if (index == length - 1) {
                     return GestureDetector(
-                      onTap: () {
-                        _showColorPicker();
-                      },
+                      onTap: _showColorPicker,
                       child: Container(
                         decoration: BoxDecoration(
                           color: themeData.colorScheme.secondaryContainer,
@@ -230,9 +227,7 @@ class _SendDanmakuPanelState extends CommonPublishPageState<SendDanmakuPanel> {
 
   Widget _buildColorItem(Color color) {
     return GestureDetector(
-      onTap: () {
-        _color.value = color;
-      },
+      onTap: () => _color.value = color,
       child: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
@@ -284,9 +279,7 @@ class _SendDanmakuPanelState extends CommonPublishPageState<SendDanmakuPanel> {
     return Obx(
       () => Expanded(
         child: GestureDetector(
-          onTap: () {
-            _mode.value = mode;
-          },
+          onTap: () => _mode.value = mode,
           child: Container(
             alignment: Alignment.center,
             decoration: BoxDecoration(
@@ -314,9 +307,7 @@ class _SendDanmakuPanelState extends CommonPublishPageState<SendDanmakuPanel> {
     return Obx(
       () => Expanded(
         child: GestureDetector(
-          onTap: () {
-            _fontsize.value = fontsize;
-          },
+          onTap: () => _fontsize.value = fontsize,
           child: Container(
             alignment: Alignment.center,
             decoration: BoxDecoration(
@@ -350,18 +341,14 @@ class _SendDanmakuPanelState extends CommonPublishPageState<SendDanmakuPanel> {
               context: context,
               tooltip: '弹幕样式',
               onPressed: () {
-                if (selectKeyboard.value) {
-                  selectKeyboard.value = false;
-                  updatePanelType(PanelType.emoji);
-                } else {
-                  selectKeyboard.value = true;
-                  updatePanelType(PanelType.keyboard);
-                }
+                updatePanelType(panelType.value == PanelType.keyboard
+                    ? PanelType.emoji
+                    : PanelType.keyboard);
               },
               bgColor: Colors.transparent,
               iconSize: 24,
               icon: Icons.text_format,
-              iconColor: selectKeyboard.value.not
+              iconColor: panelType.value == PanelType.emoji
                   ? themeData.colorScheme.primary
                   : themeData.colorScheme.onSurfaceVariant,
             ),
@@ -374,7 +361,6 @@ class _SendDanmakuPanelState extends CommonPublishPageState<SendDanmakuPanel> {
                 onPointerUp: (event) {
                   if (readOnly.value) {
                     updatePanelType(PanelType.keyboard);
-                    selectKeyboard.value = true;
                   }
                 },
                 child: Obx(

@@ -1,7 +1,6 @@
 import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/dynamics_repost/view.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
@@ -23,7 +22,7 @@ class ActionPanel extends StatefulWidget {
 class _ActionPanelState extends State<ActionPanel> {
   bool isProcessing = false;
   Future<void> handleState(Future Function() action) async {
-    if (isProcessing.not) {
+    if (!isProcessing) {
       isProcessing = true;
       await action();
       isProcessing = false;
@@ -50,7 +49,9 @@ class _ActionPanelState extends State<ActionPanel> {
         item.modules.moduleStat?.like?.count = count - 1;
         item.modules.moduleStat?.like?.status = false;
       }
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     } else {
       SmartDialog.showToast(res['msg']);
     }
@@ -68,22 +69,20 @@ class _ActionPanelState extends State<ActionPanel> {
         Expanded(
           flex: 1,
           child: TextButton.icon(
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                useSafeArea: true,
-                builder: (context) => RepostPanel(
-                  item: widget.item,
-                  callback: () {
-                    int count =
-                        widget.item.modules.moduleStat?.forward?.count ?? 0;
-                    widget.item.modules.moduleStat!.forward!.count = count + 1;
-                    setState(() {});
-                  },
-                ),
-              );
-            },
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              builder: (context) => RepostPanel(
+                item: widget.item,
+                callback: () {
+                  int count =
+                      widget.item.modules.moduleStat?.forward?.count ?? 0;
+                  widget.item.modules.moduleStat!.forward!.count = count + 1;
+                  setState(() {});
+                },
+              ),
+            ),
             icon: Icon(
               FontAwesomeIcons.shareFromSquare,
               size: 16,

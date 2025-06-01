@@ -23,11 +23,11 @@ class _BlackListPageState extends State<BlackListPage> {
 
   @override
   void dispose() {
-    List<BlackListItem> list =
-        _blackListController.loadingState.value is Success
-            ? (_blackListController.loadingState.value as Success).response
-            : <BlackListItem>[];
-    GStorage.blackMids = list.map((e) => e.mid!).toSet();
+    if (_blackListController.loadingState.value.isSuccess) {
+      GStorage.blackMids = _blackListController.loadingState.value.data!
+          .map((e) => e.mid!)
+          .toSet();
+    }
     super.dispose();
   }
 
@@ -75,9 +75,7 @@ class _BlackListPageState extends State<BlackListPage> {
                 }
                 final item = response[index];
                 return ListTile(
-                  onTap: () {
-                    Get.toNamed('/member?mid=${item.mid}');
-                  },
+                  onTap: () => Get.toNamed('/member?mid=${item.mid}'),
                   leading: NetworkImgLayer(
                     width: 45,
                     height: 45,

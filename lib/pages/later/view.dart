@@ -1,5 +1,4 @@
 import 'package:PiliPlus/common/widgets/scroll_physics.dart';
-import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/later_view_type.dart';
 import 'package:PiliPlus/models/model_hot_video_item.dart';
 import 'package:PiliPlus/pages/history/view.dart' show AppBarWidget;
@@ -59,7 +58,7 @@ class _LaterPageState extends State<LaterPage>
   Widget build(BuildContext context) {
     return Obx(
       () => PopScope(
-        canPop: _baseCtr.enableMultiSelect.value.not,
+        canPop: !_baseCtr.enableMultiSelect.value,
         onPopInvokedWithResult: (didPop, result) {
           if (_baseCtr.enableMultiSelect.value) {
             currCtr().handleSelect();
@@ -69,7 +68,7 @@ class _LaterPageState extends State<LaterPage>
           resizeToAvoidBottomInset: false,
           appBar: _buildAppbar,
           floatingActionButton: Obx(
-            () => currCtr().loadingState.value is Success
+            () => currCtr().loadingState.value.isSuccess
                 ? FloatingActionButton.extended(
                     onPressed: currCtr().toViewPlayAll,
                     label: const Text('播放全部'),
@@ -92,7 +91,7 @@ class _LaterPageState extends State<LaterPage>
                         text: '${item.title}${count != -1 ? '($count)' : ''}');
                   }).toList(),
                   onTap: (_) {
-                    if (_tabController.indexIsChanging.not) {
+                    if (!_tabController.indexIsChanging) {
                       currCtr().scrollController.animToTop();
                     } else {
                       if (_baseCtr.enableMultiSelect.value) {

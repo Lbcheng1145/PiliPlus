@@ -10,7 +10,6 @@ import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
-import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/author_panel.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/dynamic_panel.dart';
@@ -18,7 +17,6 @@ import 'package:PiliPlus/pages/dynamics_detail/controller.dart';
 import 'package:PiliPlus/pages/dynamics_repost/view.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/pages/video/reply_reply/view.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/grid.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
@@ -40,23 +38,20 @@ class DynamicDetailPage extends StatefulWidget {
 
 class _DynamicDetailPageState extends State<DynamicDetailPage>
     with TickerProviderStateMixin {
-  late DynamicDetailController _dynamicDetailController;
+  final _controller =
+      Get.put(DynamicDetailController(), tag: Utils.generateRandomString(8));
   late final AnimationController _fabAnimationCtr;
   late final Animation<Offset> _anim;
+
   final RxBool _visibleTitle = false.obs;
-  // 回复类型
-  late int replyType;
   bool _isFabVisible = true;
   bool? _imageStatus;
-  int oid = 0;
-  int? opusId;
-  bool isOpusId = false;
 
   late final List<double> _ratio = GStorage.dynamicDetailRatio;
 
   bool get _horizontalPreview =>
       context.orientation == Orientation.landscape &&
-      _dynamicDetailController.horizontalPreview;
+      _controller.horizontalPreview;
 
   late final _key = GlobalKey<ScaffoldState>();
 
@@ -104,9 +99,6 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
   @override
   void initState() {
     super.initState();
-    // floor 1原创 2转发
-    init();
-
     _fabAnimationCtr = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -119,50 +111,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
       curve: Curves.easeInOut,
     ));
     _fabAnimationCtr.forward();
-    _dynamicDetailController.scrollController.addListener(listener);
-  }
-
-  // 页面初始化
-  Future<void> init() async {
-    Map args = Get.arguments;
-    // 楼层
-    int floor = args['floor'];
-    // 评论类型
-    final item = args['item'] as DynamicItemModel;
-    int commentType = item.basic?.commentType ?? 11;
-    replyType = (commentType == 0) ? 11 : commentType;
-
-    if (floor == 1) {
-      oid = int.parse(item.basic!.commentIdStr!);
-    } else {
-      try {
-        final moduleDynamic = item.modules.moduleDynamic!;
-        String majorType = moduleDynamic.major!.type!;
-
-        if (majorType == 'MAJOR_TYPE_OPUS') {
-          // 转发的动态
-          String jumpUrl = moduleDynamic.major!.opus!.jumpUrl!;
-          opusId = int.parse(jumpUrl.split('/').last);
-          if (opusId != null) {
-            isOpusId = true;
-            _dynamicDetailController = Get.put(
-              DynamicDetailController(oid, replyType),
-              tag: Utils.makeHeroTag(opusId),
-            );
-            await _dynamicDetailController.getCommentParams(opusId!);
-            setState(() {});
-          }
-        } else {
-          oid = moduleDynamic.major!.draw!.id!;
-        }
-      } catch (_) {}
-    }
-    if (!isOpusId) {
-      _dynamicDetailController = Get.put(
-        DynamicDetailController(oid, replyType),
-        tag: Utils.makeHeroTag(oid),
-      );
-    }
+    _controller.scrollController.addListener(listener);
   }
 
   // 查看二级评论
@@ -175,7 +124,6 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
         VoidCallback? onDispose,
       }) =>
           Scaffold(
-            resizeToAvoidBottomInset: false,
             appBar: AppBar(
               title: const Text('评论详情'),
               titleSpacing: automaticallyImplyLeading ? null : 12,
@@ -190,7 +138,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                 oid: oid,
                 rpid: rpid,
                 source: 'dynamic',
-                replyType: ReplyType.values[replyType],
+                replyType: _controller.replyType,
                 firstFloor: replyItem,
                 onDispose: onDispose,
               ),
@@ -201,7 +149,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
           replyReplyPage,
           routeName: 'dynamicDetail-Copy',
           arguments: {
-            'item': _dynamicDetailController.item,
+            'item': _controller.dynItem,
           },
         );
       } else {
@@ -231,7 +179,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
             replyReplyPage,
             routeName: 'dynamicDetail-Copy',
             arguments: {
-              'item': _dynamicDetailController.item,
+              'item': _controller.dynItem,
             },
           );
         }
@@ -243,10 +191,9 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
   void didChangeDependencies() {
     super.didChangeDependencies();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_dynamicDetailController.scrollController.hasClients) {
+      if (_controller.scrollController.hasClients) {
         _visibleTitle.value =
-            _dynamicDetailController.scrollController.positions.first.pixels >
-                55;
+            _controller.scrollController.positions.first.pixels > 55;
       }
     });
   }
@@ -254,13 +201,13 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
   void listener() {
     // 标题
     _visibleTitle.value =
-        _dynamicDetailController.scrollController.positions.first.pixels > 55;
+        _controller.scrollController.positions.first.pixels > 55;
 
     // fab按钮
-    final ScrollDirection direction1 = _dynamicDetailController
-        .scrollController.positions.first.userScrollDirection;
-    late final ScrollDirection direction2 = _dynamicDetailController
-        .scrollController.positions.last.userScrollDirection;
+    final ScrollDirection direction1 =
+        _controller.scrollController.positions.first.userScrollDirection;
+    late final ScrollDirection direction2 =
+        _controller.scrollController.positions.last.userScrollDirection;
     if (direction1 == ScrollDirection.forward ||
         direction2 == ScrollDirection.forward) {
       _showFab();
@@ -287,7 +234,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
   @override
   void dispose() {
     _fabAnimationCtr.dispose();
-    _dynamicDetailController.scrollController.removeListener(listener);
+    _controller.scrollController.removeListener(listener);
     super.dispose();
   }
 
@@ -305,7 +252,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                 opacity: _visibleTitle.value ? 1 : 0,
                 duration: const Duration(milliseconds: 300),
                 child: AuthorPanel(
-                  item: _dynamicDetailController.item,
+                  item: _controller.dynItem,
                   source: 'detail', //to remove tag
                 ),
               );
@@ -316,41 +263,39 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
             ? [
                 IconButton(
                   tooltip: '页面比例调节',
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => Align(
-                        alignment: Alignment.topRight,
-                        child: Container(
-                          margin: const EdgeInsets.only(
-                            top: 56,
-                            right: 16,
-                          ),
-                          width: context.width / 4,
-                          height: 32,
-                          child: Builder(
-                            builder: (context) => Slider(
-                              min: 1,
-                              max: 100,
-                              value: _ratio.first,
-                              onChanged: (value) {
-                                if (value >= 10 && value <= 90) {
-                                  _ratio[0] = value;
-                                  _ratio[1] = 100 - value;
-                                  GStorage.setting.put(
-                                    SettingBoxKey.dynamicDetailRatio,
-                                    _ratio,
-                                  );
-                                  (context as Element).markNeedsBuild();
-                                  setState(() {});
-                                }
-                              },
-                            ),
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (context) => Align(
+                      alignment: Alignment.topRight,
+                      child: Container(
+                        margin: const EdgeInsets.only(
+                          top: 56,
+                          right: 16,
+                        ),
+                        width: context.width / 4,
+                        height: 32,
+                        child: Builder(
+                          builder: (context) => Slider(
+                            min: 1,
+                            max: 100,
+                            value: _ratio.first,
+                            onChanged: (value) {
+                              if (value >= 10 && value <= 90) {
+                                _ratio[0] = value;
+                                _ratio[1] = 100 - value;
+                                GStorage.setting.put(
+                                  SettingBoxKey.dynamicDetailRatio,
+                                  _ratio,
+                                );
+                                (context as Element).markNeedsBuild();
+                                setState(() {});
+                              }
+                            },
                           ),
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  ),
                   icon: Transform.rotate(
                     angle: pi / 2,
                     child: const Icon(Icons.splitscreen, size: 19),
@@ -365,7 +310,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
         bottom: false,
         child: context.orientation == Orientation.portrait
             ? refreshIndicator(
-                onRefresh: _dynamicDetailController.onRefresh,
+                onRefresh: _controller.onRefresh,
                 child: _buildBody(context.orientation, theme),
               )
             : _buildBody(context.orientation, theme),
@@ -381,20 +326,19 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
               double padding = max(context.width / 2 - Grid.smallCardWidth, 0);
               if (orientation == Orientation.portrait) {
                 return CustomScrollView(
-                  controller: _dynamicDetailController.scrollController,
+                  controller: _controller.scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
                     SliverToBoxAdapter(
                       child: DynamicPanel(
-                        item: _dynamicDetailController.item,
+                        item: _controller.dynItem,
                         source: 'detail',
                         callback: _getImageCallback,
                       ),
                     ),
                     replyPersistentHeader(theme),
                     Obx(
-                      () => replyList(
-                          theme, _dynamicDetailController.loadingState.value),
+                      () => replyList(theme, _controller.loadingState.value),
                     ),
                   ]
                       .map<Widget>((e) => SliverPadding(
@@ -408,7 +352,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                     Expanded(
                       flex: _ratio[0].toInt(),
                       child: CustomScrollView(
-                        controller: _dynamicDetailController.scrollController,
+                        controller: _controller.scrollController,
                         physics: const AlwaysScrollableScrollPhysics(),
                         slivers: [
                           SliverPadding(
@@ -418,7 +362,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                             ),
                             sliver: SliverToBoxAdapter(
                               child: DynamicPanel(
-                                item: _dynamicDetailController.item,
+                                item: _controller.dynItem,
                                 source: 'detail',
                                 callback: _getImageCallback,
                               ),
@@ -433,10 +377,9 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                         key: _key,
                         backgroundColor: Colors.transparent,
                         body: refreshIndicator(
-                          onRefresh: _dynamicDetailController.onRefresh,
+                          onRefresh: _controller.onRefresh,
                           child: CustomScrollView(
-                            controller:
-                                _dynamicDetailController.scrollController,
+                            controller: _controller.scrollController,
                             physics: const AlwaysScrollableScrollPhysics(),
                             slivers: [
                               SliverPadding(
@@ -447,9 +390,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                 padding: EdgeInsets.only(right: padding / 4),
                                 sliver: Obx(
                                   () => replyList(
-                                      theme,
-                                      _dynamicDetailController
-                                          .loadingState.value),
+                                      theme, _controller.loadingState.value),
                                 ),
                               ),
                             ],
@@ -474,16 +415,16 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                         heroTag: null,
                         onPressed: () {
                           feedBack();
-                          _dynamicDetailController.onReply(
+                          _controller.onReply(
                             context,
-                            oid: _dynamicDetailController.oid,
-                            replyType: ReplyType.values[replyType],
+                            oid: _controller.oid,
+                            replyType: _controller.replyType,
                           );
                         },
                         tooltip: '评论动态',
                         child: const Icon(Icons.reply),
                       );
-                  return _dynamicDetailController.showDynActionBar.not
+                  return !_controller.showDynActionBar
                       ? Align(
                           alignment: Alignment.bottomRight,
                           child: Padding(
@@ -522,45 +463,41 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                   Expanded(
                                     child: Builder(
                                       builder: (btnContext) => TextButton.icon(
-                                        onPressed: () {
-                                          showModalBottomSheet(
-                                            context: context,
-                                            isScrollControlled: true,
-                                            useSafeArea: true,
-                                            builder: (context) => RepostPanel(
-                                              item:
-                                                  _dynamicDetailController.item,
-                                              callback: () {
-                                                int count =
-                                                    _dynamicDetailController
-                                                            .item
-                                                            .modules
-                                                            .moduleStat
-                                                            ?.forward
-                                                            ?.count ??
-                                                        0;
-                                                _dynamicDetailController.item
-                                                        .modules.moduleStat ??=
-                                                    ModuleStatModel();
-                                                _dynamicDetailController
-                                                    .item
-                                                    .modules
-                                                    .moduleStat
-                                                    ?.forward ??= DynamicStat();
-                                                _dynamicDetailController
-                                                    .item
-                                                    .modules
-                                                    .moduleStat!
-                                                    .forward!
-                                                    .count = count + 1;
-                                                if (btnContext.mounted) {
-                                                  (btnContext as Element?)
-                                                      ?.markNeedsBuild();
-                                                }
-                                              },
-                                            ),
-                                          );
-                                        },
+                                        onPressed: () => showModalBottomSheet(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          useSafeArea: true,
+                                          builder: (context) => RepostPanel(
+                                            item: _controller.dynItem,
+                                            callback: () {
+                                              int count = _controller
+                                                      .dynItem
+                                                      .modules
+                                                      .moduleStat
+                                                      ?.forward
+                                                      ?.count ??
+                                                  0;
+                                              _controller.dynItem.modules
+                                                      .moduleStat ??=
+                                                  ModuleStatModel();
+                                              _controller
+                                                  .dynItem
+                                                  .modules
+                                                  .moduleStat
+                                                  ?.forward ??= DynamicStat();
+                                              _controller
+                                                  .dynItem
+                                                  .modules
+                                                  .moduleStat!
+                                                  .forward!
+                                                  .count = count + 1;
+                                              if (btnContext.mounted) {
+                                                (btnContext as Element?)
+                                                    ?.markNeedsBuild();
+                                              }
+                                            },
+                                          ),
+                                        ),
                                         icon: Icon(
                                           FontAwesomeIcons.shareFromSquare,
                                           size: 16,
@@ -574,20 +511,15 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                               theme.colorScheme.outline,
                                         ),
                                         label: Text(
-                                          _dynamicDetailController
-                                                      .item
-                                                      .modules
-                                                      .moduleStat
-                                                      ?.forward
-                                                      ?.count !=
+                                          _controller.dynItem.modules.moduleStat
+                                                      ?.forward?.count !=
                                                   null
-                                              ? Utils.numFormat(
-                                                  _dynamicDetailController
-                                                      .item
-                                                      .modules
-                                                      .moduleStat!
-                                                      .forward!
-                                                      .count)
+                                              ? Utils.numFormat(_controller
+                                                  .dynItem
+                                                  .modules
+                                                  .moduleStat!
+                                                  .forward!
+                                                  .count)
                                               : '转发',
                                         ),
                                       ),
@@ -595,10 +527,8 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                   ),
                                   Expanded(
                                     child: TextButton.icon(
-                                      onPressed: () {
-                                        Utils.shareText(
-                                            '${HttpString.dynamicShareBaseUrl}/${_dynamicDetailController.item.idStr}');
-                                      },
+                                      onPressed: () => Utils.shareText(
+                                          '${HttpString.dynamicShareBaseUrl}/${_controller.dynItem.idStr}'),
                                       icon: Icon(
                                         CustomIcon.share_node,
                                         size: 16,
@@ -619,7 +549,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                       builder: (context) => TextButton.icon(
                                         onPressed: () =>
                                             RequestUtils.onLikeDynamic(
-                                          _dynamicDetailController.item,
+                                          _controller.dynItem,
                                           () {
                                             if (context.mounted) {
                                               (context as Element?)
@@ -628,18 +558,14 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                           },
                                         ),
                                         icon: Icon(
-                                          _dynamicDetailController
-                                                      .item
-                                                      .modules
-                                                      .moduleStat
-                                                      ?.like
-                                                      ?.status ==
+                                          _controller.dynItem.modules.moduleStat
+                                                      ?.like?.status ==
                                                   true
                                               ? FontAwesomeIcons.solidThumbsUp
                                               : FontAwesomeIcons.thumbsUp,
                                           size: 16,
-                                          color: _dynamicDetailController
-                                                      .item
+                                          color: _controller
+                                                      .dynItem
                                                       .modules
                                                       .moduleStat
                                                       ?.like
@@ -647,16 +573,15 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                                   true
                                               ? theme.colorScheme.primary
                                               : theme.colorScheme.outline,
-                                          semanticLabel:
-                                              _dynamicDetailController
-                                                          .item
-                                                          .modules
-                                                          .moduleStat
-                                                          ?.like
-                                                          ?.status ==
-                                                      true
-                                                  ? "已赞"
-                                                  : "点赞",
+                                          semanticLabel: _controller
+                                                      .dynItem
+                                                      .modules
+                                                      .moduleStat
+                                                      ?.like
+                                                      ?.status ==
+                                                  true
+                                              ? "已赞"
+                                              : "点赞",
                                         ),
                                         style: TextButton.styleFrom(
                                           padding: const EdgeInsets.fromLTRB(
@@ -673,24 +598,23 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                                 scale: animation, child: child);
                                           },
                                           child: Text(
-                                            _dynamicDetailController
-                                                        .item
+                                            _controller
+                                                        .dynItem
                                                         .modules
                                                         .moduleStat
                                                         ?.like
                                                         ?.count !=
                                                     null
-                                                ? Utils.numFormat(
-                                                    _dynamicDetailController
-                                                        .item
-                                                        .modules
-                                                        .moduleStat!
-                                                        .like!
-                                                        .count)
+                                                ? Utils.numFormat(_controller
+                                                    .dynItem
+                                                    .modules
+                                                    .moduleStat!
+                                                    .like!
+                                                    .count)
                                                 : '点赞',
                                             style: TextStyle(
-                                              color: _dynamicDetailController
-                                                          .item
+                                              color: _controller
+                                                          .dynItem
                                                           .modules
                                                           .moduleStat
                                                           ?.like
@@ -733,8 +657,8 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                     return ScaleTransition(scale: animation, child: child);
                   },
                   child: Text(
-                    '${_dynamicDetailController.count.value == -1 ? 0 : Utils.numFormat(_dynamicDetailController.count.value)}条回复',
-                    key: ValueKey<int>(_dynamicDetailController.count.value),
+                    '${_controller.count.value == -1 ? 0 : Utils.numFormat(_controller.count.value)}条回复',
+                    key: ValueKey<int>(_controller.count.value),
                   ),
                 ),
               ),
@@ -742,14 +666,14 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
               SizedBox(
                 height: 35,
                 child: TextButton.icon(
-                  onPressed: () => _dynamicDetailController.queryBySort(),
+                  onPressed: () => _controller.queryBySort(),
                   icon: Icon(
                     Icons.sort,
                     size: 16,
                     color: theme.colorScheme.secondary,
                   ),
                   label: Obx(() => Text(
-                        _dynamicDetailController.sortType.value.label,
+                        _controller.sortType.value.label,
                         style: TextStyle(
                           fontSize: 13,
                           color: theme.colorScheme.secondary,
@@ -778,14 +702,14 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
           ? SliverList.builder(
               itemBuilder: (context, index) {
                 if (index == response.length) {
-                  _dynamicDetailController.onLoadMore();
+                  _controller.onLoadMore();
                   return Container(
                     alignment: Alignment.center,
                     margin: EdgeInsets.only(
                         bottom: MediaQuery.of(context).padding.bottom),
                     height: 125,
                     child: Text(
-                      _dynamicDetailController.isEnd ? '没有更多了' : '加载中...',
+                      _controller.isEnd ? '没有更多了' : '加载中...',
                       style: TextStyle(
                         fontSize: 12,
                         color: theme.colorScheme.outline,
@@ -798,24 +722,21 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                     replyLevel: '1',
                     replyReply: (replyItem, id) =>
                         replyReply(context, replyItem, id),
-                    onReply: () {
-                      _dynamicDetailController.onReply(
-                        context,
-                        replyItem: response[index],
-                        index: index,
-                      );
-                    },
+                    onReply: () => _controller.onReply(
+                      context,
+                      replyItem: response[index],
+                      index: index,
+                    ),
                     onDelete: (subIndex) =>
-                        _dynamicDetailController.onRemove(index, subIndex),
-                    upMid: _dynamicDetailController.upMid,
+                        _controller.onRemove(index, subIndex),
+                    upMid: _controller.upMid,
                     callback: _getImageCallback,
                     onCheckReply: (item) =>
-                        _dynamicDetailController.onCheckReply(context, item),
-                    onToggleTop: (isUpTop, rpid) =>
-                        _dynamicDetailController.onToggleTop(
+                        _controller.onCheckReply(context, item, isManual: true),
+                    onToggleTop: (isUpTop, rpid) => _controller.onToggleTop(
                       index,
-                      _dynamicDetailController.oid,
-                      _dynamicDetailController.type,
+                      _controller.oid,
+                      _controller.replyType,
                       isUpTop,
                       rpid,
                     ),
@@ -825,11 +746,11 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
               itemCount: response!.length + 1,
             )
           : HttpError(
-              onReload: _dynamicDetailController.onReload,
+              onReload: _controller.onReload,
             ),
       Error(:var errMsg) => HttpError(
           errMsg: errMsg,
-          onReload: _dynamicDetailController.onReload,
+          onReload: _controller.onReload,
         ),
     };
   }

@@ -10,19 +10,20 @@ import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
     show ReplyInfo;
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/main.dart';
-import 'package:PiliPlus/models/bangumi/info.dart' as bangumi;
 import 'package:PiliPlus/models/common/episode_panel_type.dart';
-import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/models/common/search_type.dart';
-import 'package:PiliPlus/models/video_detail_res.dart' as video;
+import 'package:PiliPlus/models/pgc/pgc_info_model/episode.dart' as bangumi;
+import 'package:PiliPlus/models/pgc/pgc_info_model/result.dart';
+import 'package:PiliPlus/models/video_detail/episode.dart';
+import 'package:PiliPlus/models/video_detail/page.dart';
+import 'package:PiliPlus/models/video_tag/data.dart';
 import 'package:PiliPlus/pages/danmaku/view.dart';
 import 'package:PiliPlus/pages/episode_panel/view.dart';
 import 'package:PiliPlus/pages/video/ai/view.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
 import 'package:PiliPlus/pages/video/introduction/pgc/controller.dart';
 import 'package:PiliPlus/pages/video/introduction/pgc/view.dart';
-import 'package:PiliPlus/pages/video/introduction/pgc/widgets/intro_detail.dart'
-    as bangumi;
+import 'package:PiliPlus/pages/video/introduction/pgc/widgets/intro_detail.dart';
 import 'package:PiliPlus/pages/video/introduction/ugc/controller.dart';
 import 'package:PiliPlus/pages/video/introduction/ugc/view.dart';
 import 'package:PiliPlus/pages/video/introduction/ugc/widgets/page.dart';
@@ -55,7 +56,7 @@ import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart';
 import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
@@ -85,7 +86,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   late bool autoExitFullscreen;
   late bool autoPlayEnable;
   late bool enableVerticalExpand;
-  late bool autoPiP;
   late bool pipNoDanmaku;
   late bool removeSafeArea;
   bool isShowing = true;
@@ -101,7 +101,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
       context.orientation == Orientation.landscape &&
       videoDetailController.plPlayerController.horizontalPreview;
 
-  StreamSubscription? _listenerDetail;
   StreamSubscription? _listenerFS;
 
   Box get setting => GStorage.setting;
@@ -109,6 +108,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   final GlobalKey relatedVideoPanelKey = GlobalKey();
   final GlobalKey videoPlayerKey = GlobalKey();
   final GlobalKey videoReplyPanelKey = GlobalKey();
+  late final GlobalKey ugcPanelKey = GlobalKey();
+  late final GlobalKey pgcPanelKey = GlobalKey();
 
   @override
   void initState() {
@@ -127,11 +128,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
       );
     }
     videoIntroController = Get.put(VideoIntroController(), tag: heroTag);
-    _listenerDetail = videoIntroController.videoDetail.listen((value) {
-      if (!context.mounted) return;
-      videoPlayerServiceHandler.onVideoDetailChange(
-          value, videoDetailController.cid.value, heroTag);
-    });
     if (videoDetailController.videoType == SearchType.media_bangumi) {
       bangumiIntroController = Get.put(BangumiIntroController(), tag: heroTag);
     }
@@ -139,7 +135,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
         setting.get(SettingBoxKey.enableAutoExit, defaultValue: true);
     autoPlayEnable =
         setting.get(SettingBoxKey.autoPlayEnable, defaultValue: false);
-    autoPiP = setting.get(SettingBoxKey.autoPiP, defaultValue: false);
     pipNoDanmaku = setting.get(SettingBoxKey.pipNoDanmaku, defaultValue: false);
     enableVerticalExpand =
         setting.get(SettingBoxKey.enableVerticalExpand, defaultValue: false);
@@ -148,17 +143,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     if (removeSafeArea) hideStatusBar();
     videoSourceInit();
     autoScreen();
-    if (Platform.isAndroid) {
-      Utils.channel.setMethodCallHandler((call) async {
-        if (call.method == 'onUserLeaveHint') {
-          if (autoPiP &&
-              plPlayerController?.playerStatus.status.value ==
-                  PlayerStatus.playing) {
-            enterPip();
-          }
-        }
-      });
-    }
 
     if (videoDetailController.showReply) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -213,9 +197,9 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
       if (videoDetailController.scrollCtr.hasClients) {
         bool isPlaying = status == PlayerStatus.playing;
         if (isPlaying) {
-          if (videoDetailController.isExpanding.not &&
+          if (!videoDetailController.isExpanding &&
               videoDetailController.scrollCtr.offset != 0 &&
-              videoDetailController.animationController.isAnimating.not) {
+              !videoDetailController.animationController.isAnimating) {
             videoDetailController.isExpanding = true;
             videoDetailController.animationController.forward(
                 from: 1 -
@@ -234,9 +218,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
     if (status == PlayerStatus.completed) {
       try {
-        if ((videoDetailController.steinEdgeInfo?['edges']['questions'][0]
-                    ['choices'] as List?)
-                ?.isNotEmpty ==
+        if (videoDetailController.steinEdgeInfo?.edges?.questions?.firstOrNull
+                ?.choices?.isNotEmpty ==
             true) {
           videoDetailController.showSteinEdgeInfo.value = true;
           return;
@@ -274,9 +257,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
         }
       }
       // 播放完展示控制栏
-      if (videoDetailController.floating != null && !notExitFlag) {
-        PiPStatus currentStatus =
-            await videoDetailController.floating!.pipStatus;
+      if (Platform.isAndroid && !notExitFlag) {
+        PiPStatus currentStatus = await Floating().pipStatus;
         if (currentStatus == PiPStatus.disabled) {
           plPlayerController!.onLockControl(false);
         }
@@ -316,7 +298,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
   @override
   void dispose() {
-    _listenerDetail?.cancel();
     _listenerFS?.cancel();
 
     videoDetailController.skipTimer?.cancel();
@@ -425,12 +406,12 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     super.didPopNext();
     videoDetailController.autoPlay.value =
         !videoDetailController.isShowCover.value;
-    if (videoDetailController.isShowCover.value.not) {
+    if (!videoDetailController.isShowCover.value) {
       await videoDetailController.playerInit(
         autoplay: videoDetailController.playerStatus == PlayerStatus.playing,
       );
     } else if (videoDetailController.plPlayerController.preInitPlayer &&
-        videoDetailController.isQuerying.not &&
+        !videoDetailController.isQuerying &&
         videoDetailController.videoState.value is! Error) {
       await videoDetailController.playerInit();
     }
@@ -450,17 +431,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     themeData = videoDetailController.plPlayerController.darkVideoPage
         ? MyApp.darkThemeData ?? Theme.of(context)
         : Theme.of(context);
-  }
-
-  void enterPip() {
-    if (Get.currentRoute.startsWith('/video') &&
-        videoDetailController.floating != null) {
-      PageUtils.enterPip(
-        videoDetailController.floating!,
-        videoDetailController.data.dash!.video!.first.width!,
-        videoDetailController.data.dash!.video!.first.height!,
-      );
-    }
   }
 
   void animListener() {
@@ -644,8 +614,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                               !isFullScreen &&
                               isShowing &&
                               mounted) {
-                            if (videoDetailController.imageStatus.not &&
-                                removeSafeArea.not) {
+                            if (!videoDetailController.imageStatus &&
+                                !removeSafeArea) {
                               showStatusBar();
                             }
                           }
@@ -841,12 +811,11 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                                                               .all(EdgeInsets
                                                                   .zero),
                                                     ),
-                                                    onPressed: () {
-                                                      videoDetailController
-                                                          .headerCtrKey
-                                                          .currentState
-                                                          ?.showSettingSheet();
-                                                    },
+                                                    onPressed: () =>
+                                                        videoDetailController
+                                                            .headerCtrKey
+                                                            .currentState
+                                                            ?.showSettingSheet(),
                                                     icon: Icon(
                                                       Icons.more_vert_outlined,
                                                       size: 19,
@@ -1412,7 +1381,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                       key: videoDetailController.headerCtrKey,
                       controller: videoDetailController.plPlayerController,
                       videoDetailCtr: videoDetailController,
-                      floating: videoDetailController.floating,
                       heroTag: heroTag,
                     ),
                     danmuWidget: Obx(
@@ -1430,11 +1398,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
   Widget autoChoose(Widget childWhenDisabled) {
     if (Platform.isAndroid) {
-      return PiPSwitcher(
-        getChildWhenDisabled: () => childWhenDisabled,
-        getChildWhenEnabled: () => childWhenEnabled,
-        floating: videoDetailController.floating,
-      );
+      return Floating().isPipMode ? childWhenEnabled : childWhenDisabled;
     }
     return childWhenDisabled;
   }
@@ -1489,12 +1453,11 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     }
 
     Widget tabbar() => TabBar(
-          labelColor: needIndicator.not || tabs.length == 1
+          labelColor: !needIndicator || tabs.length == 1
               ? themeData.colorScheme.onSurface
               : null,
-          indicator: needIndicator.not || tabs.length == 1
-              ? const BoxDecoration()
-              : null,
+          indicator:
+              !needIndicator || tabs.length == 1 ? const BoxDecoration() : null,
           padding: EdgeInsets.zero,
           controller: videoDetailController.tabCtr,
           labelStyle:
@@ -1517,9 +1480,9 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
               }
             }
 
-            if (needIndicator.not || tabs.length == 1) {
+            if (!needIndicator || tabs.length == 1) {
               animToTop();
-            } else if (videoDetailController.tabCtr.indexIsChanging.not) {
+            } else if (!videoDetailController.tabCtr.indexIsChanging) {
               animToTop();
             }
           },
@@ -1641,12 +1604,10 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                         onTap: handlePlay,
                         child: Obx(
                           () => CachedNetworkImage(
-                            imageUrl:
-                                videoDetailController.videoItem['pic'] != null
-                                    ? (videoDetailController.videoItem['pic']
-                                            as String)
-                                        .http2https
-                                    : '',
+                            imageUrl: (videoDetailController.videoItem['pic']
+                                        as String?)
+                                    ?.http2https ??
+                                '',
                             width: videoWidth,
                             height: videoHeight,
                             fit: BoxFit.cover,
@@ -1734,8 +1695,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                       child: Wrap(
                         spacing: 25,
                         runSpacing: 10,
-                        children: (videoDetailController.steinEdgeInfo!['edges']
-                                ['questions'][0]['choices'] as List)
+                        children: videoDetailController
+                            .steinEdgeInfo!.edges!.questions!.first.choices!
                             .map((item) {
                           return FilledButton.tonal(
                             style: FilledButton.styleFrom(
@@ -1757,15 +1718,14 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                               videoIntroController.changeSeasonOrbangu(
                                 null,
                                 videoDetailController.bvid,
-                                item['cid'],
+                                item.cid,
                                 IdUtils.bv2av(videoDetailController.bvid),
                                 null,
                                 true,
                               );
-                              videoDetailController
-                                  .getSteinEdgeInfo(item['id']);
+                              videoDetailController.getSteinEdgeInfo(item.id);
                             },
-                            child: Text(item['option']),
+                            child: Text(item.option!),
                           );
                         }).toList(),
                       ),
@@ -1791,14 +1751,14 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
           body: CustomScrollView(
             key: const PageStorageKey<String>('简介'),
             controller: needCtr ? _introController : null,
-            physics: needCtr.not
+            physics: !needCtr
                 ? const AlwaysScrollableScrollPhysics(
-                    parent: ClampingScrollPhysics(),
-                  )
+                    parent: ClampingScrollPhysics())
                 : null,
             slivers: [
               if (videoDetailController.videoType == SearchType.video) ...[
                 VideoIntroPanel(
+                  key: ugcPanelKey,
                   heroTag: heroTag,
                   showAiBottomSheet: showAiBottomSheet,
                   showEpisodes: showEpisodes,
@@ -1833,6 +1793,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                   SearchType.media_bangumi)
                 Obx(
                   () => BangumiIntroPanel(
+                    key: pgcPanelKey,
                     heroTag: heroTag,
                     cid: videoDetailController.cid.value,
                     showEpisodes: showEpisodes,
@@ -1919,6 +1880,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                 child: Obx(
                   () => EpisodePanel(
                     heroTag: heroTag,
+                    enableSlide: false,
                     videoIntroController: videoIntroController,
                     type: EpisodeType.part,
                     list: [videoIntroController.videoDetail.value.pages!],
@@ -1935,13 +1897,11 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                     showTitle: false,
                     isSupportReverse: videoDetailController.videoType !=
                         SearchType.media_bangumi,
-                    onReverse: () {
-                      onReversePlay(
-                        bvid: videoDetailController.bvid,
-                        aid: IdUtils.bv2av(videoDetailController.bvid),
-                        isSeason: false,
-                      );
-                    },
+                    onReverse: () => onReversePlay(
+                      bvid: videoDetailController.bvid,
+                      aid: IdUtils.bv2av(videoDetailController.bvid),
+                      isSeason: false,
+                    ),
                   ),
                 ),
               ),
@@ -1968,6 +1928,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
               child: Obx(
                 () => EpisodePanel(
                   heroTag: heroTag,
+                  enableSlide: false,
                   videoIntroController: videoIntroController,
                   type: EpisodeType.season,
                   initialTabIndex: videoDetailController.seasonIndex.value,
@@ -1992,13 +1953,11 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                   showTitle: false,
                   isSupportReverse: videoDetailController.videoType !=
                       SearchType.media_bangumi,
-                  onReverse: () {
-                    onReversePlay(
-                      bvid: videoDetailController.bvid,
-                      aid: IdUtils.bv2av(videoDetailController.bvid),
-                      isSeason: true,
-                    );
-                  },
+                  onReverse: () => onReversePlay(
+                    bvid: videoDetailController.bvid,
+                    aid: IdUtils.bv2av(videoDetailController.bvid),
+                    isSeason: true,
+                  ),
                 ),
               ),
             ),
@@ -2060,7 +2019,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
           oid: oid,
           rpid: rpid,
           firstFloor: replyItem,
-          replyType: ReplyType.video,
+          replyType: 1,
           source: 'videoDetail',
           onViewImage: videoDetailController.onViewImage,
           onDismissed: videoDetailController.onDismissed,
@@ -2077,10 +2036,11 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     );
   }
 
-  void showIntroDetail(videoDetail, videoTags) {
+  void showIntroDetail(
+      BangumiInfoModel videoDetail, List<VideoTagItem>? videoTags) {
     videoDetailController.childKey.currentState?.showBottomSheet(
       backgroundColor: Colors.transparent,
-      (context) => bangumi.IntroDetail(
+      (context) => IntroDetail(
         bangumiDetail: videoDetail,
         videoTags: videoTags,
       ),
@@ -2097,7 +2057,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
           videoIntroController: videoIntroController,
           type: season != null
               ? EpisodeType.season
-              : episodes is List<video.Part>
+              : episodes is List<Part>
                   ? EpisodeType.part
                   : EpisodeType.bangumi,
           cover: videoDetailController.videoItem['pic'],
@@ -2170,7 +2130,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
         episode.runtimeType.toString() == "EpisodeItem" ? episode.bvid : bvid,
         episode.cid,
         episode.runtimeType.toString() == "EpisodeItem" ? episode.aid : aid,
-        episode is video.EpisodeItem
+        episode is EpisodeItem
             ? episode.arc?.pic
             : episode is bangumi.EpisodeItem
                 ? episode.cover
@@ -2180,49 +2140,42 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
     if (isSeason) {
       // reverse season
-      videoIntroController.videoDetail.value.ugcSeason!
-              .sections![videoDetailController.seasonIndex.value].isReversed =
-          !videoIntroController.videoDetail.value.ugcSeason!
-              .sections![videoDetailController.seasonIndex.value].isReversed;
-      videoIntroController.videoDetail.value.ugcSeason!
-              .sections![videoDetailController.seasonIndex.value].episodes =
-          videoIntroController
-              .videoDetail
-              .value
-              .ugcSeason!
-              .sections![videoDetailController.seasonIndex.value]
-              .episodes!
-              .reversed
-              .toList();
+      final item = videoIntroController.videoDetail.value.ugcSeason!
+          .sections![videoDetailController.seasonIndex.value];
+      item
+        ..isReversed = !item.isReversed
+        ..episodes = item.episodes!.reversed.toList();
 
-      if (videoDetailController.plPlayerController.reverseFromFirst.not) {
+      if (!videoDetailController.plPlayerController.reverseFromFirst) {
         // keep current episode
-        videoDetailController.seasonIndex.refresh();
-        videoDetailController.cid.refresh();
+        videoDetailController
+          ..seasonIndex.refresh()
+          ..cid.refresh();
       } else {
         // switch to first episode
-        dynamic episode = videoIntroController.videoDetail.value.ugcSeason!
+        var episode = videoIntroController.videoDetail.value.ugcSeason!
             .sections![videoDetailController.seasonIndex.value].episodes!.first;
         if (episode.cid != videoDetailController.cid.value) {
           changeEpisode(episode);
           videoDetailController.seasonCid = episode.cid;
         } else {
-          videoDetailController.seasonIndex.refresh();
-          videoDetailController.cid.refresh();
+          videoDetailController
+            ..seasonIndex.refresh()
+            ..cid.refresh();
         }
       }
     } else {
       // reverse part
-      videoIntroController.videoDetail.value.isPageReversed =
-          !videoIntroController.videoDetail.value.isPageReversed;
-      videoIntroController.videoDetail.value.pages =
-          videoIntroController.videoDetail.value.pages!.reversed.toList();
-      if (videoDetailController.plPlayerController.reverseFromFirst.not) {
+      final item = videoIntroController.videoDetail.value;
+      item
+        ..isPageReversed = !item.isPageReversed
+        ..pages = item.pages!.reversed.toList();
+      if (!videoDetailController.plPlayerController.reverseFromFirst) {
         // keep current episode
         videoDetailController.cid.refresh();
       } else {
         // switch to first episode
-        dynamic episode = videoIntroController.videoDetail.value.pages!.first;
+        var episode = videoIntroController.videoDetail.value.pages!.first;
         if (episode.cid != videoDetailController.cid.value) {
           changeEpisode(episode);
         } else {

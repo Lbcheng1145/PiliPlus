@@ -21,6 +21,7 @@ import 'package:PiliPlus/pages/later/view.dart';
 import 'package:PiliPlus/pages/later_search/view.dart';
 import 'package:PiliPlus/pages/live_room/view.dart';
 import 'package:PiliPlus/pages/login/view.dart';
+import 'package:PiliPlus/pages/main/view.dart';
 import 'package:PiliPlus/pages/media/view.dart';
 import 'package:PiliPlus/pages/member/view.dart';
 import 'package:PiliPlus/pages/member_dynamics/view.dart';
@@ -34,11 +35,10 @@ import 'package:PiliPlus/pages/search/view.dart';
 import 'package:PiliPlus/pages/search_result/view.dart';
 import 'package:PiliPlus/pages/search_trending/view.dart';
 import 'package:PiliPlus/pages/setting/extra_setting.dart';
-import 'package:PiliPlus/pages/setting/navigation_bar_set.dart';
+import 'package:PiliPlus/pages/setting/pages/bar_set.dart';
 import 'package:PiliPlus/pages/setting/pages/color_select.dart';
 import 'package:PiliPlus/pages/setting/pages/display_mode.dart';
 import 'package:PiliPlus/pages/setting/pages/font_size_select.dart';
-import 'package:PiliPlus/pages/setting/pages/home_tabbar_set.dart';
 import 'package:PiliPlus/pages/setting/pages/logs.dart';
 import 'package:PiliPlus/pages/setting/pages/play_speed_set.dart';
 import 'package:PiliPlus/pages/setting/play_setting.dart';
@@ -62,8 +62,9 @@ import 'package:get/get.dart';
 
 class Routes {
   static final List<GetPage<dynamic>> getPages = [
+    CustomGetPage(name: '/', page: () => const MainApp()),
     // 首页(推荐)
-    CustomGetPage(name: '/', page: () => const HomePage()),
+    CustomGetPage(name: '/home', page: () => const HomePage()),
     // 热门
     CustomGetPage(name: '/hot', page: () => const HotPage()),
     // 视频详情
@@ -116,8 +117,6 @@ class Routes {
     //
     CustomGetPage(name: '/blackListPage', page: () => const BlackListPage()),
     CustomGetPage(name: '/colorSetting', page: () => const ColorSelectPage()),
-    // 首页tabbar
-    CustomGetPage(name: '/tabbarSetting', page: () => const TabbarSetPage()),
     CustomGetPage(
         name: '/fontSizeSetting', page: () => const FontSizeSelectPage()),
     // 屏幕帧率
@@ -165,9 +164,6 @@ class Routes {
     CustomGetPage(name: '/sponsorBlock', page: () => const SponsorBlockPage()),
     CustomGetPage(name: '/createFav', page: () => const CreateFavPage()),
     CustomGetPage(name: '/editProfile', page: () => const EditProfilePage()),
-    // navigation bar
-    CustomGetPage(
-        name: '/navbarSetting', page: () => const NavigationBarSetPage()),
     CustomGetPage(
         name: '/settingsSearch', page: () => const SettingsSearchPage()),
     CustomGetPage(
@@ -176,6 +172,7 @@ class Routes {
         name: '/searchTrending', page: () => const SearchTrendingPage()),
     CustomGetPage(name: '/dynTopic', page: () => const DynTopicPage()),
     CustomGetPage(name: '/articleList', page: () => const ArticleListPage()),
+    CustomGetPage(name: '/barSetting', page: () => const BarSetPage()),
   ];
 }
 

@@ -19,18 +19,17 @@ class UrlUtils {
       final response = await Request.dio.head(
         url,
         options: Options(
-            followRedirects: false,
-            validateStatus: (status) {
-              return 200 <= status! && status < 400;
-            },
-            extra: {'account': AnonymousAccount()}),
+          followRedirects: false,
+          validateStatus: (status) {
+            return 200 <= status! && status < 400;
+          },
+          extra: {'account': AnonymousAccount()},
+        ),
       );
-      if (response.isRedirect) {
-        redirectUrl = response.headers['location']?.firstOrNull;
-        debugPrint('redirectUrl: $redirectUrl');
-        if (redirectUrl != null && !redirectUrl.startsWith('http')) {
-          redirectUrl = Uri.parse(url).resolve(redirectUrl).toString();
-        }
+      redirectUrl = response.headers['location']?.firstOrNull;
+      debugPrint('redirectUrl: $redirectUrl');
+      if (redirectUrl != null && !redirectUrl.startsWith('http')) {
+        redirectUrl = Uri.parse(url).resolve(redirectUrl).toString();
       }
     } catch (_) {}
     if (returnOri && redirectUrl == null) redirectUrl = url;
@@ -50,15 +49,17 @@ class UrlUtils {
       int? aid = matchRes['AV'];
       String? bvid = matchRes['BV'];
       bvid ??= IdUtils.av2bv(aid!);
-      final int cid = await SearchHttp.ab2c(aid: aid, bvid: bvid);
-      PageUtils.toVideoPage(
-        'bvid=$bvid&cid=$cid',
-        arguments: <String, String?>{
-          'pic': '',
-          'heroTag': Utils.makeHeroTag(bvid),
-        },
-        preventDuplicates: false,
-      );
+      final int? cid = await SearchHttp.ab2c(aid: aid, bvid: bvid);
+      if (cid != null) {
+        PageUtils.toVideoPage(
+          'bvid=$bvid&cid=$cid',
+          arguments: <String, String?>{
+            'pic': '',
+            'heroTag': Utils.makeHeroTag(bvid),
+          },
+          preventDuplicates: false,
+        );
+      }
     } else {
       if (redirectUrl.isNotEmpty) {
         PageUtils.handleWebview(redirectUrl);

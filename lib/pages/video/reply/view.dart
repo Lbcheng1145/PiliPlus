@@ -6,7 +6,6 @@ import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
     show ReplyInfo;
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
-import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/pages/video/reply/controller.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
@@ -175,7 +174,7 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
                   _videoReplyController.onReply(
                     context,
                     oid: _videoReplyController.aid,
-                    replyType: ReplyType.video,
+                    replyType: 1,
                   );
                 },
                 tooltip: '发表评论',
@@ -219,13 +218,11 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
                     replyItem: response[index],
                     replyLevel: widget.replyLevel,
                     replyReply: widget.replyReply,
-                    onReply: () {
-                      _videoReplyController.onReply(
-                        context,
-                        replyItem: response[index],
-                        index: index,
-                      );
-                    },
+                    onReply: () => _videoReplyController.onReply(
+                      context,
+                      replyItem: response[index],
+                      index: index,
+                    ),
                     onDelete: (subIndex) =>
                         _videoReplyController.onRemove(index, subIndex),
                     upMid: _videoReplyController.upMid,
@@ -233,13 +230,13 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
                     onViewImage: widget.onViewImage,
                     onDismissed: widget.onDismissed,
                     callback: widget.callback,
-                    onCheckReply: (item) =>
-                        _videoReplyController.onCheckReply(context, item),
+                    onCheckReply: (item) => _videoReplyController
+                        .onCheckReply(context, item, isManual: true),
                     onToggleTop: (isUpTop, rpid) =>
                         _videoReplyController.onToggleTop(
                       index,
                       _videoReplyController.aid,
-                      ReplyType.video.index,
+                      1,
                       isUpTop,
                       rpid,
                     ),

@@ -22,9 +22,7 @@ class LiveCardV extends StatelessWidget {
       clipBehavior: Clip.hardEdge,
       margin: EdgeInsets.zero,
       child: InkWell(
-        onTap: () {
-          Get.toNamed('/liveRoom?roomid=${liveItem.roomId}');
-        },
+        onTap: () => Get.toNamed('/liveRoom?roomid=${liveItem.roomId}'),
         onLongPress: () => imageSaveDialog(
           title: liveItem.title,
           cover: liveItem.cover,
@@ -132,11 +130,12 @@ class LiveCardV extends StatelessWidget {
             style: const TextStyle(fontSize: 11, color: Colors.white),
             semanticsLabel: "${liveItem.areaName}直播",
           ),
-          Text(
-            liveItem.watchedShow!['text_small'],
-            style: const TextStyle(fontSize: 11, color: Colors.white),
-            semanticsLabel: "${liveItem.watchedShow?['text_small']}围观",
-          ),
+          if (liveItem.watchedShow!.textSmall != null)
+            Text(
+              liveItem.watchedShow!.textSmall!,
+              style: const TextStyle(fontSize: 11, color: Colors.white),
+              semanticsLabel: "${liveItem.watchedShow?.textSmall}围观",
+            ),
         ],
       ),
     );

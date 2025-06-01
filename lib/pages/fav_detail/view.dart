@@ -11,7 +11,6 @@ import 'package:PiliPlus/models/user/fav_folder.dart';
 import 'package:PiliPlus/pages/fav_detail/controller.dart';
 import 'package:PiliPlus/pages/fav_detail/widget/fav_video_card.dart';
 import 'package:PiliPlus/pages/fav_sort/view.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/grid.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
@@ -43,7 +42,7 @@ class _FavDetailPageState extends State<FavDetailPage> {
     final theme = Theme.of(context);
     return Obx(
       () => PopScope(
-        canPop: _favDetailController.enableMultiSelect.value.not,
+        canPop: !_favDetailController.enableMultiSelect.value,
         onPopInvokedWithResult: (didPop, result) {
           if (_favDetailController.enableMultiSelect.value) {
             _favDetailController.handleSelect();
@@ -125,15 +124,14 @@ class _FavDetailPageState extends State<FavDetailPage> {
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                 ),
-                onPressed: () {
-                  RequestUtils.onCopyOrMove<FavDetailData, FavDetailItemData>(
-                    context: context,
-                    isCopy: true,
-                    ctr: _favDetailController,
-                    mediaId: _favDetailController.mediaId,
-                    mid: _favDetailController.mid,
-                  );
-                },
+                onPressed: () =>
+                    RequestUtils.onCopyOrMove<FavDetailData, FavDetailItemData>(
+                  context: context,
+                  isCopy: true,
+                  ctr: _favDetailController,
+                  mediaId: _favDetailController.mediaId,
+                  mid: _favDetailController.mid,
+                ),
                 child: Text(
                   '复制',
                   style: TextStyle(
@@ -145,15 +143,14 @@ class _FavDetailPageState extends State<FavDetailPage> {
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                 ),
-                onPressed: () {
-                  RequestUtils.onCopyOrMove<FavDetailData, FavDetailItemData>(
-                    context: context,
-                    isCopy: false,
-                    ctr: _favDetailController,
-                    mediaId: _favDetailController.mediaId,
-                    mid: _favDetailController.mid,
-                  );
-                },
+                onPressed: () =>
+                    RequestUtils.onCopyOrMove<FavDetailData, FavDetailItemData>(
+                  context: context,
+                  isCopy: false,
+                  ctr: _favDetailController,
+                  mediaId: _favDetailController.mediaId,
+                  mid: _favDetailController.mid,
+                ),
                 child: Text(
                   '移动',
                   style: TextStyle(
@@ -194,41 +191,36 @@ class _FavDetailPageState extends State<FavDetailPage> {
                         icon: const Icon(Icons.more_vert),
                         itemBuilder: (context) => [
                           PopupMenuItem(
-                            onTap: () {
-                              Get.toNamed(
-                                '/createFav',
-                                parameters: {'mediaId': mediaId},
-                              )?.then((res) {
-                                if (res is FavFolderItemData) {
-                                  _favDetailController.item.value = res;
-                                }
-                              });
-                            },
+                            onTap: () => Get.toNamed(
+                              '/createFav',
+                              parameters: {'mediaId': mediaId},
+                            )?.then((res) {
+                              if (res is FavFolderItemData) {
+                                _favDetailController.item.value = res;
+                              }
+                            }),
                             child: const Text('编辑信息'),
                           ),
                           PopupMenuItem(
-                            onTap: () {
-                              UserHttp.cleanFav(mediaId: mediaId).then((data) {
-                                if (data['status']) {
-                                  SmartDialog.showToast('清除成功');
-                                  Future.delayed(
-                                      const Duration(milliseconds: 200), () {
-                                    _favDetailController.onReload();
-                                  });
-                                } else {
-                                  SmartDialog.showToast(data['msg']);
-                                }
-                              });
-                            },
+                            onTap: () => UserHttp.cleanFav(mediaId: mediaId)
+                                .then((data) {
+                              if (data['status']) {
+                                SmartDialog.showToast('清除成功');
+                                Future.delayed(
+                                    const Duration(milliseconds: 200), () {
+                                  _favDetailController.onReload();
+                                });
+                              } else {
+                                SmartDialog.showToast(data['msg']);
+                              }
+                            }),
                             child: const Text('清除失效内容'),
                           ),
                           PopupMenuItem(
                             onTap: () {
-                              if (_favDetailController.loadingState.value
-                                      is Success &&
-                                  ((_favDetailController.loadingState.value
-                                                  as Success)
-                                              .response as List?)
+                              if (_favDetailController
+                                      .loadingState.value.isSuccess &&
+                                  _favDetailController.loadingState.value.data
                                           ?.isNotEmpty ==
                                       true) {
                                 if ((_favDetailController
@@ -250,23 +242,20 @@ class _FavDetailPageState extends State<FavDetailPage> {
                           if (!Utils.isDefaultFav(
                               _favDetailController.item.value.attr ?? 0))
                             PopupMenuItem(
-                              onTap: () {
-                                showConfirmDialog(
-                                  context: context,
-                                  title: '确定删除该收藏夹?',
-                                  onConfirm: () {
+                              onTap: () => showConfirmDialog(
+                                context: context,
+                                title: '确定删除该收藏夹?',
+                                onConfirm: () =>
                                     UserHttp.deleteFolder(mediaIds: [mediaId])
                                         .then((data) {
-                                      if (data['status']) {
-                                        SmartDialog.showToast('删除成功');
-                                        Get.back(result: true);
-                                      } else {
-                                        SmartDialog.showToast(data['msg']);
-                                      }
-                                    });
-                                  },
-                                );
-                              },
+                                  if (data['status']) {
+                                    SmartDialog.showToast('删除成功');
+                                    Get.back(result: true);
+                                  } else {
+                                    SmartDialog.showToast(data['msg']);
+                                  }
+                                }),
+                              ),
                               child: Text(
                                 '删除',
                                 style: TextStyle(
@@ -402,34 +391,29 @@ class _FavDetailPageState extends State<FavDetailPage> {
                                     item.type!,
                                   )
                               : null,
-                          onViewFav: () {
-                            PageUtils.toVideoPage(
-                              'bvid=${item.bvid}&cid=${item.cid}',
-                              arguments: {
-                                'videoItem': item,
-                                'heroTag': Utils.makeHeroTag(item.bvid),
-                                'sourceType': 'fav',
-                                'mediaId': _favDetailController.item.value.id,
-                                'oid': item.id,
-                                'favTitle':
-                                    _favDetailController.item.value.title,
-                                'count':
-                                    _favDetailController.item.value.mediaCount,
-                                'desc': true,
-                                'isContinuePlaying': index != 0,
-                                'isOwner': _favDetailController.isOwner.value,
-                              },
-                            );
-                          },
+                          onViewFav: () => PageUtils.toVideoPage(
+                            'bvid=${item.bvid}&cid=${item.cid}',
+                            arguments: {
+                              'videoItem': item,
+                              'heroTag': Utils.makeHeroTag(item.bvid),
+                              'sourceType': 'fav',
+                              'mediaId': _favDetailController.item.value.id,
+                              'oid': item.id,
+                              'favTitle': _favDetailController.item.value.title,
+                              'count':
+                                  _favDetailController.item.value.mediaCount,
+                              'desc': true,
+                              'isContinuePlaying': index != 0,
+                              'isOwner': _favDetailController.isOwner.value,
+                            },
+                          ),
                           onTap: _favDetailController.enableMultiSelect.value
-                              ? () {
-                                  _favDetailController.onSelect(index);
-                                }
+                              ? () => _favDetailController.onSelect(index)
                               : null,
                           onLongPress: _favDetailController.isOwner.value
                               ? () {
-                                  if (_favDetailController
-                                      .enableMultiSelect.value.not) {
+                                  if (!_favDetailController
+                                      .enableMultiSelect.value) {
                                     _favDetailController
                                         .enableMultiSelect.value = true;
                                     _favDetailController.onSelect(index);

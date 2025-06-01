@@ -136,20 +136,25 @@ class LiveHttp {
   }
 
   static Future liveRoomDanmaPrefetch({roomId}) async {
-    var res = await Request().get(Api.liveRoomDmPrefetch, queryParameters: {
-      'roomid': roomId,
-    });
+    var res = await Request().get(
+      Api.liveRoomDmPrefetch,
+      queryParameters: {'roomid': roomId},
+    );
     if (res.data['code'] == 0) {
-      return {'status': true, 'data': res.data['data']['room']};
+      return {'status': true, 'data': res.data['data']?['room']};
     } else {
       return {'status': false, 'msg': res.data['message']};
     }
   }
 
   static Future liveRoomGetDanmakuToken({roomId}) async {
-    var res = await Request().get(Api.liveRoomDmToken, queryParameters: {
-      'id': roomId,
-    });
+    var res = await Request().get(
+      Api.liveRoomDmToken,
+      queryParameters: await WbiSign.makSign({
+        'id': roomId,
+        'web_location': 444.8,
+      }),
+    );
     if (res.data['code'] == 0) {
       return {'status': true, 'data': LiveDanmakuInfo.fromJson(res.data)};
     } else {

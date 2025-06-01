@@ -6,15 +6,18 @@ import 'package:PiliPlus/grpc/view.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/http/video.dart';
-import 'package:PiliPlus/models/bangumi/info.dart';
+import 'package:PiliPlus/models/pgc/pgc_info_model/episode.dart';
+import 'package:PiliPlus/models/pgc/pgc_info_model/result.dart';
+import 'package:PiliPlus/models/pgc_lcf.dart';
+import 'package:PiliPlus/models/triple/pgc_triple.dart';
 import 'package:PiliPlus/models/user/fav_folder.dart';
+import 'package:PiliPlus/models/video_tag/data.dart';
 import 'package:PiliPlus/pages/dynamics_repost/view.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
 import 'package:PiliPlus/pages/video/introduction/ugc/controller.dart';
 import 'package:PiliPlus/pages/video/pay_coins/view.dart';
 import 'package:PiliPlus/pages/video/reply/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_repeat.dart';
-import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/global_data.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
@@ -39,7 +42,7 @@ class BangumiIntroController extends GetxController {
           ? '追番'
           : '追剧';
 
-  BangumiInfoModel bangumiItem = Get.arguments['bangumiItem'];
+  final BangumiInfoModel bangumiItem = Get.arguments['bangumiItem'];
 
   // 是否点赞
   RxBool hasLike = false.obs;
@@ -50,7 +53,7 @@ class BangumiIntroController extends GetxController {
   // 是否收藏
   RxBool hasFav = false.obs;
 
-  dynamic videoTags;
+  List<VideoTagItem>? videoTags;
 
   List? favIds;
   Rx<FavFolderData> favFolderData = FavFolderData().obs;
@@ -86,9 +89,10 @@ class BangumiIntroController extends GetxController {
   Future<void> queryBangumiLikeCoinFav() async {
     var result = await VideoHttp.bangumiLikeCoinFav(epId: epId);
     if (result['status']) {
-      hasLike.value = result["data"]['like'] == 1;
-      _coinNum.value = result["data"]['coin_number'];
-      hasFav.value = result["data"]['favorite'] == 1;
+      PgcLCF data = result['data'];
+      hasLike.value = data.like == 1;
+      _coinNum.value = data.coinNumber!;
+      hasFav.value = data.favorite == 1;
     } else {
       SmartDialog.showToast(result['msg']);
     }
@@ -99,8 +103,8 @@ class BangumiIntroController extends GetxController {
     var result = await VideoHttp.likeVideo(bvid: bvid, type: !hasLike.value);
     if (result['status']) {
       SmartDialog.showToast(!hasLike.value ? result['data']['toast'] : '取消赞');
-      bangumiItem.stat!['likes'] =
-          bangumiItem.stat!['likes'] + (!hasLike.value ? 1 : -1);
+      bangumiItem.stat!.likes =
+          bangumiItem.stat!.likes! + (!hasLike.value ? 1 : -1);
       hasLike.value = !hasLike.value;
     } else {
       SmartDialog.showToast(result['msg']);
@@ -115,10 +119,10 @@ class BangumiIntroController extends GetxController {
     );
     if (res['status']) {
       SmartDialog.showToast('投币成功');
-      bangumiItem.stat!['coins'] = bangumiItem.stat!['coins'] + coin;
-      if (selectLike && hasLike.value.not) {
+      bangumiItem.stat!.coins = bangumiItem.stat!.coins! + coin;
+      if (selectLike && !hasLike.value) {
         hasLike.value = true;
-        bangumiItem.stat!['likes'] = bangumiItem.stat!['likes'] + 1;
+        bangumiItem.stat!.likes = bangumiItem.stat!.likes! + 1;
       }
       _coinNum.value += coin;
       GlobalData().afterCoin(coin);
@@ -187,7 +191,7 @@ class BangumiIntroController extends GetxController {
       for (var i in favFolderData.value.list!.toList()) {
         bool isFaved = favIds?.contains(i.id) == true;
         if (i.favState == 1) {
-          if (isFaved.not) {
+          if (!isFaved) {
             addMediaIdsNew.add(i.id);
           }
         } else {
@@ -347,12 +351,10 @@ class BangumiIntroController extends GetxController {
   // 选择文件夹
   void onChoose(bool checkValue, int index) {
     feedBack();
-    List<FavFolderItemData> datalist = favFolderData.value.list!;
-    datalist[index].favState = checkValue ? 1 : 0;
-    datalist[index].mediaCount = checkValue
-        ? datalist[index].mediaCount! + 1
-        : datalist[index].mediaCount! - 1;
-    favFolderData.value.list = datalist;
+    FavFolderItemData item = favFolderData.value.list![index];
+    item
+      ..favState = checkValue ? 1 : 0
+      ..mediaCount = checkValue ? item.mediaCount! + 1 : item.mediaCount! - 1;
     favFolderData.refresh();
   }
 
@@ -516,12 +518,13 @@ class BangumiIntroController extends GetxController {
     }
     var result = await VideoHttp.triple(epId: epId, seasonId: seasonId);
     if (result['status']) {
-      hasLike.value = result["data"]["like"] == 1;
-      if (result["data"]["coin"] == 1) {
+      PgcTriple data = result['data'];
+      hasLike.value = data.like == 1;
+      if (data.coin == 1) {
         _coinNum.value = 2;
         GlobalData().afterCoin(2);
       }
-      hasFav.value = result["data"]["favorite"] == 1;
+      hasFav.value = data.favorite == 1;
       SmartDialog.showToast('三连成功');
     } else {
       SmartDialog.showToast(result['msg']);
@@ -533,7 +536,7 @@ class BangumiIntroController extends GetxController {
 
   Future<void> queryIsFollowed() async {
     // try {
-    //   dynamic result = await Request().get(
+    //   var result = await Request().get(
     //     'https://www.bilibili.com/bangumi/play/ss$seasonId',
     //   );
     //   dom.Document document = html_parser.parse(result.data);

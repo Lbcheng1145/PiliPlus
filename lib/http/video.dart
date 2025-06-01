@@ -6,17 +6,22 @@ import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/login.dart';
-import 'package:PiliPlus/models/bangumi/pgc_rank/pgc_rank_item_model.dart';
 import 'package:PiliPlus/models/common/account_type.dart';
-import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/models/home/rcmd/result.dart';
 import 'package:PiliPlus/models/member/article.dart';
 import 'package:PiliPlus/models/model_hot_video_item.dart';
 import 'package:PiliPlus/models/model_rec_video_item.dart';
+import 'package:PiliPlus/models/pgc/pgc_rank/pgc_rank_item_model.dart';
+import 'package:PiliPlus/models/pgc_lcf.dart';
+import 'package:PiliPlus/models/play_info/data.dart';
+import 'package:PiliPlus/models/triple/pgc_triple.dart';
+import 'package:PiliPlus/models/triple/ugc_triple.dart';
 import 'package:PiliPlus/models/user/fav_folder.dart';
 import 'package:PiliPlus/models/video/ai.dart';
+import 'package:PiliPlus/models/video/note_list/data.dart';
 import 'package:PiliPlus/models/video/play/url.dart';
-import 'package:PiliPlus/models/video_detail_res.dart';
+import 'package:PiliPlus/models/video_detail/video_detail_response.dart';
+import 'package:PiliPlus/models/video_relation/data.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
 import 'package:PiliPlus/utils/recommend_filter.dart';
@@ -226,7 +231,7 @@ class VideoHttp {
           'data': data,
         };
       } else {
-        if (epid != null && usePgcApi.not && forcePgcApi != true) {
+        if (epid != null && !usePgcApi && forcePgcApi != true) {
           return videoUrl(
             avid: avid,
             bvid: bvid,
@@ -314,7 +319,7 @@ class VideoHttp {
     if (res.data['code'] == 0) {
       return {
         'status': true,
-        'data': res.data['data'],
+        'data': VideoRelation.fromJson(res.data['data']),
       };
     } else {
       return {
@@ -348,7 +353,7 @@ class VideoHttp {
       queryParameters: {'ep_id': epId},
     );
     if (res.data['code'] == 0) {
-      return {'status': true, 'data': res.data['data']};
+      return {'status': true, 'data': PgcLCF.fromJson(res.data['data'])};
     } else {
       return {'status': false, 'msg': res.data['message']};
     }
@@ -396,7 +401,7 @@ class VideoHttp {
       ),
     );
     if (res.data['code'] == 0) {
-      return {'status': true, 'data': res.data['data']};
+      return {'status': true, 'data': PgcTriple.fromJson(res.data['data'])};
     } else {
       return {'status': false, 'msg': res.data['message']};
     }
@@ -424,7 +429,7 @@ class VideoHttp {
       ),
     );
     if (res.data['code'] == 0) {
-      return {'status': true, 'data': res.data['data']};
+      return {'status': true, 'data': UgcTriple.fromJson(res.data['data'])};
     } else {
       return {'status': false, 'msg': res.data['message']};
     }
@@ -643,7 +648,7 @@ class VideoHttp {
   // message	str	发送评论内容	必要	最大1000字符
   // plat	num	发送平台标识	非必要	1：web端 2：安卓客户端  3：ios客户端  4：wp客户端
   static Future replyAdd({
-    required ReplyType type,
+    required int type,
     required int oid,
     required String message,
     int? root,
@@ -655,7 +660,7 @@ class VideoHttp {
       return {'status': false, 'msg': '请输入评论内容'};
     }
     Map<String, dynamic> data = {
-      'type': type.index,
+      'type': type,
       'oid': oid,
       if (root != null && root != 0) 'root': root,
       if (parent != null && parent != 0) 'parent': parent,
@@ -892,11 +897,10 @@ class VideoHttp {
     }
   }
 
-  static Future<Map<String, dynamic>> subtitlesJson(
-      {String? aid, String? bvid, required int cid}) async {
+  static Future playInfo({String? aid, String? bvid, required int cid}) async {
     assert(aid != null || bvid != null);
     var res = await Request().get(
-      Api.subtitleUrl,
+      Api.playInfo,
       queryParameters: {
         if (aid != null) 'aid': aid,
         if (bvid != null) 'bvid': bvid,
@@ -904,20 +908,16 @@ class VideoHttp {
       },
     );
     if (res.data['code'] == 0) {
-      dynamic data = res.data['data'];
       return {
         'status': true,
-        'subtitles': data['subtitle']?['subtitles'],
-        'view_points': data['view_points'],
-        'last_play_cid': data['last_play_cid'],
-        'interaction': data['interaction'],
+        'data': PlayInfoData.fromJson(res.data['data']),
       };
     } else {
       return {'status': false, 'msg': res.data['message']};
     }
   }
 
-  static Future vttSubtitles(Map<String, dynamic> subtile) async {
+  static Future vttSubtitles(String subtitleUrl) async {
     String subtitleTimecode(num seconds) {
       int h = seconds ~/ 3600;
       seconds %= 3600;
@@ -938,7 +938,7 @@ class VideoHttp {
       return sb.toString();
     }
 
-    var res = await Request().get("https:${subtile['subtitle_url']}");
+    var res = await Request().get("https:$subtitleUrl");
 
     if (res.data?['body'] is List) {
       return await compute(processList, res.data['body'] as List);
@@ -1016,7 +1016,7 @@ class VideoHttp {
     }
   }
 
-  static Future<LoadingState> getVideoNoteList({
+  static Future<LoadingState<NoteListData>> getVideoNoteList({
     dynamic oid,
     dynamic uperMid,
     required int page,
@@ -1033,13 +1033,13 @@ class VideoHttp {
       },
     );
     if (res.data['code'] == 0) {
-      return Success(res.data['data']);
+      return Success(NoteListData.fromJson(res.data['data']));
     } else {
       return Error(res.data['message']);
     }
   }
 
-  static Future<LoadingState<List<FavArticleModel>?>> noteList({
+  static Future<LoadingState<List<FavNoteModel>?>> noteList({
     required int page,
   }) async {
     var res = await Request().get(
@@ -1051,8 +1051,8 @@ class VideoHttp {
       },
     );
     if (res.data['code'] == 0) {
-      List<FavArticleModel>? list = (res.data['data']?['list'] as List?)
-          ?.map((e) => FavArticleModel.fromJson(e))
+      List<FavNoteModel>? list = (res.data['data']?['list'] as List?)
+          ?.map((e) => FavNoteModel.fromJson(e))
           .toList();
       return Success(list);
     } else {
@@ -1060,7 +1060,7 @@ class VideoHttp {
     }
   }
 
-  static Future<LoadingState<List<FavArticleModel>?>> userNoteList({
+  static Future<LoadingState<List<FavNoteModel>?>> userNoteList({
     required int page,
   }) async {
     var res = await Request().get(
@@ -1072,8 +1072,8 @@ class VideoHttp {
       },
     );
     if (res.data['code'] == 0) {
-      List<FavArticleModel>? list = (res.data['data']?['list'] as List?)
-          ?.map((e) => FavArticleModel.fromJson(e))
+      List<FavNoteModel>? list = (res.data['data']?['list'] as List?)
+          ?.map((e) => FavNoteModel.fromJson(e))
           .toList();
       return Success(list);
     } else {

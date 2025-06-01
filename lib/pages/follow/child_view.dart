@@ -45,14 +45,12 @@ class _FollowChildPageState extends State<FollowChildPage>
         backgroundColor: Colors.transparent,
         body: _child,
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            _followController
-              ..orderType.value =
-                  _followController.orderType.value == FollowOrderType.def
-                      ? FollowOrderType.attention
-                      : FollowOrderType.def
-              ..onReload();
-          },
+          onPressed: () => _followController
+            ..orderType.value =
+                _followController.orderType.value == FollowOrderType.def
+                    ? FollowOrderType.attention
+                    : FollowOrderType.def
+            ..onReload(),
           icon: const Icon(Icons.format_list_bulleted, size: 20),
           label: Obx(() => Text(_followController.orderType.value.title)),
         ),
@@ -96,11 +94,9 @@ class _FollowChildPageState extends State<FollowChildPage>
                   isOwner: widget.controller?.isOwner,
                   onSelect: widget.onSelect,
                   callback: (attr) {
-                    List<FollowItemModel> list =
-                        (_followController.loadingState.value as Success)
-                            .response;
-                    list[index].attribute = attr == 0 ? -1 : 0;
-                    _followController.loadingState.refresh();
+                    _followController.loadingState
+                      ..value.data![index].attribute = attr == 0 ? -1 : 0
+                      ..refresh();
                   },
                 );
               },

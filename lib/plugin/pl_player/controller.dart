@@ -12,6 +12,7 @@ import 'package:PiliPlus/models/common/audio_normalization.dart';
 import 'package:PiliPlus/models/common/sponsor_block/segment_type.dart';
 import 'package:PiliPlus/models/common/sponsor_block/skip_type.dart';
 import 'package:PiliPlus/models/user/danmaku_rule.dart';
+import 'package:PiliPlus/models/video_shot/data.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/data_source.dart';
 import 'package:PiliPlus/plugin/pl_player/models/data_status.dart';
@@ -22,6 +23,7 @@ import 'package:PiliPlus/plugin/pl_player/utils/fullscreen.dart';
 import 'package:PiliPlus/services/service_locator.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
+import 'package:PiliPlus/utils/page_utils.dart' show PageUtils;
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
@@ -115,6 +117,8 @@ class PlPlayerController {
   dynamic _seasonId;
   dynamic _subType;
   int _heartDuration = 0;
+  int? width;
+  int? height;
 
   late DataSource dataSource;
 
@@ -242,12 +246,22 @@ class PlPlayerController {
   /// 弹幕开关
   RxBool isOpenDanmu = false.obs;
 
+  bool autoPiP =
+      GStorage.setting.get(SettingBoxKey.autoPiP, defaultValue: false);
+
+  void enterPip() {
+    if (Get.currentRoute.startsWith('/video')) {
+      PageUtils.enterPip(width: width, height: height);
+    }
+  }
+
   /// 弹幕权重
   int danmakuWeight = 0;
   late RuleFilter filters;
   // 关联弹幕控制器
   DanmakuController? danmakuController;
   bool showDanmaku = true;
+  Set<int> dmState = <int>{};
   late final mergeDanmaku = GStorage.mergeDanmaku;
   // 弹幕相关配置
   late Set<int> blockTypes;
@@ -484,6 +498,16 @@ class PlPlayerController {
       enableHeart = false;
     }
 
+    if (Platform.isAndroid) {
+      Utils.channel.setMethodCallHandler((call) async {
+        if (call.method == 'onUserLeaveHint') {
+          if (autoPiP && playerStatus.status.value == PlayerStatus.playing) {
+            enterPip();
+          }
+        }
+      });
+    }
+
     // _playerEventSubs = onPlayerStatusChanged.listen((PlayerStatus status) {
     //   if (status == PlayerStatus.playing) {
     //     WakelockPlus.enable();
@@ -510,7 +534,7 @@ class PlPlayerController {
     List<Segment>? segmentList,
     List<Segment>? viewPointList,
     bool? showVP,
-    List? dmTrend,
+    List<double>? dmTrend,
     bool autoplay = true,
     // 默认不循环
     PlaylistMode looping = PlaylistMode.none,
@@ -518,8 +542,8 @@ class PlPlayerController {
     Duration? seekTo,
     // 初始化播放速度
     double speed = 1.0,
-    double? width,
-    double? height,
+    int? width,
+    int? height,
     Duration? duration,
     // 方向
     String? direction,
@@ -532,11 +556,13 @@ class PlPlayerController {
     VoidCallback? callback,
   }) async {
     try {
+      this.width = width;
+      this.height = height;
       this.dataSource = dataSource;
       this.segmentList.value = segmentList ?? <Segment>[];
       this.viewPointList.value = viewPointList ?? <Segment>[];
       this.showVP.value = showVP ?? true;
-      this.dmTrend.value = dmTrend ?? [];
+      this.dmTrend.value = dmTrend ?? <double>[];
       _autoPlay = autoplay;
       _looping = looping;
       // 初始化视频倍速
@@ -566,8 +592,8 @@ class PlPlayerController {
         return;
       }
       // 配置Player 音轨、字幕等等
-      _videoPlayerController = await _createVideoController(
-          dataSource, _looping, width, height, seekTo);
+      _videoPlayerController =
+          await _createVideoController(dataSource, _looping, seekTo);
       callback?.call();
       // 获取视频时长 00:00
       _duration.value = duration ?? _videoPlayerController!.state.duration;
@@ -674,8 +700,6 @@ class PlPlayerController {
   Future<Player> _createVideoController(
     DataSource dataSource,
     PlaylistMode looping,
-    double? width,
-    double? height,
     Duration? seekTo,
   ) async {
     // 每次配置时先移除监听
@@ -970,7 +994,7 @@ class PlPlayerController {
         } else if (event.startsWith('Could not open codec')) {
           SmartDialog.showToast('无法加载解码器, $event，可能会切换至软解');
         } else {
-          if (onlyPlayAudio.value.not) {
+          if (!onlyPlayAudio.value) {
             if (event.startsWith("Failed to open .") ||
                 event.startsWith("Cannot open") ||
                 event.startsWith("Can not open")) {
@@ -1440,7 +1464,7 @@ class PlPlayerController {
     if (!enableHeart || MineController.anonymity.value || progress == 0) {
       return;
     } else if (playerStatus.status.value == PlayerStatus.paused) {
-      if (isManual.not) {
+      if (!isManual) {
         return;
       }
     }
@@ -1520,6 +1544,7 @@ class PlPlayerController {
       }
       return;
     }
+    dmState.clear();
     _playerCount.value = 0;
     Utils.channel.setMethodCallHandler(null);
     pause();
@@ -1588,7 +1613,7 @@ class PlPlayerController {
     }
     _isQueryingVideoShot = true;
     try {
-      dynamic res = await Request().get(
+      var res = await Request().get(
         '/x/player/videoshot',
         queryParameters: {
           // 'aid': IdUtils.bv2av(_bvid),
@@ -1600,18 +1625,19 @@ class PlPlayerController {
       if (res.data['code'] == 0) {
         videoShot = {
           'status': true,
-          'data': res.data['data'],
+          'data': VideoShotData.fromJson(res.data['data']),
         };
       } else {
         videoShot = {'status': false};
       }
     } catch (e) {
+      videoShot = {'status': false};
       debugPrint('getVideoShot: $e');
     }
     _isQueryingVideoShot = false;
   }
 
-  late final RxList dmTrend = [].obs;
+  late final RxList<double> dmTrend = <double>[].obs;
   late final RxBool showDmTreandChart = true.obs;
 }
 

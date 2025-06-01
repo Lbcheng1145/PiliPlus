@@ -129,7 +129,7 @@ class MyApp extends StatelessWidget {
     // 主题色
     Color defaultColor =
         colorThemeTypes[setting.get(SettingBoxKey.customColor, defaultValue: 0)]
-            ['color'];
+            .color;
     Color brandColor = defaultColor;
     // 是否动态取色
     bool isDynamicColor =
@@ -210,7 +210,7 @@ class MyApp extends StatelessWidget {
           supportedLocales: const [Locale("zh", "CN"), Locale("en", "US")],
           fallbackLocale: const Locale("zh", "CN"),
           getPages: Routes.getPages,
-          home: const MainApp(),
+          initialRoute: '/',
           builder: FlutterSmartDialog.init(
             toastBuilder: (String msg) => CustomToast(msg: msg),
             loadingBuilder: (msg) => LoadingWidget(msg: msg),

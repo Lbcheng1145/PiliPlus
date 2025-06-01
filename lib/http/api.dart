@@ -24,7 +24,7 @@ class Api {
 
   // 字幕
   // aid, cid
-  static const String subtitleUrl = '/x/player/wbi/v2';
+  static const String playInfo = '/x/player/wbi/v2';
 
   // 视频详情
   // 竖屏 https://api.bilibili.com/x/web-interface/view?aid=527403921
@@ -855,4 +855,21 @@ class Api {
   static const String delFavTopic = '/x/topic/fav/sub/cancel';
 
   static const String likeTopic = '/x/topic/like';
+
+  static const String pgcReviewL = '/pgc/review/long/list';
+
+  static const String pgcReviewS = '/pgc/review/short/list';
+
+  static const String pgcReviewLike = '/pgc/review/action/like';
+
+  static const String pgcReviewDislike = '/pgc/review/action/dislike';
+
+  static const String pgcReviewPost = '/pgc/review/short/post';
+
+  static const String pgcReviewMod = '/pgc/review/short/modify';
+
+  static const String pgcReviewDel = '/pgc/review/short/del';
+
+  static const String topicPubSearch =
+      '${HttpString.appBaseUrl}/x/topic/pub/search';
 }

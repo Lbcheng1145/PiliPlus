@@ -36,6 +36,8 @@ class _FavNoteChildPageState extends State<FavNoteChildPage>
           refreshIndicator(
             onRefresh: _favNoteController.onRefresh,
             child: CustomScrollView(
+              controller: _favNoteController.scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverPadding(
                   padding: EdgeInsets.only(
@@ -90,10 +92,8 @@ class _FavNoteChildPageState extends State<FavNoteChildPage>
                       ),
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          _favNoteController.handleSelect(
-                              !_favNoteController.allSelected.value);
-                        },
+                        onTap: () => _favNoteController.handleSelect(
+                            !_favNoteController.allSelected.value),
                         child: const Padding(
                           padding: EdgeInsets.only(
                             top: 14,
@@ -132,7 +132,7 @@ class _FavNoteChildPageState extends State<FavNoteChildPage>
     );
   }
 
-  Widget _buildBody(LoadingState<List<FavArticleModel>?> loadingState) {
+  Widget _buildBody(LoadingState<List<FavNoteModel>?> loadingState) {
     return switch (loadingState) {
       Loading() => SliverGrid(
           gridDelegate: Grid.videoCardHDelegate(context),
@@ -154,9 +154,7 @@ class _FavNoteChildPageState extends State<FavNoteChildPage>
                   return FavNoteItem(
                     item: response[index],
                     ctr: _favNoteController,
-                    onSelect: () {
-                      _favNoteController.onSelect(index);
-                    },
+                    onSelect: () => _favNoteController.onSelect(index),
                   );
                 },
                 childCount: response!.length,

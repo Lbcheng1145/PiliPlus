@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
 import 'package:PiliPlus/http/msg.dart';
+import 'package:PiliPlus/models/bfs_res/data.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart';
 import 'package:PiliPlus/models/common/publish_panel_type.dart';
 import 'package:PiliPlus/models/live/live_emoticons/emoticon.dart';
@@ -41,10 +41,9 @@ abstract class CommonPublishPageState<T extends CommonPublishPage>
   late final controller = ChatBottomPanelContainerController<PanelType>();
   late final editController = TextEditingController(text: widget.initialValue);
 
-  PanelType currentPanelType = PanelType.none;
+  Rx<PanelType> panelType = PanelType.none.obs;
   late final RxBool readOnly = false.obs;
   late final RxBool enablePublish = false.obs;
-  late final RxBool selectKeyboard = true.obs;
 
   late final imagePicker = ImagePicker();
   late final RxList<String> pathList = <String>[].obs;
@@ -55,12 +54,12 @@ abstract class CommonPublishPageState<T extends CommonPublishPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    if (widget.initialValue.isNullOrEmpty.not) {
+    if (widget.initialValue?.trim().isNotEmpty == true) {
       enablePublish.value = true;
     }
 
     if (widget.autofocus) {
-      Future.delayed(const Duration(milliseconds: 300)).then((_) {
+      Future.delayed(const Duration(milliseconds: 300)).whenComplete(() {
         if (mounted) {
           focusNode.requestFocus();
         }
@@ -84,7 +83,9 @@ abstract class CommonPublishPageState<T extends CommonPublishPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (mounted && widget.autofocus && selectKeyboard.value) {
+      if (mounted &&
+          widget.autofocus &&
+          panelType.value == PanelType.keyboard) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (focusNode.hasFocus) {
             focusNode.unfocus();
@@ -175,11 +176,12 @@ abstract class CommonPublishPageState<T extends CommonPublishPage>
                 cancelToken: cancelToken,
               );
               if (!result['status']) throw HttpException(result['msg']);
+              BfsResData data = result['data'];
               return {
-                'img_width': result['data']['image_width'],
-                'img_height': result['data']['image_height'],
-                'img_size': result['data']['img_size'] / 1024,
-                'img_src': result['data']['image_url'],
+                'img_width': data.imageWidth,
+                'img_height': data.imageHeight,
+                'img_size': data.imgSize,
+                'img_src': data.imageUrl,
               };
             }).toList(),
             eagerError: true);
@@ -225,7 +227,7 @@ abstract class CommonPublishPageState<T extends CommonPublishPage>
   Widget? get customPanel => null;
 
   Widget buildEmojiPickerPanel() {
-    double height = 170;
+    double height = context.isTablet ? 300 : 170;
     final keyboardHeight = controller.keyboardHeight;
     if (keyboardHeight != 0) {
       height = max(height, keyboardHeight);
@@ -250,22 +252,22 @@ abstract class CommonPublishPageState<T extends CommonPublishPage>
         }
       },
       onPanelTypeChange: (panelType, data) {
-        debugPrint('panelType: $panelType');
+        // debugPrint('panelType: $panelType');
         switch (panelType) {
           case ChatBottomPanelType.none:
-            currentPanelType = PanelType.none;
+            this.panelType.value = PanelType.none;
             break;
           case ChatBottomPanelType.keyboard:
-            currentPanelType = PanelType.keyboard;
+            this.panelType.value = PanelType.keyboard;
             break;
           case ChatBottomPanelType.other:
             if (data == null) return;
             switch (data) {
               case PanelType.emoji:
-                currentPanelType = PanelType.emoji;
+                this.panelType.value = PanelType.emoji;
                 break;
               default:
-                currentPanelType = PanelType.none;
+                this.panelType.value = PanelType.none;
                 break;
             }
             break;
@@ -304,7 +306,7 @@ abstract class CommonPublishPageState<T extends CommonPublishPage>
           },
           onLongPress: onClear,
           child: ClipRRect(
-            borderRadius: StyleString.mdRadius,
+            borderRadius: const BorderRadius.all(Radius.circular(4)),
             child: Image(
               height: height,
               fit: BoxFit.fitHeight,
@@ -319,9 +321,7 @@ abstract class CommonPublishPageState<T extends CommonPublishPage>
           child: iconButton(
             context: context,
             icon: Icons.edit,
-            onPressed: () {
-              onCropImage(index);
-            },
+            onPressed: () => onCropImage(index),
             size: 24,
             iconSize: 14,
             bgColor: color,

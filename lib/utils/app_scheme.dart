@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:PiliPlus/http/search.dart';
-import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/pages/video/reply_reply/view.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
@@ -40,7 +39,7 @@ class PiliScheme {
     try {
       if (url.startsWith('//')) {
         url = 'https:$url';
-      } else if (RegExp(r'^\S+://').hasMatch(url).not) {
+      } else if (!RegExp(r'^\S+://').hasMatch(url)) {
         url = 'https://$url';
       }
       return routePush(
@@ -86,9 +85,10 @@ class PiliScheme {
             if (id != null) {
               bool isEp = path.contains('/ep/');
               PageUtils.viewBangumi(
-                  seasonId: isEp ? null : id,
-                  epId: isEp ? id : null,
-                  progress: uri.queryParameters['start_progress']);
+                seasonId: isEp ? null : id,
+                epId: isEp ? id : null,
+                progress: uri.queryParameters['start_progress'],
+              );
               return true;
             }
             return false;
@@ -109,16 +109,17 @@ class PiliScheme {
               // to video reply
               String? oid = uriDigitRegExp.firstMatch(path)?.group(1);
               int? rpid = int.tryParse(queryParameters['comment_root_id']!);
+              String? commentSecondaryId =
+                  queryParameters['comment_secondary_id'];
               if (oid != null && rpid != null) {
                 Get.to(
                   arguments: {
                     'oid': oid,
                     'rpid': rpid,
-                    'type': ReplyType.video.index,
-                    'id': queryParameters['comment_secondary_id'],
+                    'type': 1,
+                    'id': commentSecondaryId,
                   },
                   () => Scaffold(
-                    resizeToAvoidBottomInset: false,
                     appBar: AppBar(
                       title: const Text('评论详情'),
                       actions: [
@@ -141,11 +142,10 @@ class PiliScheme {
                         oid: int.parse(oid),
                         rpid: rpid,
                         source: 'routePush',
-                        replyType: ReplyType.video,
+                        replyType: 1,
                         firstFloor: null,
-                        id: queryParameters['comment_secondary_id'] != null
-                            ? int.tryParse(
-                                queryParameters['comment_secondary_id']!)
+                        id: commentSecondaryId != null
+                            ? int.tryParse(commentSecondaryId)
                             : null,
                       ),
                     ),
@@ -257,7 +257,6 @@ class PiliScheme {
                   'enterUri': queryParameters['enterUri'],
                 },
                 () => Scaffold(
-                  resizeToAvoidBottomInset: false,
                   appBar: AppBar(
                     title: const Text('评论详情'),
                     actions: [
@@ -285,7 +284,7 @@ class PiliScheme {
                       rpid: rootId,
                       id: rpId,
                       source: 'routePush',
-                      replyType: ReplyType.values[type],
+                      replyType: type,
                       firstFloor: null,
                     ),
                   ),
@@ -306,7 +305,6 @@ class PiliScheme {
                   'type': type,
                 },
                 () => Scaffold(
-                  resizeToAvoidBottomInset: false,
                   appBar: AppBar(
                     title: const Text('评论详情'),
                     actions: [
@@ -335,7 +333,7 @@ class PiliScheme {
                       oid: oid,
                       rpid: rpId,
                       source: 'routePush',
-                      replyType: ReplyType.values[type],
+                      replyType: type,
                       firstFloor: null,
                     ),
                   ),
@@ -370,24 +368,23 @@ class PiliScheme {
               if (commentRootId != null) {
                 String? dynId = uriDigitRegExp.firstMatch(path)?.group(1);
                 int? rpid = int.tryParse(commentRootId);
+                final commentSecondaryId =
+                    queryParameters['comment_secondary_id'];
                 if (dynId != null && rpid != null) {
                   Get.to(
                     arguments: {
                       'oid': oid ?? dynId,
                       'rpid': rpid,
-                      'type': businessId ?? ReplyType.dynamics.index,
-                      'id': queryParameters['comment_secondary_id'],
+                      'type': businessId ?? 17,
+                      'id': commentSecondaryId,
                     },
                     () => Scaffold(
-                      resizeToAvoidBottomInset: false,
                       appBar: AppBar(
                         title: const Text('评论详情'),
                         actions: [
                           IconButton(
                             tooltip: '前往',
-                            onPressed: () {
-                              _onPushDynDetail(path, off);
-                            },
+                            onPressed: () => _onPushDynDetail(path, off),
                             icon: const Icon(Icons.open_in_new),
                           ),
                         ],
@@ -400,13 +397,10 @@ class PiliScheme {
                           oid: oid ?? int.parse(dynId),
                           rpid: rpid,
                           source: 'routePush',
-                          replyType: businessId != null
-                              ? ReplyType.values[businessId]
-                              : ReplyType.dynamics,
+                          replyType: businessId ?? 17,
                           firstFloor: null,
-                          id: queryParameters['comment_secondary_id'] != null
-                              ? int.tryParse(
-                                  queryParameters['comment_secondary_id']!)
+                          id: commentSecondaryId != null
+                              ? int.tryParse(commentSecondaryId)
                               : null,
                         ),
                       ),
@@ -453,8 +447,7 @@ class PiliScheme {
             return false;
           case 'm.bilibili.com':
             // bilibili://m.bilibili.com/topic-detail?topic_id=1028161&frommodule=H5&h5awaken=xxx
-            final id =
-                RegExp(r'topic_id=(\d+)').firstMatch(uri.query)?.group(1);
+            final id = uri.queryParameters['topic_id'];
             if (id != null) {
               PageUtils.toDupNamed(
                 '/dynTopic',
@@ -465,7 +458,7 @@ class PiliScheme {
             }
             return false;
           default:
-            if (selfHandle.not) {
+            if (!selfHandle) {
               debugPrint('$uri');
               SmartDialog.showToast('未知路径:$uri，请截图反馈给开发者');
             }
@@ -493,7 +486,7 @@ class PiliScheme {
           );
           return true;
         }
-        if (selfHandle.not) {
+        if (!selfHandle) {
           debugPrint('$uri');
           SmartDialog.showToast('未知路径:$uri，请截图反馈给开发者');
         }
@@ -513,13 +506,13 @@ class PiliScheme {
     String host = uri.host;
 
     if (selfHandle &&
-        host.contains('bilibili.com').not &&
-        host.contains('b23.tv').not) {
+        !host.contains('bilibili.com') &&
+        !host.contains('b23.tv')) {
       return false;
     }
 
     void launchURL() {
-      if (selfHandle.not) {
+      if (!selfHandle) {
         _toWebview(uri.toString(), off, parameters);
       }
     }
@@ -539,7 +532,7 @@ class PiliScheme {
         uri = Uri.parse(redirectUrl);
         host = uri.host;
       }
-      if (host.contains('bilibili.com').not) {
+      if (!host.contains('bilibili.com')) {
         launchURL();
         return false;
       }
@@ -549,7 +542,7 @@ class PiliScheme {
 
     if (host.contains('t.bilibili.com')) {
       bool hasMatch = await _onPushDynDetail(path, off);
-      if (hasMatch.not) {
+      if (!hasMatch) {
         launchURL();
       }
       return hasMatch;
@@ -594,33 +587,30 @@ class PiliScheme {
       launchURL();
       return false;
     }
-    final String? area = pathSegments.first == 'mobile'
-        ? pathSegments.getOrNull(1)
-        : pathSegments.first;
+    final String? area =
+        pathSegments.first == 'mobile' || pathSegments.first == 'h5'
+            ? pathSegments.getOrNull(1)
+            : pathSegments.first;
     debugPrint('area: $area');
     switch (area) {
-      case 'h5':
-        if (path.startsWith('/h5/note')) {
-          String? id = RegExp(r'cvid=(\d+)', caseSensitive: false)
-              .firstMatch(uri.query)
-              ?.group(1);
-          if (id != null) {
-            PageUtils.toDupNamed(
-              '/articlePage',
-              parameters: {
-                'id': id,
-                'type': 'read',
-              },
-              off: off,
-            );
-            return true;
-          }
+      case 'note' || 'note-app':
+        String? id = uri.queryParameters['cvid'];
+        if (id != null) {
+          PageUtils.toDupNamed(
+            '/articlePage',
+            parameters: {
+              'id': id,
+              'type': 'read',
+            },
+            off: off,
+          );
+          return true;
         }
         launchURL();
         return false;
       case 'dynamic' || 'opus':
         bool hasMatch = await _onPushDynDetail(path, off);
-        if (hasMatch.not) {
+        if (!hasMatch) {
           launchURL();
         }
         return hasMatch;
@@ -635,19 +625,21 @@ class PiliScheme {
                 ?.group(1);
         if (bvid != null) {
           if (mediaId != null) {
-            final int cid = await SearchHttp.ab2c(bvid: bvid);
-            PageUtils.toVideoPage(
-              'bvid=$bvid&cid=$cid',
-              arguments: {
-                'heroTag': Utils.makeHeroTag(bvid),
-                'sourceType': 'playlist',
-                'favTitle': '播放列表',
-                'mediaId': mediaId,
-                'mediaType': 3,
-                'desc': true,
-                'isContinuePlaying': true,
-              },
-            );
+            final int? cid = await SearchHttp.ab2c(bvid: bvid);
+            if (cid != null) {
+              PageUtils.toVideoPage(
+                'bvid=$bvid&cid=$cid',
+                arguments: {
+                  'heroTag': Utils.makeHeroTag(bvid),
+                  'sourceType': 'playlist',
+                  'favTitle': '播放列表',
+                  'mediaId': mediaId,
+                  'mediaType': 3,
+                  'desc': true,
+                  'isContinuePlaying': true,
+                },
+              );
+            }
           } else {
             videoPush(null, bvid, off: off);
           }
@@ -747,12 +739,63 @@ class PiliScheme {
         launchURL();
         return false;
       case 'topic-detail':
-        String? id = RegExp(r'topic_id=(\d+)').firstMatch(uri.query)?.group(1);
+        String? id = uri.queryParameters['topic_id'];
         if (id != null) {
           PageUtils.toDupNamed(
             '/dynTopic',
             parameters: {'id': id},
             off: off,
+          );
+          return true;
+        }
+        launchURL();
+        return false;
+      case 'comment':
+        // https://www.bilibili.com/h5/comment/sub?oid=123456&pageType=1&root=87654321
+        final queryParameters = uri.queryParameters;
+        String? oid = queryParameters['oid'];
+        String? root = queryParameters['root'];
+        String? pageType = queryParameters['pageType'];
+        if (oid != null && root != null && pageType != null) {
+          String? commentSecondaryId = queryParameters['comment_secondary_id'];
+          Get.to(
+            arguments: {
+              'oid': oid,
+              'rpid': root,
+              'type': pageType,
+              'id': commentSecondaryId,
+            },
+            () => Scaffold(
+              appBar: AppBar(
+                title: const Text('评论详情'),
+                actions: pageType == '1'
+                    ? [
+                        IconButton(
+                          tooltip: '前往',
+                          onPressed: () {
+                            videoPush(int.parse(oid), null);
+                          },
+                          icon: const Icon(Icons.open_in_new),
+                        ),
+                      ]
+                    : null,
+              ),
+              body: SafeArea(
+                top: false,
+                bottom: false,
+                child: VideoReplyReplyPanel(
+                  enableSlide: false,
+                  oid: int.parse(oid),
+                  rpid: int.parse(root),
+                  source: 'routePush',
+                  replyType: int.parse(pageType),
+                  firstFloor: null,
+                  id: commentSecondaryId != null
+                      ? int.tryParse(commentSecondaryId)
+                      : null,
+                ),
+              ),
+            ),
           );
           return true;
         }
@@ -812,7 +855,7 @@ class PiliScheme {
       if (showDialog) {
         SmartDialog.showLoading<dynamic>(msg: '获取中...');
       }
-      final int cid = await SearchHttp.ab2c(
+      final int? cid = await SearchHttp.ab2c(
         bvid: bvid,
         aid: aid,
         part: part != null ? int.tryParse(part) : null,
@@ -820,16 +863,18 @@ class PiliScheme {
       if (showDialog) {
         SmartDialog.dismiss();
       }
-      PageUtils.toVideoPage(
-        'bvid=$bvid&cid=$cid',
-        arguments: {
-          'pic': null,
-          'heroTag': Utils.makeHeroTag(aid),
-          if (progress != null) 'progress': int.tryParse(progress),
-        },
-        off: off,
-        preventDuplicates: false,
-      );
+      if (cid != null) {
+        PageUtils.toVideoPage(
+          'bvid=$bvid&cid=$cid',
+          arguments: {
+            'pic': null,
+            'heroTag': Utils.makeHeroTag(aid),
+            if (progress != null) 'progress': int.tryParse(progress),
+          },
+          off: off,
+          preventDuplicates: false,
+        );
+      }
     } catch (e) {
       SmartDialog.dismiss();
       SmartDialog.showToast('video获取失败: $e');

@@ -4,7 +4,6 @@ import 'package:PiliPlus/grpc/bilibili/pagination.pb.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/reply.dart';
 import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
-import 'package:PiliPlus/models/common/reply/reply_type.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
 import 'package:PiliPlus/pages/video/reply_new/view.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
@@ -29,6 +28,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
 
   Int64? upMid;
   Int64? cursorNext;
+  SubjectControl? subjectControl;
   FeedPaginationReply? paginationReply;
   late Rx<Mode> mode = Mode.MAIN_LIST_HOT.obs;
   late bool hasUpTop = false;
@@ -74,6 +74,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
     paginationReply = data.paginationReply;
     count.value = data.subjectControl.count.toInt();
     if (isRefresh) {
+      subjectControl = data.subjectControl;
       upMid ??= data.subjectControl.upMid;
       hasUpTop = data.hasUpTop();
       if (data.hasUpTop()) {
@@ -88,6 +89,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
   Future<void> onRefresh() {
     cursorNext = null;
     paginationReply = null;
+    subjectControl = null;
     return super.onRefresh();
   }
 
@@ -111,35 +113,32 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
 
   void onReply(
     BuildContext context, {
-    dynamic oid,
-    dynamic replyItem,
+    int? oid,
+    ReplyInfo? replyItem,
     int index = 0,
-    ReplyType? replyType,
+    int? replyType,
   }) {
+    assert(replyItem != null || (oid != null && replyType != null));
     String? hint;
     try {
-      if (loadingState.value is Success) {
-        SubjectControl subjectControl =
-            (loadingState.value as Success).response.subjectControl;
-        if (subjectControl.hasSwitcherType() &&
-            subjectControl.switcherType != 1 &&
-            subjectControl.hasRootText()) {
-          hint = subjectControl.rootText;
+      if (subjectControl != null) {
+        if (subjectControl!.hasSwitcherType() &&
+            subjectControl!.switcherType != 1 &&
+            subjectControl!.hasRootText()) {
+          hint = subjectControl!.rootText;
         }
       }
     } catch (_) {}
-    dynamic key = oid ?? replyItem.oid + replyItem.id;
+    dynamic key = oid ?? replyItem!.oid + replyItem.id;
     Navigator.of(context)
         .push(
       GetDialogRoute(
         pageBuilder: (buildContext, animation, secondaryAnimation) {
           return ReplyPage(
-            oid: oid ?? replyItem.oid.toInt(),
-            root: oid != null ? 0 : replyItem.id.toInt(),
-            parent: oid != null ? 0 : replyItem.id.toInt(),
-            replyType: replyItem != null
-                ? ReplyType.values[replyItem.type.toInt()]
-                : replyType,
+            oid: oid ?? replyItem!.oid.toInt(),
+            root: oid != null ? 0 : replyItem!.id.toInt(),
+            parent: oid != null ? 0 : replyItem!.id.toInt(),
+            replyType: replyItem?.type.toInt() ?? replyType!,
             replyItem: replyItem,
             initialValue: savedReplies[key],
             onSave: (reply) {
@@ -169,15 +168,17 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
         if (res != null) {
           savedReplies[key] = null;
           ReplyInfo replyInfo = RequestUtils.replyCast(res);
-          if (loadingState.value is Success) {
-            List<ReplyInfo>? list = (loadingState.value as Success).response;
+          if (loadingState.value.isSuccess) {
+            List<ReplyInfo>? list = loadingState.value.data;
             if (list == null) {
               loadingState.value = Success([replyInfo]);
             } else {
               if (oid != null) {
                 list.insert(hasUpTop ? 1 : 0, replyInfo);
               } else {
-                list[index].replies.add(replyInfo);
+                list[index]
+                  ..count += 1
+                  ..replies.add(replyInfo);
               }
               loadingState.refresh();
             }
@@ -188,13 +189,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
 
           // check reply
           if (enableCommAntifraud && context.mounted) {
-            ReplyUtils.onCheckReply(
-              context: context,
-              replyInfo: replyInfo,
-              biliSendCommAntifraud: _biliSendCommAntifraud,
-              sourceId: sourceId,
-              isManual: false,
-            );
+            onCheckReply(context, replyInfo, isManual: false);
           }
         }
       },
@@ -202,27 +197,36 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
   }
 
   void onRemove(int index, int? subIndex) {
-    List<ReplyInfo> list = (loadingState.value as Success).response;
+    List<ReplyInfo> list = loadingState.value.data!;
     if (subIndex == null) {
       list.removeAt(index);
     } else {
-      list[index].replies.removeAt(subIndex);
+      list[index]
+        ..count -= 1
+        ..replies.removeAt(subIndex);
     }
     count.value -= 1;
     loadingState.refresh();
   }
 
-  void onCheckReply(BuildContext context, ReplyInfo replyInfo) {
+  void onCheckReply(BuildContext context, ReplyInfo replyInfo,
+      {required bool isManual}) {
     ReplyUtils.onCheckReply(
       context: context,
       replyInfo: replyInfo,
       biliSendCommAntifraud: _biliSendCommAntifraud,
       sourceId: sourceId,
-      isManual: true,
+      isManual: isManual,
     );
   }
 
-  Future<void> onToggleTop(index, oid, int type, bool isUpTop, int rpid) async {
+  Future<void> onToggleTop(
+    int index,
+    oid,
+    int type,
+    bool isUpTop,
+    int rpid,
+  ) async {
     final res = await ReplyHttp.replyTop(
       oid: oid,
       type: type,
@@ -230,7 +234,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
       isUpTop: isUpTop,
     );
     if (res['status']) {
-      List<ReplyInfo> list = (loadingState.value as Success).response;
+      List<ReplyInfo> list = loadingState.value.data!;
       list[index].replyControl.isUpTop = !isUpTop;
       if (!isUpTop && index != 0) {
         list[0].replyControl.isUpTop = false;

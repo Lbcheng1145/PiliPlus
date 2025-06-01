@@ -193,7 +193,7 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
   }
 
   Future<void> _onBlock() async {
-    dynamic res = await VideoHttp.relationMod(
+    var res = await VideoHttp.relationMod(
       mid: mid,
       act: relation.value != 128 ? 5 : 6,
       reSrc: 11,
@@ -244,6 +244,17 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
       SmartDialog.showToast('移除成功');
     } else {
       SmartDialog.showToast(res['msg']);
+    }
+  }
+
+  void onTapTab(int value) {
+    if (tabController?.indexIsChanging == false &&
+        key.currentState?.outerController.hasClients == true) {
+      key.currentState!.outerController.animateTo(
+        key.currentState!.outerController.offset,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
     }
   }
 }

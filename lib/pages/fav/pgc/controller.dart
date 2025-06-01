@@ -1,7 +1,7 @@
 import 'package:PiliPlus/http/bangumi.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/video.dart';
-import 'package:PiliPlus/models/bangumi/list.dart';
+import 'package:PiliPlus/models/pgc/list.dart';
 import 'package:PiliPlus/pages/common/multi_select_controller.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
@@ -65,8 +65,7 @@ class FavPgcController
   }
 
   Future<void> onUpdateList(followStatus) async {
-    List<BangumiListItemModel> dataList =
-        (loadingState.value as Success).response as List<BangumiListItemModel>;
+    List<BangumiListItemModel> dataList = loadingState.value.data!;
     Set<BangumiListItemModel> updateList =
         dataList.where((item) => item.checked == true).toSet();
     final res = await VideoHttp.bangumiUpdate(
@@ -80,10 +79,12 @@ class FavPgcController
       enableMultiSelect.value = false;
       try {
         final ctr = Get.find<FavPgcController>(tag: '$type$followStatus');
-        if (ctr.loadingState.value is Success) {
-          ctr.loadingState.value.data!
-              .insertAll(0, updateList.map((item) => item..checked = null));
-          ctr.loadingState.refresh();
+        if (ctr.loadingState.value.isSuccess) {
+          ctr.loadingState
+            ..value
+                .data!
+                .insertAll(0, updateList.map((item) => item..checked = null))
+            ..refresh();
           ctr.allSelected.value = false;
         }
       } catch (e) {
@@ -99,15 +100,15 @@ class FavPgcController
       status: followStatus,
     );
     if (result['status']) {
-      List<BangumiListItemModel> list =
-          (loadingState.value as Success).response;
+      List<BangumiListItemModel> list = loadingState.value.data!;
       final item = list.removeAt(index);
       loadingState.refresh();
       try {
         final ctr = Get.find<FavPgcController>(tag: '$type$followStatus');
-        if (ctr.loadingState.value is Success) {
-          ctr.loadingState.value.data!.insert(0, item);
-          ctr.loadingState.refresh();
+        if (ctr.loadingState.value.isSuccess) {
+          ctr.loadingState
+            ..value.data?.insert(0, item)
+            ..refresh();
           ctr.allSelected.value = false;
         }
       } catch (e) {

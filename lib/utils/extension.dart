@@ -7,6 +7,7 @@ import 'package:PiliPlus/models/common/image_preview_type.dart';
 import 'package:PiliPlus/pages/common/common_whisper_controller.dart';
 import 'package:PiliPlus/pages/contact/view.dart';
 import 'package:PiliPlus/pages/whisper_settings/view.dart';
+import 'package:PiliPlus/utils/global_data.dart';
 import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -67,10 +68,6 @@ extension StringExt on String? {
   bool get isNullOrEmpty => this == null || this!.isEmpty;
 }
 
-extension BoolExt on bool {
-  bool get not => !this;
-}
-
 extension BuildContextExt on BuildContext {
   Color get vipColor {
     return Theme.of(this).brightness == Brightness.light
@@ -79,19 +76,20 @@ extension BuildContextExt on BuildContext {
   }
 
   void imageView({
-    int? initialPage,
+    int initialPage = 0,
     required List<SourceModel> imgList,
     ValueChanged<int>? onDismissed,
+    int? quality,
   }) {
     bool isMemberPage = Get.currentRoute.startsWith('/member?');
     Navigator.of(this).push(
       HeroDialogRoute(
         builder: (context) => InteractiveviewerGallery(
           sources: imgList,
-          initIndex: initialPage ?? 0,
-          onPageChanged: (int pageIndex) {},
+          initIndex: initialPage,
           onDismissed: onDismissed,
           setStatusBar: !isMemberPage,
+          quality: quality ?? GlobalData().imgQuality,
         ),
       ),
     );

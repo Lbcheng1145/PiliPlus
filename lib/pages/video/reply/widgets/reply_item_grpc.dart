@@ -86,15 +86,13 @@ class ReplyItemGrpc extends StatelessWidget {
             useSafeArea: true,
             isScrollControlled: true,
             constraints: BoxConstraints(
-              maxWidth: min(640, min(Get.width, Get.height)),
+              maxWidth: min(640, context.mediaQueryShortestSide),
             ),
             builder: (context) {
               return morePanel(
                 context: context,
                 item: replyItem,
-                onDelete: () {
-                  onDelete?.call(null);
-                },
+                onDelete: () => onDelete?.call(null),
                 isSubReply: false,
               );
             },
@@ -192,15 +190,16 @@ class ReplyItemGrpc extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
+            spacing: 12,
             children: [
               lfAvtar(),
-              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     mainAxisSize: MainAxisSize.min,
+                    spacing: 6,
                     children: [
                       Text(
                         replyItem.member.name,
@@ -212,13 +211,11 @@ class ReplyItemGrpc extends StatelessWidget {
                           fontSize: 13,
                         ),
                       ),
-                      const SizedBox(width: 6),
                       Image.asset(
                         'assets/images/lv/lv${replyItem.member.isSeniorMember == 1 ? '6_s' : replyItem.member.level}.png',
                         height: 11,
                         semanticLabel: "等级：${replyItem.member.level}",
                       ),
-                      const SizedBox(width: 6),
                       if (replyItem.mid == upMid)
                         const PBadge(
                           text: 'UP',
@@ -449,15 +446,13 @@ class ReplyItemGrpc extends StatelessWidget {
                       useSafeArea: true,
                       isScrollControlled: true,
                       constraints: BoxConstraints(
-                        maxWidth: min(640, min(Get.width, Get.height)),
+                        maxWidth: min(640, context.mediaQueryShortestSide),
                       ),
                       builder: (context) {
                         return morePanel(
                           context: context,
                           item: replyItem.replies[i],
-                          onDelete: () {
-                            onDelete?.call(i);
-                          },
+                          onDelete: () => onDelete?.call(i),
                           isSubReply: true,
                         );
                       },
@@ -558,7 +553,7 @@ class ReplyItemGrpc extends StatelessWidget {
                             ),
                           ),
                         TextSpan(
-                          text: replyItem.replyControl.subReplyEntryText,
+                          text: '共${replyItem.count}条回复',
                           style: TextStyle(
                             color: theme.colorScheme.primary,
                           ),
@@ -676,9 +671,7 @@ class ReplyItemGrpc extends StatelessWidget {
                 color: theme.colorScheme.primary,
               ),
               recognizer: TapGestureRecognizer()
-                ..onTap = () {
-                  Get.toNamed('/member?mid=$userId');
-                },
+                ..onTap = () => Get.toNamed('/member?mid=$userId'),
             ),
           );
         } else if (_timeRegExp.hasMatch(matchStr)) {
@@ -832,9 +825,7 @@ class ReplyItemGrpc extends StatelessWidget {
                   color: theme.colorScheme.primary,
                 ),
                 recognizer: TapGestureRecognizer()
-                  ..onTap = () {
-                    PageUtils.handleWebview(matchStr);
-                  },
+                  ..onTap = () => PageUtils.handleWebview(matchStr),
               ),
             );
           } else {
@@ -858,7 +849,7 @@ class ReplyItemGrpc extends StatelessWidget {
         for (int i = 0; i < unmatchedItems.length; i++) {
           String patternStr = unmatchedItems[i];
           if (content.urls[patternStr]?.extra.isWordSearch == true &&
-              enableWordRe.not) {
+              !enableWordRe) {
             continue;
           }
           spanChildren.addAll(
@@ -1047,9 +1038,7 @@ class ReplyItemGrpc extends StatelessWidget {
                 ),
                 actions: <Widget>[
                   TextButton(
-                    onPressed: () {
-                      Get.back(result: false);
-                    },
+                    onPressed: () => Get.back(result: false),
                     child: Text(
                       '取消',
                       style: TextStyle(
@@ -1058,9 +1047,7 @@ class ReplyItemGrpc extends StatelessWidget {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {
-                      Get.back(result: true);
-                    },
+                    onPressed: () => Get.back(result: true),
                     child: const Text('确定'),
                   ),
                 ],
@@ -1144,7 +1131,7 @@ class ReplyItemGrpc extends StatelessWidget {
               leading: Icon(Icons.error_outline, color: errorColor, size: 19),
               title: Text('举报', style: style!.copyWith(color: errorColor)),
             ),
-          if (replyLevel == '1' && isSubReply.not && ownerMid == upMid)
+          if (replyLevel == '1' && !isSubReply && ownerMid == upMid)
             ListTile(
               onTap: () => menuActionHandler('top'),
               minLeadingWidth: 0,
