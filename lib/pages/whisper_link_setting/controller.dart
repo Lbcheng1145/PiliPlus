@@ -7,10 +7,11 @@ import 'package:PiliPlus/grpc/im.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/msg.dart';
 import 'package:PiliPlus/http/video.dart';
-import 'package:PiliPlus/models/msg/im_user_infos/datum.dart';
-import 'package:PiliPlus/models/msg/msg_dnd/uid_setting.dart';
-import 'package:PiliPlus/models/msg/session_ss/data.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/models_new/msg/im_user_infos/datum.dart';
+import 'package:PiliPlus/models_new/msg/msg_dnd/uid_setting.dart';
+import 'package:PiliPlus/models_new/msg/session_ss/data.dart';
+import 'package:PiliPlus/utils/accounts.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -127,7 +128,7 @@ class WhisperLinkSettingController extends GetxController {
         sessionSs
           ..value.data.followStatus = null
           ..refresh();
-        GStorage.removeBlackMid(talkerUid);
+        Pref.removeBlackMid(talkerUid);
       } else {
         SmartDialog.showToast(res['msg']);
       }
@@ -146,7 +147,7 @@ class WhisperLinkSettingController extends GetxController {
             sessionSs
               ..value.data.followStatus = 128
               ..refresh();
-            GStorage.setBlackMid(talkerUid);
+            Pref.setBlackMid(talkerUid);
           } else {
             SmartDialog.showToast(res['msg']);
           }

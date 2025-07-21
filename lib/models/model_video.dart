@@ -1,10 +1,8 @@
-import 'package:PiliPlus/utils/utils.dart';
-
 abstract class BaseSimpleVideoItemModel {
   late String title;
   String? bvid;
   int? cid;
-  String? pic;
+  String? cover;
   int duration = -1;
   late BaseOwner owner;
   late BaseStat stat;
@@ -26,9 +24,6 @@ abstract class BaseStat {
   int? view;
   int? like;
   int? danmu;
-
-  String get viewStr => Utils.numFormat(view);
-  String get danmuStr => Utils.numFormat(danmu);
 }
 
 class Stat extends BaseStat {

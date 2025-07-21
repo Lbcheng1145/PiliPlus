@@ -2,6 +2,9 @@
 
 import 'dart:convert';
 
+import 'package:PiliPlus/utils/utils.dart';
+import 'package:uuid/v4.dart';
+
 class IdUtils {
   static const XOR_CODE = 23442827791579;
   static const MASK_CODE = 2251799813685247;
@@ -12,8 +15,12 @@ class IdUtils {
       'FcwAPNKTMug3GV5Lj7EJnHpWsx4tb8haYeviqBz6rkCy12mUSDQX9RdoZf';
   static final invData = {for (var (i, c) in data.codeUnits.indexed) c: i};
 
-  static final bvRegex = RegExp(r'bv(1[0-9A-Za-z]{9})', caseSensitive: false);
+  static final bvRegex = RegExp(r'bv[0-9a-zA-Z]{10}', caseSensitive: false);
+  static final bvRegexExact =
+      RegExp(r'^bv[0-9a-zA-Z]{10}$', caseSensitive: false);
   static final avRegex = RegExp(r'av(\d+)', caseSensitive: false);
+  static final avRegexExact = RegExp(r'^av(\d+)$', caseSensitive: false);
+  static final digitOnlyRegExp = RegExp(r'^\d+$');
 
   static void swap<T>(List<T> list, int idx1, int idx2) {
     final idx1Value = list[idx1];
@@ -55,30 +62,53 @@ class IdUtils {
     if (input == null || input.isEmpty) {
       return result;
     }
-    String? bvid = bvRegex.firstMatch(input)?.group(1);
+    String? bvid = bvRegex.firstMatch(input)?.group(0);
 
     late String? aid = avRegex.firstMatch(input)?.group(1);
 
     if (bvid != null) {
-      result['BV'] = 'BV$bvid';
+      result['BV'] = bvid;
     } else if (aid != null) {
       result['AV'] = int.parse(aid);
     }
     return result;
   }
 
-  // eid生成
-  static String? genAuroraEid(int uid) {
+  static String genBuvid3() {
+    return '${const UuidV4().generate().toUpperCase()}${Utils.random.nextInt(100000).toString().padLeft(5, "0")}infoc';
+  }
+
+  static String genAuroraEid(int uid) {
     if (uid == 0) {
-      return null;
+      return '';
     }
-    String uidString = uid.toString();
-    List<int> resultBytes = List.generate(
-      uidString.length,
-      (i) => uidString.codeUnitAt(i) ^ "ad1va46a7lza".codeUnitAt(i % 12),
-    );
-    String auroraEid = base64Url.encode(resultBytes);
-    auroraEid = auroraEid.replaceAll(RegExp(r'=*$', multiLine: true), '');
-    return auroraEid;
+
+    var midByte = utf8.encode(uid.toString());
+
+    const key = 'ad1va46a7lza';
+    for (int i = 0; i < midByte.length; i++) {
+      midByte[i] ^= key.codeUnitAt(i % key.length);
+    }
+
+    String base64Encoded = base64.encode(midByte).replaceAll('=', '');
+
+    return base64Encoded;
+  }
+
+  static String genTraceId() {
+    String randomId = Utils.generateRandomString(32);
+
+    StringBuffer randomTraceId = StringBuffer(randomId.substring(0, 24));
+
+    int ts = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    for (int i = 2; i >= 0; i--) {
+      ts >>= 8;
+      randomTraceId.write((ts & 0xFF).toRadixString(16).padLeft(2, '0'));
+    }
+
+    randomTraceId.write(randomId.substring(30, 32));
+
+    return '${randomTraceId.toString()}:${randomTraceId.toString().substring(16, 32)}:0:0';
   }
 }

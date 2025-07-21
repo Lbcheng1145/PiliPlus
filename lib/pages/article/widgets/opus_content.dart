@@ -11,9 +11,10 @@ import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/vote.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/extension.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/image_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cached_network_svg_image/cached_network_svg_image.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -55,7 +56,7 @@ class OpusContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('opusContent');
+    // if (kDebugMode) debugPrint('opusContent');
 
     if (opus.isEmpty) {
       return const SliverToBoxAdapter();
@@ -116,22 +117,17 @@ class OpusContent extends StatelessWidget {
                             );
                         }
                       case 'TEXT_NODE_TYPE_FORMULA' when (item.formula != null):
-                        return TextSpan(
-                          children: [
-                            WidgetSpan(
-                              child: CachedNetworkSVGImage(
-                                height: 65,
-                                'https://api.bilibili.com/x/web-frontend/mathjax/tex?formula=${Uri.encodeComponent(item.formula!.latexContent!)}',
-                                colorFilter: ColorFilter.mode(
-                                  colorScheme.onSurfaceVariant,
-                                  BlendMode.srcIn,
-                                ),
-                                alignment: Alignment.centerLeft,
-                                placeholderBuilder: (_) =>
-                                    const SizedBox.shrink(),
-                              ),
+                        return WidgetSpan(
+                          child: CachedNetworkSVGImage(
+                            height: 65,
+                            'https://api.bilibili.com/x/web-frontend/mathjax/tex?formula=${Uri.encodeComponent(item.formula!.latexContent!)}',
+                            colorFilter: ColorFilter.mode(
+                              colorScheme.onSurfaceVariant,
+                              BlendMode.srcIn,
                             ),
-                          ],
+                            alignment: Alignment.centerLeft,
+                            placeholderBuilder: (_) => const SizedBox.shrink(),
+                          ),
                         );
                       default:
                         return _getSpan(
@@ -184,7 +180,7 @@ class OpusContent extends StatelessWidget {
                       child: CachedNetworkImage(
                         width: width,
                         height: height,
-                        imageUrl: Utils.thumbnailImgUrl(pic.url!, 60),
+                        imageUrl: ImageUtil.thumbnailUrl(pic.url!, 60),
                         fadeInDuration: const Duration(milliseconds: 120),
                         fadeOutDuration: const Duration(milliseconds: 120),
                         placeholder: (context, url) =>
@@ -197,8 +193,8 @@ class OpusContent extends StatelessWidget {
                 return imageView(
                     maxWidth,
                     element.pic!.pics!
-                        .map(
-                            (e) => ImageModel(width: 1, height: 1, url: e.url!))
+                        .map((e) => ImageModel(
+                            width: e.width, height: e.height, url: e.url!))
                         .toList());
               }
             case 3 when (element.line != null):
@@ -206,7 +202,7 @@ class OpusContent extends StatelessWidget {
                 width: maxWidth,
                 fit: BoxFit.contain,
                 height: element.line!.pic!.height?.toDouble(),
-                imageUrl: Utils.thumbnailImgUrl(element.line!.pic!.url!),
+                imageUrl: ImageUtil.thumbnailUrl(element.line!.pic!.url!),
               );
             case 5 when (element.list != null):
               return SelectionArea(
@@ -552,7 +548,7 @@ class OpusContent extends StatelessWidget {
                 child: SelectionArea(child: Text.rich(renderer.span!)),
               );
             default:
-              debugPrint('unknown type ${element.paraType}');
+              if (kDebugMode) debugPrint('unknown type ${element.paraType}');
               if (element.text?.nodes?.isNotEmpty == true) {
                 return SelectionArea(
                   child: Text.rich(
@@ -601,7 +597,7 @@ Widget moduleBlockedItem(
             image: DecorationImage(
               fit: BoxFit.fill,
               image: CachedNetworkImageProvider(
-                Utils.thumbnailImgUrl(
+                ImageUtil.thumbnailUrl(
                   Get.isDarkMode
                       ? moduleBlocked.bgImg!.imgDark
                       : moduleBlocked.bgImg!.imgDay,
@@ -615,7 +611,7 @@ Widget moduleBlockedItem(
     return CachedNetworkImage(
       width: width,
       fit: BoxFit.contain,
-      imageUrl: Utils.thumbnailImgUrl(
+      imageUrl: ImageUtil.thumbnailUrl(
         Get.isDarkMode
             ? moduleBlocked.icon!.imgDark
             : moduleBlocked.icon!.imgDay,

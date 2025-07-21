@@ -1,12 +1,13 @@
+import 'package:PiliPlus/http/fav.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/http/user.dart';
-import 'package:PiliPlus/models/user/fav_folder.dart';
+import 'package:PiliPlus/models_new/fav/fav_folder/data.dart';
+import 'package:PiliPlus/models_new/fav/fav_folder/list.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/services/account_service.dart';
+import 'package:get/get.dart';
 
-class FavController
-    extends CommonListController<FavFolderData, FavFolderItemData> {
-  late final dynamic mid = Accounts.main.mid;
+class FavController extends CommonListController<FavFolderData, FavFolderInfo> {
+  AccountService accountService = Get.find<AccountService>();
 
   @override
   void onInit() {
@@ -16,7 +17,7 @@ class FavController
 
   @override
   Future<void> queryData([bool isRefresh = true]) {
-    if (mid == 0) {
+    if (!accountService.isLogin.value) {
       loadingState.value = const Error('账号未登录');
       return Future.value();
     }
@@ -24,22 +25,17 @@ class FavController
   }
 
   @override
-  List<FavFolderItemData>? getDataList(FavFolderData response) {
+  List<FavFolderInfo>? getDataList(FavFolderData response) {
+    if (response.hasMore == false) {
+      isEnd = true;
+    }
     return response.list;
   }
 
   @override
-  bool customHandleResponse(bool isRefresh, Success<FavFolderData> response) {
-    if (response.response.hasMore == false) {
-      isEnd = true;
-    }
-    return false;
-  }
-
-  @override
-  Future<LoadingState<FavFolderData>> customGetData() => UserHttp.userfavFolder(
+  Future<LoadingState<FavFolderData>> customGetData() => FavHttp.userfavFolder(
         pn: page,
         ps: 20,
-        mid: mid,
+        mid: accountService.mid,
       );
 }

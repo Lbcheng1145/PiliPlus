@@ -3,12 +3,12 @@ import 'package:PiliPlus/common/widgets/custom_sliver_persistent_header_delegate
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart';
-import 'package:PiliPlus/common/widgets/video_card/video_card_h_member_video.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/member/contribute_type.dart';
-import 'package:PiliPlus/models/space_archive/item.dart';
+import 'package:PiliPlus/models_new/space/space_archive/item.dart';
 import 'package:PiliPlus/pages/member/controller.dart';
 import 'package:PiliPlus/pages/member_video/controller.dart';
+import 'package:PiliPlus/pages/member_video/widgets/video_card_h_member_video.dart';
 import 'package:PiliPlus/utils/grid.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -69,7 +69,7 @@ class _MemberVideoState extends State<MemberVideo>
             slivers: [
               SliverPadding(
                 padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).padding.bottom + 80,
+                  bottom: MediaQuery.paddingOf(context).bottom + 80,
                 ),
                 sliver: Obx(
                     () => _buildBody(theme, _controller.loadingState.value)),
@@ -213,10 +213,8 @@ class _MemberVideoState extends State<MemberVideo>
                           index == response.length - 1) {
                         _controller.onLoadMore();
                       }
-                      final SpaceArchiveItem item = response[index];
                       return VideoCardHMemberVideo(
-                        // key: ValueKey('${item.param}'),
-                        videoItem: item,
+                        videoItem: response[index],
                         fromViewAid: _controller.fromViewAid,
                       );
                     },

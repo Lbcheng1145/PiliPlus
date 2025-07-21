@@ -5,13 +5,13 @@ import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/progress_bar/video_progress_indicator.dart';
 import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/http/user.dart';
-import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models/common/history_business_type.dart';
-import 'package:PiliPlus/models/user/history.dart';
-import 'package:PiliPlus/models/video_detail/data.dart';
+import 'package:PiliPlus/models_new/history/list.dart';
 import 'package:PiliPlus/pages/common/multi_select_controller.dart';
 import 'package:PiliPlus/pages/history/base_controller.dart';
+import 'package:PiliPlus/utils/date_util.dart';
+import 'package:PiliPlus/utils/duration_util.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
@@ -22,14 +22,14 @@ import 'package:get/get.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 class HistoryItem extends StatelessWidget {
-  final HisListItem videoItem;
+  final HistoryItemModel item;
   final dynamic ctr;
   final Function? onChoose;
   final Function(dynamic kid, dynamic business) onDelete;
 
   const HistoryItem({
     super.key,
-    required this.videoItem,
+    required this.item,
     this.ctr,
     this.onChoose,
     required this.onDelete,
@@ -38,306 +38,293 @@ class HistoryItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    int aid = videoItem.history.oid!;
-    String bvid = videoItem.history.bvid ?? IdUtils.av2bv(aid);
-    return InkWell(
-      onTap: () async {
-        if (ctr is MultiSelectController || ctr is HistoryBaseController) {
-          if (ctr.enableMultiSelect.value) {
-            onChoose?.call();
-            return;
-          }
-        }
-        if (videoItem.history.business?.contains('article') == true) {
-          PageUtils.toDupNamed(
-            '/articlePage',
-            parameters: {
-              'id': videoItem.history.business == 'article-list'
-                  ? '${videoItem.history.cid}'
-                  : '${videoItem.history.oid}',
-              'type': 'read',
-            },
-          );
-        } else if (videoItem.history.business == 'live') {
-          if (videoItem.liveStatus == 1) {
-            Get.toNamed('/liveRoom?roomid=${videoItem.history.oid}');
-          } else {
-            SmartDialog.showToast('直播未开播');
-          }
-        } else if (videoItem.history.business == 'pgc' ||
-            videoItem.tagName?.contains('动画') == true) {
-          var bvid = videoItem.history.bvid;
-          if (bvid != null && bvid != '') {
-            var result = await VideoHttp.videoIntro(bvid: bvid);
-            if (result['status']) {
-              VideoDetailData data = result['data'];
-              String bvid = data.bvid!;
-              var epid = data.epId;
-              if (epid != null) {
-                PageUtils.viewBangumi(epId: epid);
-              } else {
-                int? cid = videoItem.history.cid ??
-                    await SearchHttp.ab2c(aid: aid, bvid: bvid);
-                if (cid != null) {
-                  PageUtils.toVideoPage(
-                    'bvid=$bvid&cid=$cid',
-                    arguments: {
-                      'heroTag': Utils.makeHeroTag(cid),
-                      'pic': videoItem.cover,
-                    },
-                  );
-                }
-              }
-            } else {
-              SmartDialog.showToast(result['msg']);
-            }
-          } else {
-            if (videoItem.history.epid != null && videoItem.history.epid != 0) {
-              PageUtils.viewBangumi(epId: videoItem.history.epid);
+    int aid = item.history.oid!;
+    String bvid = item.history.bvid ?? IdUtils.av2bv(aid);
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: () async {
+          if (ctr is MultiSelectController || ctr is HistoryBaseController) {
+            if (ctr.enableMultiSelect.value) {
+              onChoose?.call();
+              return;
             }
           }
-        } else {
-          int? cid = videoItem.history.cid ??
-              await SearchHttp.ab2c(aid: aid, bvid: bvid);
-          if (cid != null) {
-            PageUtils.toVideoPage(
-              'bvid=$bvid&cid=$cid',
-              arguments: {
-                'heroTag': Utils.makeHeroTag(aid),
-                'pic': videoItem.cover,
+          if (item.history.business?.contains('article') == true) {
+            PageUtils.toDupNamed(
+              '/articlePage',
+              parameters: {
+                'id': item.history.business == 'article-list'
+                    ? '${item.history.cid}'
+                    : '${item.history.oid}',
+                'type': 'read',
               },
             );
+          } else if (item.history.business == 'live') {
+            if (item.liveStatus == 1) {
+              Get.toNamed('/liveRoom?roomid=${item.history.oid}');
+            } else {
+              SmartDialog.showToast('直播未开播');
+            }
+          } else if (item.history.business == 'pgc') {
+            PageUtils.viewPgc(epId: item.history.epid);
+          } else {
+            int? cid = item.history.cid ??
+                await SearchHttp.ab2c(
+                  aid: aid,
+                  bvid: bvid,
+                  part: item.history.page,
+                );
+            if (cid != null) {
+              PageUtils.toVideoPage(
+                'bvid=$bvid&cid=$cid',
+                arguments: {
+                  'heroTag': Utils.makeHeroTag(aid),
+                  'pic': item.cover,
+                },
+              );
+            }
           }
-        }
-      },
-      onLongPress: () {
-        if (ctr is MultiSelectController || ctr is HistoryBaseController) {
-          if (!ctr.enableMultiSelect.value) {
-            ctr.enableMultiSelect.value = true;
-            onChoose?.call();
+        },
+        onLongPress: () {
+          if (ctr is MultiSelectController || ctr is HistoryBaseController) {
+            if (!ctr.enableMultiSelect.value) {
+              ctr.enableMultiSelect.value = true;
+              onChoose?.call();
+            }
+            return;
           }
-          return;
-        }
-        imageSaveDialog(
-          title: videoItem.title,
-          cover: videoItem.cover,
-        );
-      },
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: StyleString.safeSpace,
-              vertical: 5,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AspectRatio(
-                  aspectRatio: StyleString.aspectRatio,
-                  child: LayoutBuilder(
-                    builder: (context, boxConstraints) {
-                      double maxWidth = boxConstraints.maxWidth;
-                      double maxHeight = boxConstraints.maxHeight;
-                      return Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          NetworkImgLayer(
-                            src: videoItem.cover?.isNotEmpty == true
-                                ? videoItem.cover
-                                : videoItem.covers?.firstOrNull ?? '',
-                            width: maxWidth,
-                            height: maxHeight,
-                          ),
-                          if (!HistoryBusinessType.hiddenDurationType
-                              .contains(videoItem.history.business))
-                            PBadge(
-                              text: videoItem.progress == -1
-                                  ? '已看完'
-                                  : '${Utils.timeFormat(videoItem.progress)}/${Utils.timeFormat(videoItem.duration!)}',
-                              right: 6.0,
-                              bottom: 8.0,
-                              type: PBadgeType.gray,
+          imageSaveDialog(
+            title: item.title,
+            cover: item.cover,
+            bvid: bvid,
+          );
+        },
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: StyleString.safeSpace,
+                vertical: 5,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AspectRatio(
+                    aspectRatio: StyleString.aspectRatio,
+                    child: LayoutBuilder(
+                      builder: (context, boxConstraints) {
+                        double maxWidth = boxConstraints.maxWidth;
+                        double maxHeight = boxConstraints.maxHeight;
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            NetworkImgLayer(
+                              src: item.cover?.isNotEmpty == true
+                                  ? item.cover
+                                  : item.covers?.firstOrNull ?? '',
+                              width: maxWidth,
+                              height: maxHeight,
                             ),
-                          // 右上角
-                          if (HistoryBusinessType.showBadge
-                                  .contains(videoItem.history.business) ||
-                              videoItem.history.business ==
-                                  HistoryBusinessType.live.type)
-                            PBadge(
-                              text: videoItem.badge,
-                              top: 6.0,
-                              right: 6.0,
-                              bottom: null,
-                              left: null,
-                            ),
-                          if (videoItem.duration != null &&
-                              videoItem.duration != 0 &&
-                              videoItem.progress != null &&
-                              videoItem.progress != 0)
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              child: videoProgressIndicator(
-                                videoItem.progress == -1
-                                    ? 1
-                                    : videoItem.progress! / videoItem.duration!,
+                            if (!HistoryBusinessType.hiddenDurationType
+                                .contains(item.history.business))
+                              PBadge(
+                                text: item.progress == -1
+                                    ? '已看完'
+                                    : '${DurationUtil.formatDuration(item.progress)}/${DurationUtil.formatDuration(item.duration)}',
+                                right: 6.0,
+                                bottom: 8.0,
+                                type: PBadgeType.gray,
                               ),
-                            ),
-                          Positioned.fill(
-                            child: AnimatedOpacity(
-                              opacity: videoItem.checked == true ? 1 : 0,
-                              duration: const Duration(milliseconds: 200),
-                              child: Container(
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  borderRadius: StyleString.mdRadius,
-                                  color: Colors.black.withValues(alpha: 0.6),
+                            // 右上角
+                            if (HistoryBusinessType.showBadge
+                                    .contains(item.history.business) ||
+                                item.history.business ==
+                                    HistoryBusinessType.live.type)
+                              PBadge(
+                                text: item.badge,
+                                top: 6.0,
+                                right: 6.0,
+                                type: item.history.business ==
+                                            HistoryBusinessType.live.type &&
+                                        item.liveStatus != 1
+                                    ? PBadgeType.gray
+                                    : PBadgeType.primary,
+                              ),
+                            if (item.duration != null &&
+                                item.duration != 0 &&
+                                item.progress != null &&
+                                item.progress != 0)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                child: videoProgressIndicator(
+                                  item.progress == -1
+                                      ? 1
+                                      : item.progress! / item.duration!,
                                 ),
-                                child: SizedBox(
-                                  width: 34,
-                                  height: 34,
-                                  child: AnimatedScale(
-                                    scale: videoItem.checked == true ? 1 : 0,
-                                    duration: const Duration(milliseconds: 250),
-                                    curve: Curves.easeInOut,
-                                    child: IconButton(
-                                      tooltip: '取消选择',
-                                      style: ButtonStyle(
-                                        padding: WidgetStateProperty.all(
-                                            EdgeInsets.zero),
-                                        backgroundColor:
-                                            WidgetStateProperty.resolveWith(
-                                          (states) {
-                                            return theme.colorScheme.surface
-                                                .withValues(alpha: 0.8);
-                                          },
+                              ),
+                            Positioned.fill(
+                              child: AnimatedOpacity(
+                                opacity: item.checked == true ? 1 : 0,
+                                duration: const Duration(milliseconds: 200),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    borderRadius: StyleString.mdRadius,
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                  ),
+                                  child: SizedBox(
+                                    width: 34,
+                                    height: 34,
+                                    child: AnimatedScale(
+                                      scale: item.checked == true ? 1 : 0,
+                                      duration:
+                                          const Duration(milliseconds: 250),
+                                      curve: Curves.easeInOut,
+                                      child: IconButton(
+                                        tooltip: '取消选择',
+                                        style: ButtonStyle(
+                                          padding: WidgetStateProperty.all(
+                                              EdgeInsets.zero),
+                                          backgroundColor:
+                                              WidgetStateProperty.resolveWith(
+                                            (states) {
+                                              return theme.colorScheme.surface
+                                                  .withValues(alpha: 0.8);
+                                            },
+                                          ),
                                         ),
+                                        onPressed: () {
+                                          feedBack();
+                                          onChoose?.call();
+                                        },
+                                        icon: Icon(Icons.done_all_outlined,
+                                            color: theme.colorScheme.primary),
                                       ),
-                                      onPressed: () {
-                                        feedBack();
-                                        onChoose?.call();
-                                      },
-                                      icon: Icon(Icons.done_all_outlined,
-                                          color: theme.colorScheme.primary),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                videoContent(theme),
-              ],
-            ),
-          ),
-          Positioned(
-            right: 12,
-            bottom: 0,
-            child: SizedBox(
-              width: 29,
-              height: 29,
-              child: PopupMenuButton<String>(
-                padding: EdgeInsets.zero,
-                tooltip: '功能菜单',
-                icon: Icon(
-                  Icons.more_vert_outlined,
-                  color: theme.colorScheme.outline,
-                  size: 18,
-                ),
-                position: PopupMenuPosition.under,
-                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                  if (videoItem.authorMid != null &&
-                      videoItem.authorName?.isNotEmpty == true)
-                    PopupMenuItem<String>(
-                      onTap: () => Get.toNamed(
-                        '/member?mid=${videoItem.authorMid}',
-                        arguments: {
-                          'heroTag': '${videoItem.authorMid}',
-                        },
-                      ),
-                      height: 35,
-                      child: Row(
-                        children: [
-                          const Icon(MdiIcons.accountCircleOutline, size: 16),
-                          const SizedBox(width: 6),
-                          Text(
-                            '访问：${videoItem.authorName}',
-                            style: const TextStyle(fontSize: 13),
-                          )
-                        ],
-                      ),
-                    ),
-                  if (videoItem.history.business != 'pgc' &&
-                      videoItem.badge != '番剧' &&
-                      videoItem.tagName?.contains('动画') != true &&
-                      videoItem.history.business != 'live' &&
-                      videoItem.history.business?.contains('article') != true)
-                    PopupMenuItem<String>(
-                      onTap: () async {
-                        var res = await UserHttp.toViewLater(
-                            bvid: videoItem.history.bvid);
-                        SmartDialog.showToast(res['msg']);
+                          ],
+                        );
                       },
-                      height: 35,
-                      child: const Row(
-                        children: [
-                          Icon(Icons.watch_later_outlined, size: 16),
-                          SizedBox(width: 6),
-                          Text('稍后再看', style: TextStyle(fontSize: 13))
-                        ],
-                      ),
-                    ),
-                  PopupMenuItem<String>(
-                    onTap: () =>
-                        onDelete(videoItem.kid, videoItem.history.business),
-                    height: 35,
-                    child: const Row(
-                      children: [
-                        Icon(Icons.close_outlined, size: 16),
-                        SizedBox(width: 6),
-                        Text('删除记录', style: TextStyle(fontSize: 13))
-                      ],
                     ),
                   ),
+                  const SizedBox(width: 10),
+                  content(theme),
                 ],
               ),
             ),
-          ),
-        ],
+            Positioned(
+              right: 12,
+              bottom: 0,
+              child: SizedBox(
+                width: 29,
+                height: 29,
+                child: PopupMenuButton<String>(
+                  padding: EdgeInsets.zero,
+                  tooltip: '功能菜单',
+                  icon: Icon(
+                    Icons.more_vert_outlined,
+                    color: theme.colorScheme.outline,
+                    size: 18,
+                  ),
+                  position: PopupMenuPosition.under,
+                  itemBuilder: (BuildContext context) =>
+                      <PopupMenuEntry<String>>[
+                    if (item.authorMid != null &&
+                        item.authorName?.isNotEmpty == true)
+                      PopupMenuItem<String>(
+                        onTap: () =>
+                            Get.toNamed('/member?mid=${item.authorMid}'),
+                        height: 35,
+                        child: Row(
+                          children: [
+                            const Icon(MdiIcons.accountCircleOutline, size: 16),
+                            const SizedBox(width: 6),
+                            Text(
+                              '访问：${item.authorName}',
+                              style: const TextStyle(fontSize: 13),
+                            )
+                          ],
+                        ),
+                      ),
+                    if (item.history.business != 'pgc' &&
+                        item.badge != '番剧' &&
+                        item.tagName?.contains('动画') != true &&
+                        item.history.business != 'live' &&
+                        item.history.business?.contains('article') != true)
+                      PopupMenuItem<String>(
+                        onTap: () async {
+                          var res = await UserHttp.toViewLater(
+                              bvid: item.history.bvid);
+                          SmartDialog.showToast(res['msg']);
+                        },
+                        height: 35,
+                        child: const Row(
+                          children: [
+                            Icon(Icons.watch_later_outlined, size: 16),
+                            SizedBox(width: 6),
+                            Text('稍后再看', style: TextStyle(fontSize: 13))
+                          ],
+                        ),
+                      ),
+                    PopupMenuItem<String>(
+                      onTap: () => onDelete(item.kid, item.history.business),
+                      height: 35,
+                      child: const Row(
+                        children: [
+                          Icon(Icons.close_outlined, size: 16),
+                          SizedBox(width: 6),
+                          Text('删除记录', style: TextStyle(fontSize: 13))
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget videoContent(ThemeData theme) {
+  Widget content(ThemeData theme) {
     return Expanded(
       child: Column(
+        spacing: 2,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(
-              videoItem.title,
-              textAlign: TextAlign.start,
+          Text(
+            item.title!,
+            style: TextStyle(
+              fontSize: theme.textTheme.bodyMedium!.fontSize,
+              height: 1.42,
+              letterSpacing: 0.3,
+            ),
+            maxLines: item.videos! > 1 ? 1 : 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (item.history.business == 'pgc' &&
+              item.showTitle?.isNotEmpty == true)
+            Text(
+              item.showTitle!,
               style: TextStyle(
-                fontSize: theme.textTheme.bodyMedium!.fontSize,
-                height: 1.42,
-                letterSpacing: 0.3,
+                fontSize: 13,
+                color: theme.colorScheme.outline,
               ),
-              maxLines: videoItem.videos! > 1 ? 1 : 2,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-          ),
-          if (videoItem.authorName != '')
+          const Spacer(),
+          if (item.authorName?.isNotEmpty == true)
             Text(
-              videoItem.authorName!,
+              item.authorName!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -345,9 +332,8 @@ class HistoryItem extends StatelessWidget {
                 color: theme.colorScheme.outline,
               ),
             ),
-          const SizedBox(height: 2),
           Text(
-            Utils.dateFormat(videoItem.viewAt!),
+            DateUtil.chatFormat(item.viewAt!, isHistory: true),
             style: TextStyle(
               fontSize: theme.textTheme.labelMedium!.fontSize,
               color: theme.colorScheme.outline,

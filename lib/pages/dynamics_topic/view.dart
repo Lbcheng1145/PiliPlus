@@ -8,15 +8,16 @@ import 'package:PiliPlus/common/widgets/pair.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
-import 'package:PiliPlus/models/dynamics/dyn_topic_feed/item.dart';
-import 'package:PiliPlus/models/dynamics/dyn_topic_top/top_details.dart';
+import 'package:PiliPlus/models_new/dynamic/dyn_topic_feed/item.dart';
+import 'package:PiliPlus/models_new/dynamic/dyn_topic_top/top_details.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/dynamic_panel.dart';
 import 'package:PiliPlus/pages/dynamics_create/view.dart';
 import 'package:PiliPlus/pages/dynamics_tab/view.dart';
 import 'package:PiliPlus/pages/dynamics_topic/controller.dart';
+import 'package:PiliPlus/utils/global_data.dart';
 import 'package:PiliPlus/utils/grid.dart';
+import 'package:PiliPlus/utils/num_util.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
-import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -35,8 +36,6 @@ class DynTopicPage extends StatefulWidget {
 class _DynTopicPageState extends State<DynTopicPage> {
   final DynTopicController _controller =
       Get.put(DynTopicController(), tag: Utils.generateRandomString(8));
-  final dynamicsWaterfallFlow = GStorage.setting
-      .get(SettingBoxKey.dynamicsWaterfallFlow, defaultValue: true);
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +44,7 @@ class _DynTopicPageState extends State<DynTopicPage> {
       resizeToAvoidBottomInset: false,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          if (_controller.isLogin) {
+          if (_controller.accountService.isLogin.value) {
             CreateDynPanel.onCreateDyn(
               context,
               topic: Pair(
@@ -153,7 +152,7 @@ class _DynTopicPageState extends State<DynTopicPage> {
           pinned: true,
           callback: (value) => _controller.appbarOffset =
               value - kToolbarHeight - paddingTop - 7,
-          title: IgnorePointer(child: Text(response!.topicItem!.name!)),
+          title: IgnorePointer(child: Text(response!.topicItem!.name)),
           flexibleSpace: Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -206,7 +205,7 @@ class _DynTopicPageState extends State<DynTopicPage> {
                   ),
                 ),
                 Text(
-                  response.topicItem!.name!,
+                  response.topicItem!.name,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -221,7 +220,7 @@ class _DynTopicPageState extends State<DynTopicPage> {
                 Row(
                   children: [
                     Text(
-                      '${Utils.numFormat(response.topicItem!.view)}浏览 · ${Utils.numFormat(response.topicItem!.discuss)}讨论',
+                      '${NumUtil.numFormat(response.topicItem!.view)}浏览 · ${NumUtil.numFormat(response.topicItem!.discuss)}讨论',
                       style: TextStyle(
                         fontSize: 13,
                         color: theme.colorScheme.outline,
@@ -248,7 +247,7 @@ class _DynTopicPageState extends State<DynTopicPage> {
                           ? const Icon(FontAwesomeIcons.solidThumbsUp, size: 13)
                           : const Icon(FontAwesomeIcons.thumbsUp, size: 13),
                       label: Text(
-                        Utils.numFormat(response.topicItem!.like),
+                        NumUtil.numFormat(response.topicItem!.like),
                         style: const TextStyle(fontSize: 13),
                         textScaler: TextScaler.noScaling,
                       ),
@@ -274,7 +273,7 @@ class _DynTopicPageState extends State<DynTopicPage> {
                           ? const Icon(FontAwesomeIcons.solidStar, size: 13)
                           : const Icon(FontAwesomeIcons.star, size: 13),
                       label: Text(
-                        Utils.numFormat(response.topicItem!.fav),
+                        NumUtil.numFormat(response.topicItem!.fav),
                         style: const TextStyle(fontSize: 13),
                         textScaler: TextScaler.noScaling,
                       ),
@@ -304,7 +303,7 @@ class _DynTopicPageState extends State<DynTopicPage> {
                   PopupMenuItem(
                     child: const Text('举报'),
                     onTap: () {
-                      if (!_controller.isLogin) {
+                      if (!_controller.accountService.isLogin.value) {
                         SmartDialog.showToast('账号未登录');
                         return;
                       }
@@ -328,9 +327,10 @@ class _DynTopicPageState extends State<DynTopicPage> {
 
   Widget _buildBody(LoadingState<List<TopicCardItem>?> loadingState) {
     return switch (loadingState) {
-      Loading() => DynamicsTabPage.dynSkeleton(dynamicsWaterfallFlow),
+      Loading() =>
+        DynamicsTabPage.dynSkeleton(GlobalData().dynamicsWaterfallFlow),
       Success(:var response) => response?.isNotEmpty == true
-          ? dynamicsWaterfallFlow
+          ? GlobalData().dynamicsWaterfallFlow
               ? SliverWaterfallFlow.extent(
                   maxCrossAxisExtent: Grid.smallCardWidth * 2,
                   crossAxisSpacing: StyleString.cardSpace / 2,

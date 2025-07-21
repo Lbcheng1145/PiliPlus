@@ -2,37 +2,41 @@ import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/models/common/later_view_type.dart';
-import 'package:PiliPlus/models/model_hot_video_item.dart';
+import 'package:PiliPlus/models_new/later/data.dart';
+import 'package:PiliPlus/models_new/later/list.dart';
 import 'package:PiliPlus/pages/common/multi_select_controller.dart';
 import 'package:PiliPlus/pages/later/base_controller.dart';
+import 'package:PiliPlus/services/account_service.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
-import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
-class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
-  LaterController(this.laterViewType);
+class LaterController extends MultiSelectController<LaterData, LaterItemModel> {
+  LaterController(
+    this.laterViewType,
+  );
   final LaterViewType laterViewType;
 
-  dynamic mid;
+  AccountService accountService = Get.find<AccountService>();
+
   final RxBool asc = false.obs;
 
   final LaterBaseController baseCtr = Get.put(LaterBaseController());
 
   @override
-  Future<LoadingState<Map>> customGetData() => UserHttp.seeYouLater(
+  Future<LoadingState<LaterData>> customGetData() => UserHttp.seeYouLater(
         page: page,
         viewed: laterViewType.type,
         asc: asc.value,
       );
 
   @override
-  void onSelect(int index, [bool disableSelect = true]) {
-    List<HotVideoItemModel> list = loadingState.value.data!;
-    list[index].checked = !(list[index].checked ?? false);
+  void onSelect(LaterItemModel item, [bool disableSelect = true]) {
+    List<LaterItemModel> list = loadingState.value.data!;
+    item.checked = !(item.checked ?? false);
     baseCtr.checkedCount.value =
         list.where((item) => item.checked == true).length;
     loadingState.refresh();
@@ -44,9 +48,9 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
   @override
   void handleSelect([bool checked = false, bool disableSelect = true]) {
     if (loadingState.value.isSuccess) {
-      List<HotVideoItemModel>? list = loadingState.value.data;
+      List<LaterItemModel>? list = loadingState.value.data;
       if (list?.isNotEmpty == true) {
-        for (HotVideoItemModel item in list!) {
+        for (LaterItemModel item in list!) {
           item.checked = checked;
         }
         baseCtr.checkedCount.value = checked ? list.length : 0;
@@ -61,13 +65,13 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
   @override
   void onInit() {
     super.onInit();
-    mid = Accounts.main.mid;
     queryData();
   }
 
   @override
-  List<HotVideoItemModel>? getDataList(response) {
-    return response['list'];
+  List<LaterItemModel>? getDataList(response) {
+    baseCtr.counts[laterViewType] = response.count ?? 0;
+    return response.list;
   }
 
   @override
@@ -75,12 +79,6 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
     if (length >= baseCtr.counts[laterViewType]!) {
       isEnd = true;
     }
-  }
-
-  @override
-  bool customHandleResponse(bool isRefresh, Success response) {
-    baseCtr.counts[laterViewType] = response.response['count'];
-    return false;
   }
 
   // single
@@ -180,12 +178,12 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
     );
   }
 
-  Future<void> _onDelete(List<HotVideoItemModel> result) async {
+  Future<void> _onDelete(List<LaterItemModel> result) async {
     SmartDialog.showLoading(msg: '请求中');
     List<int?> aids = result.map((item) => item.aid).toList();
     var res = await UserHttp.toViewDel(aids: aids);
     if (res['status']) {
-      Set<HotVideoItemModel> remainList =
+      Set<LaterItemModel> remainList =
           loadingState.value.data!.toSet().difference(result.toSet());
       baseCtr.counts[laterViewType] =
           baseCtr.counts[laterViewType]! - aids.length;
@@ -202,10 +200,10 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
   // 稍后再看播放全部
   void toViewPlayAll() {
     if (loadingState.value.isSuccess) {
-      List<HotVideoItemModel>? list = loadingState.value.data;
+      List<LaterItemModel>? list = loadingState.value.data;
       if (list.isNullOrEmpty) return;
 
-      for (HotVideoItemModel item in list!) {
+      for (LaterItemModel item in list!) {
         if (item.cid == null || item.pgcLabel?.isNotEmpty == true) {
           continue;
         } else {
@@ -220,7 +218,7 @@ class LaterController extends MultiSelectController<Map, HotVideoItemModel> {
               'sourceType': 'watchLater',
               'count': baseCtr.counts[LaterViewType.all],
               'favTitle': '稍后再看',
-              'mediaId': mid,
+              'mediaId': accountService.mid,
               'desc': false,
             },
           );

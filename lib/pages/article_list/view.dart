@@ -1,4 +1,3 @@
-import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/skeleton/video_card_h.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
@@ -6,11 +5,13 @@ import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
-import 'package:PiliPlus/models/dynamics/article_list/list.dart';
-import 'package:PiliPlus/models/space_article/item.dart';
+import 'package:PiliPlus/models_new/article/article_list/article.dart';
+import 'package:PiliPlus/models_new/article/article_list/list.dart';
 import 'package:PiliPlus/pages/article_list/controller.dart';
 import 'package:PiliPlus/pages/article_list/widgets/item.dart';
+import 'package:PiliPlus/utils/date_util.dart';
 import 'package:PiliPlus/utils/grid.dart';
+import 'package:PiliPlus/utils/num_util.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
@@ -54,7 +55,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
   }
 
   Widget _buildBody(
-      ThemeData theme, LoadingState<List<SpaceArticleItem>?> loadingState) {
+      ThemeData theme, LoadingState<List<ArticleListItemModel>?> loadingState) {
     return switch (loadingState) {
       Loading() => SliverPadding(
           padding: EdgeInsets.only(
@@ -71,12 +72,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
         ),
       Success(:var response) => response?.isNotEmpty == true
           ? SliverGrid(
-              gridDelegate: SliverGridDelegateWithExtentAndRatio(
-                mainAxisSpacing: 2,
-                maxCrossAxisExtent: Grid.smallCardWidth * 2,
-                childAspectRatio: StyleString.aspectRatio * 2.6,
-                minHeight: MediaQuery.textScalerOf(context).scale(90),
-              ),
+              gridDelegate: Grid.videoCardHDelegate(context),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   return ArticleListItem(
@@ -94,7 +90,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
     };
   }
 
-  Widget _buildHeader(ThemeData theme, ArticleList? item) {
+  Widget _buildHeader(ThemeData theme, ArticleListInfo? item) {
     if (item == null) {
       return const SliverToBoxAdapter();
     }
@@ -164,11 +160,12 @@ class _ArticleListPageState extends State<ArticleListPage> {
                     TextSpan(
                       children: [
                         TextSpan(
-                            text: '${Utils.numFormat(item.articlesCount)}篇专栏'),
+                            text:
+                                '${NumUtil.numFormat(item.articlesCount)}篇专栏'),
                         divider,
-                        TextSpan(text: '${Utils.numFormat(item.words)}个字'),
+                        TextSpan(text: '${NumUtil.numFormat(item.words)}个字'),
                         divider,
-                        TextSpan(text: '${Utils.numFormat(item.read)}次阅读'),
+                        TextSpan(text: '${NumUtil.numFormat(item.read)}次阅读'),
                       ],
                       style: style,
                     ),
@@ -177,8 +174,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
                     TextSpan(
                       children: [
                         TextSpan(
-                            text:
-                                '${Utils.dateFormat(item.updateTime, formatType: 'day')}更新'),
+                            text: '${DateUtil.dateFormat(item.updateTime)}更新'),
                         divider,
                         TextSpan(text: '文集号: ${item.id}'),
                       ],
@@ -197,7 +193,8 @@ class _ArticleListPageState extends State<ArticleListPage> {
           onPressed: () => PageUtils.inAppWebview(
               '${HttpString.baseUrl}/read/mobile-readlist/rl${_controller.id}'),
           icon: const Icon(Icons.open_in_browser_outlined, size: 19),
-        )
+        ),
+        const SizedBox(width: 10),
       ],
     );
   }

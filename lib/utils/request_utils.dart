@@ -9,6 +9,7 @@ import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
     show ReplyInfo;
 import 'package:PiliPlus/grpc/im.dart';
 import 'package:PiliPlus/http/dynamics.dart';
+import 'package:PiliPlus/http/fav.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/member.dart';
 import 'package:PiliPlus/http/msg.dart';
@@ -17,13 +18,16 @@ import 'package:PiliPlus/http/validate.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/models/login/model.dart';
-import 'package:PiliPlus/models/user/fav_folder.dart';
+import 'package:PiliPlus/models_new/fav/fav_folder/list.dart';
 import 'package:PiliPlus/pages/common/multi_select_controller.dart';
 import 'package:PiliPlus/pages/dynamics_tab/controller.dart';
 import 'package:PiliPlus/pages/group_panel/view.dart';
 import 'package:PiliPlus/pages/later/controller.dart';
+import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
+import 'package:PiliPlus/utils/utils.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -107,7 +111,7 @@ class RequestUtils {
         callback?.call(2);
       }
     } else {
-      if (followStatus == null) {
+      if (followStatus?['tag'] == null) {
         Map<String, dynamic> result = await UserHttp.hasFollow(mid);
         if (result['status']) {
           followStatus = result['data'];
@@ -116,6 +120,7 @@ class RequestUtils {
           return;
         }
       }
+
       if (context.mounted) {
         showDialog(
           context: context,
@@ -219,7 +224,7 @@ class RequestUtils {
     }
   }
 
-  static ReplyInfo replyCast(res) {
+  static ReplyInfo replyCast(Map res) {
     Map? emote = res['content']['emote'];
     emote?.forEach((key, value) {
       value['size'] = value['meta']['size'];
@@ -255,12 +260,12 @@ class RequestUtils {
   //     return jsonDecode(
   //         Uri.decodeComponent(scriptElement?.text ?? ''))['access_id'];
   //   } catch (e) {
-  //     debugPrint('failed to get wwebid: $e');
+  //     if (kDebugMode) debugPrint('failed to get wwebid: $e');
   //     return null;
   //   }
   // }
 
-  static Future<void> insertCreatedDyn(id) async {
+  static Future<void> insertCreatedDyn(dynamic id) async {
     try {
       if (id != null) {
         await Future.delayed(const Duration(milliseconds: 200));
@@ -279,29 +284,48 @@ class RequestUtils {
         }
       }
     } catch (e) {
-      debugPrint('create dyn $e');
+      if (kDebugMode) debugPrint('create dyn $e');
     }
   }
 
-  static Future<void> checkCreatedDyn({id, dynText, isManual}) async {
-    if (isManual == true || GStorage.enableCreateDynAntifraud) {
+  static Future<void> checkCreatedDyn(
+      {dynamic id, String? dynText, bool isManual = false}) async {
+    if (isManual || Pref.enableCreateDynAntifraud) {
       try {
         if (id != null) {
-          if (isManual != true) {
+          if (!isManual) {
             await Future.delayed(const Duration(seconds: 5));
           }
           var res = await DynamicsHttp.dynamicDetail(id: id, clearCookie: true);
-          showDialog(
-            context: Get.context!,
-            builder: (context) => AlertDialog(
+          bool isBan = !res['status'];
+          Get.dialog(
+            AlertDialog(
               title: const Text('动态检查结果'),
               content: SelectableText(
-                  '${res['status'] ? '无账号状态下找到了你的动态，动态正常！' : '你的动态被shadow ban（仅自己可见）！'}${dynText != null ? ' \n\n动态内容: $dynText' : ''}'),
+                  '${!isBan ? '无账号状态下找到了你的动态，动态正常！' : '你的动态被shadow ban（仅自己可见）！'}${dynText != null ? ' \n\n动态内容: $dynText' : ''}'),
+              actions: isBan
+                  ? [
+                      TextButton(
+                        onPressed: () {
+                          Get.back();
+                          Utils.copyText('https://www.bilibili.com/opus/$id');
+                          Get.toNamed(
+                            '/webview',
+                            parameters: {
+                              'url':
+                                  'https://www.bilibili.com/h5/comment/appeal?native.theme=2&night=${Get.isDarkMode ? 1 : 0}'
+                            },
+                          );
+                        },
+                        child: const Text('申诉'),
+                      ),
+                    ]
+                  : null,
             ),
           );
         }
       } catch (e) {
-        debugPrint('check dyn error: $e');
+        if (kDebugMode) debugPrint('check dyn error: $e');
       }
     }
   }
@@ -320,11 +344,13 @@ class RequestUtils {
     if (res['status']) {
       SmartDialog.showToast(!status ? '点赞成功' : '取消赞');
       if (up == 1) {
-        like?.count = count + 1;
-        like?.status = true;
+        like
+          ?..count = count + 1
+          ..status = true;
       } else {
-        like?.count = count - 1;
-        like?.status = false;
+        like
+          ?..count = count - 1
+          ..status = false;
       }
       callback();
     } else {
@@ -339,11 +365,11 @@ class RequestUtils {
     required dynamic mediaId,
     required dynamic mid,
   }) {
-    VideoHttp.allFavFolders(mid).then((res) {
+    FavHttp.allFavFolders(mid).then((res) {
       if (context.mounted &&
           res['status'] &&
           (res['data'].list as List?)?.isNotEmpty == true) {
-        List<FavFolderItemData> list = res['data'].list;
+        List<FavFolderInfo> list = res['data'].list;
         dynamic checkedId;
         showDialog(
           context: context,
@@ -355,11 +381,12 @@ class RequestUtils {
                 child: Builder(
                   builder: (context) => Column(
                     children: List.generate(list.length, (index) {
+                      final item = list[index];
                       return RadioWidget(
                         padding: const EdgeInsets.only(left: 14),
-                        title: list[index].title ?? '',
+                        title: item.title,
                         groupValue: checkedId,
-                        value: list[index].id,
+                        value: item.id,
                         onChanged: (value) {
                           checkedId = value;
                           if (context.mounted) {
@@ -387,7 +414,7 @@ class RequestUtils {
                           .where((e) => e.checked == true)
                           .toList();
                       SmartDialog.showLoading();
-                      VideoHttp.copyOrMoveFav(
+                      FavHttp.copyOrMoveFav(
                         isCopy: isCopy,
                         isFav: ctr is! LaterController,
                         srcMediaId: mediaId,
@@ -473,7 +500,7 @@ class RequestUtils {
           SmartDialog.showToast('关闭验证');
         },
         onResult: (Map<String, dynamic> message) async {
-          debugPrint("Captcha result: $message");
+          if (kDebugMode) debugPrint("Captcha result: $message");
           String code = message["code"];
           if (code == "1") {
             // 发送 message["result"] 中的数据向 B 端的业务服务接口进行查询
@@ -502,7 +529,7 @@ class RequestUtils {
             }
           } else {
             // 终端用户完成验证失败，自动重试 If the verification fails, it will be automatically retried.
-            debugPrint("Captcha result code : $code");
+            if (kDebugMode) debugPrint("Captcha result code : $code");
           }
         },
         onError: (Map<String, dynamic> message) {

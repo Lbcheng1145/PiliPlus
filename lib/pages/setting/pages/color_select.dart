@@ -1,3 +1,4 @@
+import 'package:PiliPlus/common/widgets/color_palette.dart';
 import 'package:PiliPlus/models/common/nav_bar_config.dart';
 import 'package:PiliPlus/models/common/theme/theme_color_type.dart';
 import 'package:PiliPlus/models/common/theme/theme_type.dart';
@@ -5,6 +6,8 @@ import 'package:PiliPlus/pages/home/view.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/pages/setting/widgets/select_dialog.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flex_seed_scheme/flex_seed_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -41,7 +44,7 @@ List<Item> generateItems(int count) {
 class _ColorSelectPageState extends State<ColorSelectPage> {
   final ColorSelectController ctr = Get.put(ColorSelectController());
   FlexSchemeVariant _dynamicSchemeVariant =
-      FlexSchemeVariant.values[GStorage.schemeVariant];
+      FlexSchemeVariant.values[Pref.schemeVariant];
 
   @override
   Widget build(BuildContext context) {
@@ -63,9 +66,8 @@ class _ColorSelectPageState extends State<ColorSelectPage> {
                     return SelectDialog<ThemeType>(
                         title: '主题模式',
                         value: ctr.themeType.value,
-                        values: ThemeType.values
-                            .map((e) => (e, e.description))
-                            .toList());
+                        values:
+                            ThemeType.values.map((e) => (e, e.desc)).toList());
                   },
                 );
                 if (result != null) {
@@ -83,8 +85,7 @@ class _ColorSelectPageState extends State<ColorSelectPage> {
                 child: const Icon(Icons.flashlight_on_outlined),
               ),
               title: Text('主题模式', style: titleStyle),
-              subtitle: Obx(() => Text(
-                  '当前模式：${ctr.themeType.value.description}',
+              subtitle: Obx(() => Text('当前模式：${ctr.themeType.value.desc}',
                   style: subTitleStyle)),
             ),
             Obx(
@@ -154,8 +155,9 @@ class _ColorSelectPageState extends State<ColorSelectPage> {
                 title: const Text('动态取色'),
                 groupValue: ctr.type.value,
                 onChanged: (dynamic val) {
-                  ctr.type.value = 0;
-                  ctr.setting.put(SettingBoxKey.dynamicColor, true);
+                  ctr
+                    ..type.value = 0
+                    ..setting.put(SettingBoxKey.dynamicColor, true);
                   Get.forceAppUpdate();
                 },
               ),
@@ -166,8 +168,9 @@ class _ColorSelectPageState extends State<ColorSelectPage> {
                 title: const Text('指定颜色'),
                 groupValue: ctr.type.value,
                 onChanged: (dynamic val) {
-                  ctr.type.value = 1;
-                  ctr.setting.put(SettingBoxKey.dynamicColor, false);
+                  ctr
+                    ..type.value = 1
+                    ..setting.put(SettingBoxKey.dynamicColor, false);
                   Get.forceAppUpdate();
                 },
               ),
@@ -180,8 +183,7 @@ class _ColorSelectPageState extends State<ColorSelectPage> {
                 () => SizedBox(
                   height: ctr.type.value == 0 ? 0 : null,
                   child: Padding(
-                    padding:
-                        const EdgeInsets.only(top: 12, left: 12, right: 12),
+                    padding: const EdgeInsets.all(12),
                     child: Wrap(
                       alignment: WrapAlignment.center,
                       spacing: 22,
@@ -201,29 +203,9 @@ class _ColorSelectPageState extends State<ColorSelectPage> {
                             child: Column(
                               spacing: 3,
                               children: [
-                                Container(
-                                  width: 46,
-                                  height: 46,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: item.color.withValues(alpha: 0.8),
-                                    border: Border.all(
-                                      width: 2,
-                                      color: ctr.currentColor.value == index
-                                          ? Colors.black
-                                          : item.color.withValues(alpha: 0.8),
-                                    ),
-                                  ),
-                                  child: AnimatedOpacity(
-                                    opacity:
-                                        ctr.currentColor.value == index ? 1 : 0,
-                                    duration: const Duration(milliseconds: 200),
-                                    child: const Icon(
-                                      Icons.done,
-                                      color: Colors.black,
-                                      size: 20,
-                                    ),
-                                  ),
+                                ColorPalette(
+                                  color: item.color,
+                                  selected: ctr.currentColor.value == index,
                                 ),
                                 Text(
                                   item.label,
@@ -274,23 +256,11 @@ class _ColorSelectPageState extends State<ColorSelectPage> {
 }
 
 class ColorSelectController extends GetxController {
-  RxBool dynamicColor = true.obs;
-  RxInt type = 0.obs;
-  RxInt currentColor = 0.obs;
-  RxDouble currentTextScale = 1.0.obs;
-  Rx<ThemeType> themeType = GStorage.themeType.obs;
+  final RxBool dynamicColor = Pref.dynamicColor.obs;
+  late final RxInt type = (dynamicColor.value ? 0 : 1).obs;
+  final RxInt currentColor = Pref.customColor.obs;
+  final RxDouble currentTextScale = Pref.defaultTextScale.obs;
+  final Rx<ThemeType> themeType = Pref.themeType.obs;
 
-  Box get setting => GStorage.setting;
-
-  @override
-  void onInit() {
-    dynamicColor.value =
-        setting.get(SettingBoxKey.dynamicColor, defaultValue: true);
-    type.value = dynamicColor.value ? 0 : 1;
-    currentColor.value =
-        setting.get(SettingBoxKey.customColor, defaultValue: 0);
-    currentTextScale.value =
-        setting.get(SettingBoxKey.defaultTextScale, defaultValue: 1.0);
-    super.onInit();
-  }
+  Box setting = GStorage.setting;
 }

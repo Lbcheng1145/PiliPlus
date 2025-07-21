@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -19,10 +19,12 @@ abstract class CommonSlidePageState<T extends CommonSlidePage> extends State<T>
   AnimationController? _animController;
   Animation<Offset>? _anim;
 
+  static bool slideDismissReplyPage = Pref.slideDismissReplyPage;
+
   @override
   void initState() {
     super.initState();
-    enableSlide = widget.enableSlide != false && GStorage.slideDismissReplyPage;
+    enableSlide = widget.enableSlide != false && slideDismissReplyPage;
     if (enableSlide) {
       _animController = AnimationController(
         vsync: this,
@@ -54,7 +56,7 @@ abstract class CommonSlidePageState<T extends CommonSlidePage> extends State<T>
 
   Widget buildList(ThemeData theme) => throw UnimplementedError();
 
-  Widget slideList(ThemeData theme, [Widget? buildList]) => LayoutBuilder(
+  Widget slideList(ThemeData theme) => LayoutBuilder(
         builder: (_, constrains) {
           final maxWidth = constrains.maxWidth;
 
@@ -110,7 +112,7 @@ abstract class CommonSlidePageState<T extends CommonSlidePage> extends State<T>
             onPanEnd: (_) {
               onDismiss();
             },
-            child: buildList ?? this.buildList(theme),
+            child: buildList(theme),
           );
         },
       );

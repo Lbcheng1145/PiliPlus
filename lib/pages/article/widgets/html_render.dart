@@ -1,7 +1,8 @@
 import 'package:PiliPlus/models/common/image_preview_type.dart';
 import 'package:PiliPlus/utils/extension.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/image_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:html/dom.dart' as dom;
@@ -15,7 +16,7 @@ Widget htmlRender({
   required double maxWidth,
   Function(List<String>, int)? callback,
 }) {
-  debugPrint('htmlRender');
+  // if (kDebugMode) debugPrint('htmlRender');
   final extensions = [
     TagExtension(
       tagsToExtend: <String>{'img'},
@@ -41,7 +42,7 @@ Widget htmlRender({
             return CachedNetworkImage(
               width: maxWidth,
               height: height != null ? double.parse(height) : null,
-              imageUrl: Utils.thumbnailImgUrl(imgUrl),
+              imageUrl: ImageUtil.thumbnailUrl(imgUrl),
               fit: BoxFit.contain,
             );
           }
@@ -62,7 +63,7 @@ Widget htmlRender({
               child: CachedNetworkImage(
                 width: size,
                 height: size,
-                imageUrl: Utils.thumbnailImgUrl(imgUrl, 60),
+                imageUrl: ImageUtil.thumbnailUrl(imgUrl, 60),
                 fadeInDuration: const Duration(milliseconds: 120),
                 fadeOutDuration: const Duration(milliseconds: 120),
                 placeholder: (context, url) =>
@@ -71,7 +72,7 @@ Widget htmlRender({
             ),
           );
         } catch (err) {
-          debugPrint('错误的HTML: $element');
+          if (kDebugMode) debugPrint('错误的HTML: $element');
           return const SizedBox.shrink();
         }
       },

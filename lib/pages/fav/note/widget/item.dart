@@ -1,6 +1,6 @@
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
-import 'package:PiliPlus/models/member/article.dart';
+import 'package:PiliPlus/models_new/fav/fav_note/list.dart';
 import 'package:PiliPlus/pages/fav/note/controller.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +13,7 @@ class FavNoteItem extends StatelessWidget {
     required this.onSelect,
   });
 
-  final FavNoteModel item;
+  final FavNoteItemModel item;
   final FavNoteController ctr;
   final VoidCallback onSelect;
 
@@ -21,7 +21,7 @@ class FavNoteItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Material(
-      color: Colors.transparent,
+      type: MaterialType.transparency,
       child: InkWell(
         onTap: () {
           if (ctr.enableMultiSelect.value) {
@@ -47,56 +47,14 @@ class FavNoteItem extends StatelessWidget {
             vertical: 5,
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
+            spacing: 10,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title ?? '',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        height: 1.4,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      item.summary ?? '',
-                      maxLines: 1,
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1,
-                        color: theme.colorScheme.outline,
-                        overflow: TextOverflow.clip,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      item.message ?? '',
-                      maxLines: 1,
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1,
-                        color: theme.colorScheme.outline,
-                        overflow: TextOverflow.clip,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (item.pic?.isNotEmpty == true) ...[
-                const SizedBox(width: 10),
+              if (item.pic?.isNotEmpty == true)
                 AspectRatio(
                   aspectRatio: StyleString.aspectRatio,
                   child: LayoutBuilder(
-                    builder:
-                        (BuildContext context, BoxConstraints boxConstraints) {
+                    builder: (context, boxConstraints) {
                       return Stack(
                         clipBehavior: Clip.none,
                         children: [
@@ -161,7 +119,42 @@ class FavNoteItem extends StatelessWidget {
                     },
                   ),
                 ),
-              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title ?? '',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        height: 1.4,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      item.summary ?? '',
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1,
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      item.message ?? '',
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1,
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

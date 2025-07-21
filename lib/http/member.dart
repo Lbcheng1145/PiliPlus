@@ -8,19 +8,20 @@ import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/member/contribute_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
-import 'package:PiliPlus/models/follow/result.dart';
-import 'package:PiliPlus/models/member/archive.dart';
-import 'package:PiliPlus/models/member/coin.dart';
 import 'package:PiliPlus/models/member/info.dart';
-import 'package:PiliPlus/models/member/seasons.dart';
 import 'package:PiliPlus/models/member/tags.dart';
-import 'package:PiliPlus/models/member_ss/item.dart';
-import 'package:PiliPlus/models/space/data.dart';
-import 'package:PiliPlus/models/space_archive/data.dart';
-import 'package:PiliPlus/models/space_article/data.dart';
-import 'package:PiliPlus/models/space_fav/space_fav.dart';
-import 'package:PiliPlus/models/space_opus/data.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/models_new/follow/data.dart';
+import 'package:PiliPlus/models_new/follow/list.dart';
+import 'package:PiliPlus/models_new/member/coin_like_arc/data.dart';
+import 'package:PiliPlus/models_new/member/search_archive/data.dart';
+import 'package:PiliPlus/models_new/space/space/data.dart';
+import 'package:PiliPlus/models_new/space/space_archive/data.dart';
+import 'package:PiliPlus/models_new/space/space_article/data.dart';
+import 'package:PiliPlus/models_new/space/space_audio/data.dart';
+import 'package:PiliPlus/models_new/space/space_opus/data.dart';
+import 'package:PiliPlus/models_new/space/space_season_series/item.dart';
+import 'package:PiliPlus/models_new/upower_rank/data.dart';
+import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
@@ -83,37 +84,7 @@ class MemberHttp {
     }
   }
 
-  static Future<LoadingState> spaceFav({
-    required int mid,
-  }) async {
-    Map<String, String> data = {
-      'build': '8430300',
-      'c_locale': 'zh_CN',
-      'channel': 'bili',
-      'mobi_app': 'android',
-      'platform': 'android',
-      's_locale': 'zh_CN',
-      'statistics': Constants.statisticsApp,
-      'up_mid': mid.toString(),
-    };
-    var res = await Request().get(
-      Api.spaceFav,
-      queryParameters: data,
-      options: Options(
-        headers: {
-          'bili-http-engine': 'cronet',
-          'user-agent': Constants.userAgentApp,
-        },
-      ),
-    );
-    if (res.data['code'] == 0) {
-      return Success(SpaceFav.fromJson(res.data).data);
-    } else {
-      return Error(res.data['message']);
-    }
-  }
-
-  static Future<LoadingState<MemberSsData>> seasonSeriesList({
+  static Future<LoadingState<SpaceSsData>> seasonSeriesList({
     required int? mid,
     required int pn,
   }) async {
@@ -127,7 +98,7 @@ class MemberHttp {
     );
     if (res.data['code'] == 0) {
       return Success(
-          MemberSsData.fromJson(res.data['data']?['items_lists'] ?? {}));
+          SpaceSsData.fromJson(res.data['data']?['items_lists'] ?? {}));
     } else {
       return Error(res.data['message']);
     }
@@ -172,6 +143,7 @@ class MemberHttp {
         ContributeType.season => Api.spaceSeason,
         ContributeType.series => Api.spaceSeries,
         ContributeType.bangumi => Api.spaceBangumi,
+        ContributeType.comic => Api.spaceComic,
       },
       queryParameters: data,
       options: Options(
@@ -183,6 +155,27 @@ class MemberHttp {
     );
     if (res.data['code'] == 0) {
       return Success(SpaceArchiveData.fromJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<SpaceAudioData>> spaceAudio({
+    required int page,
+    required mid,
+  }) async {
+    var res = await Request().get(
+      Api.spaceAudio,
+      queryParameters: {
+        'pn': page,
+        'ps': 20,
+        'order': 1,
+        'uid': mid,
+        'web_location': 333.1387
+      },
+    );
+    if (res.data['code'] == 0) {
+      return Success(SpaceAudioData.fromJson(res.data['data']));
     } else {
       return Error(res.data['message']);
     }
@@ -323,58 +316,7 @@ class MemberHttp {
     }
   }
 
-  static Future memberArchive({
-    required int mid,
-    int ps = 30,
-    int tid = 0,
-    int? pn,
-    String? keyword,
-    String order = 'pubdate',
-    bool orderAvoided = true,
-  }) async {
-    String dmImgStr = Utils.base64EncodeRandomString(16, 64);
-    String dmCoverImgStr = Utils.base64EncodeRandomString(32, 128);
-    final params = await WbiSign.makSign({
-      'mid': mid,
-      'ps': ps,
-      'tid': tid,
-      'pn': pn,
-      if (keyword != null) 'keyword': keyword,
-      'order': order,
-      'platform': 'web',
-      'web_location': '1550101',
-      'order_avoided': orderAvoided,
-      'dm_img_list': '[]',
-      'dm_img_str': dmImgStr,
-      'dm_cover_img_str': dmCoverImgStr,
-      'dm_img_inter': '{"ds":[],"wh":[0,0,0],"of":[0,0,0]}',
-    });
-    var res = await Request().get(
-      Api.memberArchive,
-      queryParameters: params,
-      options: Options(headers: {
-        HttpHeaders.userAgentHeader: Request.headerUa(type: 'pc'),
-        HttpHeaders.refererHeader: '${HttpString.spaceBaseUrl}/$mid',
-        'origin': HttpString.spaceBaseUrl,
-      }),
-    );
-    if (res.data['code'] == 0) {
-      return {
-        'status': true,
-        'data': MemberArchiveDataModel.fromJson(res.data['data'])
-      };
-    } else {
-      Map errMap = {
-        -352: '风控校验失败，请检查登录状态',
-      };
-      return {
-        'status': false,
-        'msg': errMap[res.data['code']] ?? res.data['message'],
-      };
-    }
-  }
-
-  static Future<LoadingState> memberArchiveNew({
+  static Future<LoadingState<SearchArchiveData>> searchArchive({
     required mid,
     int ps = 30,
     int tid = 0,
@@ -401,7 +343,7 @@ class MemberHttp {
       'dm_img_inter': '{"ds":[],"wh":[0,0,0],"of":[0,0,0]}',
     });
     var res = await Request().get(
-      Api.memberArchive,
+      Api.searchArchive,
       queryParameters: params,
       options: Options(headers: {
         HttpHeaders.userAgentHeader: Request.headerUa(type: 'pc'),
@@ -410,9 +352,9 @@ class MemberHttp {
       }),
     );
     if (res.data['code'] == 0) {
-      return Success(MemberArchiveDataModel.fromJson(res.data['data']));
+      return Success(SearchArchiveData.fromJson(res.data['data']));
     } else {
-      Map errMap = {
+      Map errMap = const {
         -352: '风控校验失败，请检查登录状态',
       };
       return Error(errMap[res.data['code']] ?? res.data['message']);
@@ -442,17 +384,14 @@ class MemberHttp {
     });
     var res = await Request().get(Api.memberDynamic, queryParameters: params);
     if (res.data['code'] == 0) {
-      DynamicsDataModel data = DynamicsDataModel.fromJson(res.data['data']);
-      if (GStorage.antiGoodsDyn) {
-        data.items?.removeWhere((item) =>
-            item.orig?.modules.moduleDynamic?.additional?.type ==
-                'ADDITIONAL_TYPE_GOODS' ||
-            item.modules.moduleDynamic?.additional?.type ==
-                'ADDITIONAL_TYPE_GOODS');
+      try {
+        DynamicsDataModel data = DynamicsDataModel.fromJson(res.data['data']);
+        return Success(data);
+      } catch (err) {
+        return Error(err.toString());
       }
-      return Success(data);
     } else {
-      Map errMap = {
+      Map errMap = const {
         -352: '风控校验失败，请检查登录状态',
       };
       return Error(errMap[res.data['code']] ?? res.data['message']);
@@ -467,7 +406,7 @@ class MemberHttp {
     required String keyword,
   }) async {
     var res = await Request().get(
-      Api.memberDynamicSearch,
+      Api.dynSearch,
       queryParameters: {
         'host_mid': mid,
         'page': pn,
@@ -490,14 +429,14 @@ class MemberHttp {
     }
   }
 
-  static Future<LoadingState> memberDynamicSearchNew({
+  static Future<LoadingState<DynamicsDataModel>> dynSearch({
     required int pn,
     required dynamic mid,
     required dynamic offset,
     required String keyword,
   }) async {
     var res = await Request().get(
-      Api.memberDynamicSearch,
+      Api.dynSearch,
       queryParameters: {
         'host_mid': mid,
         'page': pn,
@@ -579,7 +518,7 @@ class MemberHttp {
   }
 
   // 获取某分组下的up
-  static Future<LoadingState<FollowDataModel>> followUpGroup(
+  static Future<LoadingState<FollowData>> followUpGroup(
     int? mid,
     int? tagid,
     int? pn,
@@ -595,7 +534,7 @@ class MemberHttp {
       },
     );
     if (res.data['code'] == 0) {
-      return Success(FollowDataModel(
+      return Success(FollowData(
           list: (res.data['data'] as List?)
               ?.map<FollowItemModel>((e) => FollowItemModel.fromJson(e))
               .toList()));
@@ -686,111 +625,6 @@ class MemberHttp {
     }
   }
 
-  // 获取uo专栏
-  static Future getMemberSeasons(int? mid, int? pn, int? ps) async {
-    var res = await Request().get(Api.getMemberSeasonsApi, queryParameters: {
-      'mid': mid,
-      'page_num': pn,
-      'page_size': ps,
-    });
-    if (res.data['code'] == 0) {
-      return {
-        'status': true,
-        'data': MemberSeasonsDataModel.fromJson(res.data['data']['items_lists'])
-      };
-    } else {
-      return {'status': false, 'msg': res.data['message']};
-    }
-  }
-
-  // 最近投币
-  static Future<LoadingState<List<MemberCoinsDataModel>?>> getRecentCoinVideo(
-      {required int mid}) async {
-    Map params = await WbiSign.makSign({
-      'mid': mid,
-      'gaia_source': 'main_web',
-      'web_location': 333.999,
-    });
-    var res = await Request().get(
-      Api.getRecentCoinVideoApi,
-      queryParameters: {
-        'vmid': mid,
-        'gaia_source': 'main_web',
-        'web_location': 333.999,
-        'w_rid': params['w_rid'],
-        'wts': params['wts'],
-      },
-    );
-    if (res.data['code'] == 0) {
-      List<MemberCoinsDataModel>? list = (res.data['data'] as List?)
-          ?.map<MemberCoinsDataModel>((e) => MemberCoinsDataModel.fromJson(e))
-          .toList();
-      return Success(list);
-    } else {
-      return Error(res.data['message']);
-    }
-  }
-
-  // 最近点赞
-  static Future<LoadingState<List<MemberCoinsDataModel>?>> getRecentLikeVideo(
-      {required int mid}) async {
-    Map params = await WbiSign.makSign({
-      'mid': mid,
-      'gaia_source': 'main_web',
-      'web_location': 333.999,
-    });
-    var res = await Request().get(
-      Api.getRecentLikeVideoApi,
-      queryParameters: {
-        'vmid': mid,
-        'gaia_source': 'main_web',
-        'web_location': 333.999,
-        'w_rid': params['w_rid'],
-        'wts': params['wts'],
-      },
-    );
-    if (res.data['code'] == 0) {
-      List<MemberCoinsDataModel>? list = (res.data['data']?['list'] as List?)
-          ?.map<MemberCoinsDataModel>((e) => MemberCoinsDataModel.fromJson(e))
-          .toList();
-      return Success(list);
-    } else {
-      return Error(res.data['message']);
-    }
-  }
-
-  // 查看某个专栏
-  static Future getSeasonDetail({
-    required int mid,
-    required int seasonId,
-    bool sortReverse = false,
-    required int pn,
-    required int ps,
-  }) async {
-    var res = await Request().get(
-      Api.getSeasonDetailApi,
-      queryParameters: {
-        'mid': mid,
-        'season_id': seasonId,
-        'sort_reverse': sortReverse,
-        'page_num': pn,
-        'page_size': ps,
-      },
-    );
-    if (res.data['code'] == 0) {
-      try {
-        return {
-          'status': true,
-          'data': MemberSeasonsList.fromJson(res.data['data'])
-        };
-      } catch (err) {
-        debugPrint(err.toString());
-      }
-    } else {
-      return {'status': false, 'msg': res.data['message']};
-    }
-  }
-
   // 获取up播放数、点赞数
   static Future memberView({required int mid}) async {
     var res = await Request()
@@ -803,7 +637,7 @@ class MemberHttp {
   }
 
   // 搜索follow
-  static Future<LoadingState<FollowDataModel>> getfollowSearch({
+  static Future<LoadingState<FollowData>> getfollowSearch({
     required int mid,
     required int ps,
     required int pn,
@@ -826,7 +660,7 @@ class MemberHttp {
       'wts': params['wts'],
     });
     if (res.data['code'] == 0) {
-      return Success(FollowDataModel.fromJson(res.data['data']));
+      return Success(FollowData.fromJson(res.data['data']));
     } else {
       return Error(res.data['message']);
     }
@@ -850,6 +684,68 @@ class MemberHttp {
     );
     if (res.data['code'] == 0) {
       return Success(SpaceOpusData.fromJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<UpowerRankData>> upowerRank({
+    required upMid,
+    required int page,
+    int? privilegeType,
+  }) async {
+    var res = await Request().get(
+      Api.upowerRank,
+      queryParameters: {
+        'up_mid': upMid,
+        'pn': page,
+        'ps': 100,
+        if (privilegeType != null) 'privilege_type': privilegeType,
+        'mobi_app': 'web',
+        'web_location': 333.1196,
+        if (Accounts.main.isLogin) 'csrf': Accounts.main.csrf,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return Success(UpowerRankData.fromJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<CoinLikeArcData>> coinArc({
+    required int mid,
+    required int page,
+  }) async {
+    var res = await Request().get(
+      Api.coinArc,
+      queryParameters: {
+        'pn': page,
+        'ps': 20,
+        'vmid': mid,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return Success(CoinLikeArcData.fromJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<CoinLikeArcData>> likeArc({
+    required int mid,
+    required int page,
+  }) async {
+    var res = await Request().get(
+      Api.likeArc,
+      queryParameters: {
+        'pn': page,
+        'ps': 20,
+        'vmid': mid,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return Success(CoinLikeArcData.fromJson(res.data['data']));
     } else {
       return Error(res.data['message']);
     }

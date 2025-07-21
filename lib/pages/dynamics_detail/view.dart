@@ -9,7 +9,6 @@ import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
     show ReplyInfo;
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/author_panel.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/dynamic_panel.dart';
@@ -19,9 +18,12 @@ import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/pages/video/reply_reply/view.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/grid.dart';
+import 'package:PiliPlus/utils/num_util.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
@@ -47,7 +49,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
   bool _isFabVisible = true;
   bool? _imageStatus;
 
-  late final List<double> _ratio = GStorage.dynamicDetailRatio;
+  late final List<double> _ratio = Pref.dynamicDetailRatio;
 
   bool get _horizontalPreview =>
       context.orientation == Orientation.landscape &&
@@ -137,7 +139,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                 id: id,
                 oid: oid,
                 rpid: rpid,
-                source: 'dynamic',
+                isVideoDetail: false,
                 replyType: _controller.replyType,
                 firstFloor: replyItem,
                 onDispose: onDispose,
@@ -251,9 +253,12 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
               return AnimatedOpacity(
                 opacity: _visibleTitle.value ? 1 : 0,
                 duration: const Duration(milliseconds: 300),
-                child: AuthorPanel(
-                  item: _controller.dynItem,
-                  source: 'detail', //to remove tag
+                child: IgnorePointer(
+                  ignoring: !_visibleTitle.value,
+                  child: AuthorPanel(
+                    item: _controller.dynItem,
+                    isDetail: true,
+                  ),
                 ),
               );
             },
@@ -281,7 +286,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                             value: _ratio.first,
                             onChanged: (value) {
                               if (value >= 10 && value <= 90) {
-                                _ratio[0] = value;
+                                _ratio[0] = value.toPrecision(2);
                                 _ratio[1] = 100 - value;
                                 GStorage.setting.put(
                                   SettingBoxKey.dynamicDetailRatio,
@@ -332,7 +337,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                     SliverToBoxAdapter(
                       child: DynamicPanel(
                         item: _controller.dynItem,
-                        source: 'detail',
+                        isDetail: true,
                         callback: _getImageCallback,
                       ),
                     ),
@@ -363,7 +368,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                             sliver: SliverToBoxAdapter(
                               child: DynamicPanel(
                                 item: _controller.dynItem,
-                                source: 'detail',
+                                isDetail: true,
                                 callback: _getImageCallback,
                               ),
                             ),
@@ -514,7 +519,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                           _controller.dynItem.modules.moduleStat
                                                       ?.forward?.count !=
                                                   null
-                                              ? Utils.numFormat(_controller
+                                              ? NumUtil.numFormat(_controller
                                                   .dynItem
                                                   .modules
                                                   .moduleStat!
@@ -605,7 +610,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                                                         ?.like
                                                         ?.count !=
                                                     null
-                                                ? Utils.numFormat(_controller
+                                                ? NumUtil.numFormat(_controller
                                                     .dynItem
                                                     .modules
                                                     .moduleStat!
@@ -657,7 +662,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                     return ScaleTransition(scale: animation, child: child);
                   },
                   child: Text(
-                    '${_controller.count.value == -1 ? 0 : Utils.numFormat(_controller.count.value)}条回复',
+                    '${_controller.count.value == -1 ? 0 : NumUtil.numFormat(_controller.count.value)}条回复',
                     key: ValueKey<int>(_controller.count.value),
                   ),
                 ),
@@ -666,7 +671,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
               SizedBox(
                 height: 35,
                 child: TextButton.icon(
-                  onPressed: () => _controller.queryBySort(),
+                  onPressed: _controller.queryBySort,
                   icon: Icon(
                     Icons.sort,
                     size: 16,
@@ -706,7 +711,7 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                   return Container(
                     alignment: Alignment.center,
                     margin: EdgeInsets.only(
-                        bottom: MediaQuery.of(context).padding.bottom),
+                        bottom: MediaQuery.paddingOf(context).bottom),
                     height: 125,
                     child: Text(
                       _controller.isEnd ? '没有更多了' : '加载中...',
@@ -719,26 +724,24 @@ class _DynamicDetailPageState extends State<DynamicDetailPage>
                 } else {
                   return ReplyItemGrpc(
                     replyItem: response[index],
-                    replyLevel: '1',
+                    replyLevel: 1,
                     replyReply: (replyItem, id) =>
                         replyReply(context, replyItem, id),
-                    onReply: () => _controller.onReply(
+                    onReply: (replyItem) => _controller.onReply(
                       context,
-                      replyItem: response[index],
-                      index: index,
+                      replyItem: replyItem,
                     ),
-                    onDelete: (subIndex) =>
-                        _controller.onRemove(index, subIndex),
+                    onDelete: (item, subIndex) =>
+                        _controller.onRemove(index, item, subIndex),
                     upMid: _controller.upMid,
                     callback: _getImageCallback,
                     onCheckReply: (item) =>
-                        _controller.onCheckReply(context, item, isManual: true),
-                    onToggleTop: (isUpTop, rpid) => _controller.onToggleTop(
+                        _controller.onCheckReply(item, isManual: true),
+                    onToggleTop: (item) => _controller.onToggleTop(
+                      item,
                       index,
                       _controller.oid,
                       _controller.replyType,
-                      isUpTop,
-                      rpid,
                     ),
                   );
                 }

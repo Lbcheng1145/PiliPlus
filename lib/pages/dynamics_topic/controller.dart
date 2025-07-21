@@ -1,13 +1,13 @@
 import 'package:PiliPlus/http/dynamics.dart';
+import 'package:PiliPlus/http/fav.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/http/user.dart';
-import 'package:PiliPlus/models/dynamics/dyn_topic_feed/item.dart';
-import 'package:PiliPlus/models/dynamics/dyn_topic_feed/topic_card_list.dart';
-import 'package:PiliPlus/models/dynamics/dyn_topic_feed/topic_sort_by_conf.dart';
-import 'package:PiliPlus/models/dynamics/dyn_topic_top/top_details.dart';
+import 'package:PiliPlus/models_new/dynamic/dyn_topic_feed/item.dart';
+import 'package:PiliPlus/models_new/dynamic/dyn_topic_feed/topic_card_list.dart';
+import 'package:PiliPlus/models_new/dynamic/dyn_topic_feed/topic_sort_by_conf.dart';
+import 'package:PiliPlus/models_new/dynamic/dyn_topic_top/top_details.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
+import 'package:PiliPlus/services/account_service.dart';
 import 'package:PiliPlus/utils/extension.dart';
-import 'package:PiliPlus/utils/storage.dart' show Accounts;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
@@ -23,11 +23,12 @@ class DynTopicController
   double? appbarOffset;
 
   // top
-  final isLogin = Accounts.main.isLogin;
   Rx<bool?> isFav = Rx<bool?>(null);
   Rx<bool?> isLike = Rx<bool?>(null);
   Rx<LoadingState<TopDetails?>> topState =
       LoadingState<TopDetails?>.loading().obs;
+
+  AccountService accountService = Get.find<AccountService>();
 
   @override
   void onInit() {
@@ -39,9 +40,10 @@ class DynTopicController
   Future<void> queryTop() async {
     topState.value = await DynamicsHttp.topicTop(topicId: topicId);
     if (topState.value.isSuccess) {
-      topicName = topState.value.data!.topicItem!.name!;
-      isFav.value = topState.value.data!.topicItem!.isFav;
-      isLike.value = topState.value.data!.topicItem!.isLike;
+      var topicItem = topState.value.data!.topicItem!;
+      topicName = topicItem.name;
+      isFav.value = topicItem.isFav;
+      isLike.value = topicItem.isLike;
     }
   }
 
@@ -90,14 +92,14 @@ class DynTopicController
   }
 
   Future<void> onFav() async {
-    if (!isLogin) {
+    if (!accountService.isLogin.value) {
       SmartDialog.showToast('账号未登录');
       return;
     }
     bool isFav = this.isFav.value ?? false;
     var res = isFav
-        ? await UserHttp.delFavTopic(topicId)
-        : await UserHttp.addFavTopic(topicId);
+        ? await FavHttp.delFavTopic(topicId)
+        : await FavHttp.addFavTopic(topicId);
     if (res['status']) {
       if (isFav) {
         topState.value.data!.topicItem!.fav -= 1;
@@ -111,12 +113,12 @@ class DynTopicController
   }
 
   Future<void> onLike() async {
-    if (!isLogin) {
+    if (!accountService.isLogin.value) {
       SmartDialog.showToast('账号未登录');
       return;
     }
     bool isLike = this.isLike.value ?? false;
-    var res = await UserHttp.likeTopic(topicId, isLike);
+    var res = await FavHttp.likeTopic(topicId, isLike);
     if (res['status']) {
       if (isLike) {
         topState.value.data!.topicItem!.like -= 1;

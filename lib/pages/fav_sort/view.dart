@@ -1,6 +1,6 @@
+import 'package:PiliPlus/http/fav.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/http/user.dart';
-import 'package:PiliPlus/models/user/fav_detail.dart';
+import 'package:PiliPlus/models_new/fav/fav_detail/media.dart';
 import 'package:PiliPlus/pages/fav_detail/controller.dart';
 import 'package:PiliPlus/pages/fav_detail/widget/fav_video_card.dart';
 import 'package:PiliPlus/utils/extension.dart';
@@ -21,7 +21,7 @@ class _FavSortPageState extends State<FavSortPage> {
   FavDetailController get _favDetailController => widget.favDetailController;
 
   final GlobalKey _key = GlobalKey();
-  late List<FavDetailItemData> sortList = List<FavDetailItemData>.from(
+  late List<FavDetailItemModel> sortList = List<FavDetailItemModel>.from(
       _favDetailController.loadingState.value.data!);
   List<String> sort = <String>[];
 
@@ -36,7 +36,7 @@ class _FavSortPageState extends State<FavSortPage> {
       _favDetailController.onLoadMore().whenComplete(() {
         try {
           if (_favDetailController.loadingState.value.isSuccess) {
-            List<FavDetailItemData> list =
+            List<FavDetailItemModel> list =
                 _favDetailController.loadingState.value.data!;
             sortList.addAll(list.sublist(sortList.length));
             if (mounted) {
@@ -68,7 +68,7 @@ class _FavSortPageState extends State<FavSortPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('排序: ${_favDetailController.item.value.title}'),
+        title: Text('排序: ${_favDetailController.folderInfo.value.title}'),
         actions: [
           TextButton(
             onPressed: () async {
@@ -76,7 +76,7 @@ class _FavSortPageState extends State<FavSortPage> {
                 Get.back();
                 return;
               }
-              var res = await UserHttp.sortFav(
+              var res = await FavHttp.sortFav(
                 mediaId: _favDetailController.mediaId,
                 sort: sort,
               );
@@ -125,7 +125,7 @@ class _FavSortPageState extends State<FavSortPage> {
       onReorder: onReorder,
       physics: const AlwaysScrollableScrollPhysics(),
       footer: SizedBox(
-        height: MediaQuery.of(context).padding.bottom + 80,
+        height: MediaQuery.paddingOf(context).bottom + 80,
       ),
       itemCount: sortList.length,
       itemBuilder: (context, index) {
@@ -135,7 +135,7 @@ class _FavSortPageState extends State<FavSortPage> {
           height: 98,
           child: FavVideoCardH(
             isSort: true,
-            videoItem: item,
+            item: item,
           ),
         );
       },

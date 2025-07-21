@@ -4,7 +4,6 @@ import 'dart:math';
 
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
 import 'package:PiliPlus/common/widgets/custom_icon.dart';
-import 'package:PiliPlus/common/widgets/self_sized_horizontal_list.dart';
 import 'package:PiliPlus/models/common/search_type.dart';
 import 'package:PiliPlus/models/common/super_resolution_type.dart';
 import 'package:PiliPlus/models/common/video/audio_quality.dart';
@@ -22,11 +21,16 @@ import 'package:PiliPlus/pages/video/introduction/ugc/widgets/menu_row.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_repeat.dart';
 import 'package:PiliPlus/plugin/pl_player/utils/fullscreen.dart';
-import 'package:PiliPlus/utils/download.dart';
+import 'package:PiliPlus/services/service_locator.dart';
+import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/image_util.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/video_utils.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
@@ -38,12 +42,13 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:marquee/marquee.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:share_plus/share_plus.dart';
 
-class HeaderControl extends StatefulWidget implements PreferredSizeWidget {
+class HeaderControl extends StatefulWidget {
   const HeaderControl({
     required this.controller,
     required this.videoDetailCtr,
@@ -56,26 +61,20 @@ class HeaderControl extends StatefulWidget implements PreferredSizeWidget {
 
   @override
   State<HeaderControl> createState() => HeaderControlState();
-
-  @override
-  Size get preferredSize => throw UnimplementedError();
 }
 
 class HeaderControlState extends State<HeaderControl> {
   PlayUrlModel get videoInfo => videoDetailCtr.data;
   static const TextStyle subTitleStyle = TextStyle(fontSize: 12);
   static const TextStyle titleStyle = TextStyle(fontSize: 14);
-  Size get preferredSize => const Size(double.infinity, kToolbarHeight);
-  double buttonSpace = 8;
   String get heroTag => widget.heroTag;
   late VideoIntroController videoIntroController;
-  late BangumiIntroController bangumiIntroController;
-  late bool horizontalScreen;
+  late PgcIntroController pgcIntroController;
+  bool get horizontalScreen => videoDetailCtr.horizontalScreen;
   RxString now = ''.obs;
   Timer? clock;
-  late String defaultCDNService;
   bool get isFullScreen => widget.controller.isFullScreen.value;
-  Box get setting => GStorage.setting;
+  Box setting = GStorage.setting;
   late final _coinKey = GlobalKey<ActionItemState>();
   late final _favKey = GlobalKey<ActionItemState>();
 
@@ -87,11 +86,8 @@ class HeaderControlState extends State<HeaderControl> {
     super.initState();
     videoIntroController = Get.find<VideoIntroController>(tag: heroTag);
     if (videoDetailCtr.videoType != SearchType.video) {
-      bangumiIntroController = Get.find<BangumiIntroController>(tag: heroTag);
+      pgcIntroController = Get.find<PgcIntroController>(tag: heroTag);
     }
-    horizontalScreen = GStorage.horizontalScreen;
-    defaultCDNService = setting.get(SettingBoxKey.CDNService,
-        defaultValue: CDNService.backupUrl.code);
   }
 
   @override
@@ -128,9 +124,8 @@ class HeaderControlState extends State<HeaderControl> {
             color: theme.colorScheme.surface,
             borderRadius: const BorderRadius.all(Radius.circular(12)),
             child: ListView(
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.symmetric(vertical: 14),
               children: [
-                const SizedBox(height: 14),
                 ListTile(
                   dense: true,
                   onTap: () {
@@ -155,7 +150,7 @@ class HeaderControlState extends State<HeaderControl> {
                     dense: true,
                     onTap: () {
                       Get.back();
-                      DownloadUtils.downloadImg(
+                      ImageUtil.downloadImg(
                         context,
                         [widget.videoDetailCtr.videoItem['pic']],
                       );
@@ -251,7 +246,7 @@ class HeaderControlState extends State<HeaderControl> {
                   title: const Text('CDN 设置', style: titleStyle),
                   leading: const Icon(MdiIcons.cloudPlusOutline, size: 20),
                   subtitle: Text(
-                    '当前：${CDNService.fromCode(defaultCDNService).description}，无法播放请切换',
+                    '当前：${CDNService.fromCode(VideoUtils.cdnService).desc}，无法播放请切换',
                     style: subTitleStyle,
                   ),
                   onTap: () async {
@@ -264,10 +259,10 @@ class HeaderControlState extends State<HeaderControl> {
                       },
                     );
                     if (result != null) {
-                      defaultCDNService = result;
+                      VideoUtils.cdnService = result;
                       setting.put(SettingBoxKey.CDNService, result);
                       SmartDialog.showToast(
-                          '已设置为 ${CDNService.fromCode(result).description}，正在重载视频');
+                          '已设置为 ${CDNService.fromCode(result).desc}，正在重载视频');
                       setState(() {});
                       videoDetailCtr.queryVideoUrl(
                         videoDetailCtr.playedTime,
@@ -275,74 +270,71 @@ class HeaderControlState extends State<HeaderControl> {
                     }
                   },
                 ),
-                SelfSizedHorizontalList(
-                  itemCount: 4,
-                  gapSize: 10,
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  childBuilder: (index) {
-                    return switch (index) {
-                      0 => Obx(
-                          () => ActionRowLineItem(
-                            iconData: Icons.flip,
-                            onTap: () => widget.controller.flipX.value =
-                                !widget.controller.flipX.value,
-                            text: " 左右翻转 ",
-                            selectStatus: widget.controller.flipX.value,
-                          ),
+                  child: Row(
+                    spacing: 10,
+                    children: [
+                      Obx(
+                        () => ActionRowLineItem(
+                          iconData: Icons.flip,
+                          onTap: () => widget.controller.flipX.value =
+                              !widget.controller.flipX.value,
+                          text: " 左右翻转 ",
+                          selectStatus: widget.controller.flipX.value,
                         ),
-                      1 => Obx(
-                          () => ActionRowLineItem(
-                            icon: Transform.rotate(
-                              angle: pi / 2,
-                              child: Icon(
-                                Icons.flip,
-                                size: 13,
-                                color: widget.controller.flipY.value
-                                    ? theme.colorScheme.onSecondaryContainer
-                                    : theme.colorScheme.outline,
-                              ),
+                      ),
+                      Obx(
+                        () => ActionRowLineItem(
+                          icon: Transform.rotate(
+                            angle: pi / 2,
+                            child: Icon(
+                              Icons.flip,
+                              size: 13,
+                              color: widget.controller.flipY.value
+                                  ? theme.colorScheme.onSecondaryContainer
+                                  : theme.colorScheme.outline,
                             ),
-                            onTap: () {
-                              widget.controller.flipY.value =
-                                  !widget.controller.flipY.value;
-                            },
-                            text: " 上下翻转 ",
-                            selectStatus: widget.controller.flipY.value,
                           ),
+                          onTap: () {
+                            widget.controller.flipY.value =
+                                !widget.controller.flipY.value;
+                          },
+                          text: " 上下翻转 ",
+                          selectStatus: widget.controller.flipY.value,
                         ),
-                      2 => Obx(
-                          () => ActionRowLineItem(
-                            iconData: Icons.headphones,
-                            onTap: () {
-                              widget.controller.onlyPlayAudio.value =
-                                  !widget.controller.onlyPlayAudio.value;
-                              widget.videoDetailCtr.playerInit();
-                            },
-                            text: " 听视频 ",
-                            selectStatus: widget.controller.onlyPlayAudio.value,
-                          ),
+                      ),
+                      Obx(
+                        () => ActionRowLineItem(
+                          iconData: Icons.headphones,
+                          onTap: () {
+                            widget.controller.onlyPlayAudio.value =
+                                !widget.controller.onlyPlayAudio.value;
+                            widget.videoDetailCtr.playerInit();
+                          },
+                          text: " 听视频 ",
+                          selectStatus: widget.controller.onlyPlayAudio.value,
                         ),
-                      3 => Obx(
-                          () => ActionRowLineItem(
-                            iconData: Icons.play_circle_outline,
-                            onTap:
-                                widget.controller.setContinuePlayInBackground,
-                            text: " 后台播放 ",
-                            selectStatus: widget
-                                .controller.continuePlayInBackground.value,
-                          ),
+                      ),
+                      Obx(
+                        () => ActionRowLineItem(
+                          iconData: Icons.play_circle_outline,
+                          onTap: widget.controller.setContinuePlayInBackground,
+                          text: " 后台播放 ",
+                          selectStatus:
+                              widget.controller.continuePlayInBackground.value,
                         ),
-                      int() => throw UnimplementedError(),
-                    };
-                  },
+                      ),
+                    ],
+                  ),
                 ),
                 ListTile(
                   dense: true,
                   onTap: () => {Get.back(), showSetVideoQa()},
                   leading: const Icon(Icons.play_circle_outline, size: 20),
                   title: const Text('选择画质', style: titleStyle),
-                  subtitle: Text(
-                      '当前画质 ${videoDetailCtr.currentVideoQa.description}',
+                  subtitle: Text('当前画质 ${videoDetailCtr.currentVideoQa.desc}',
                       style: subTitleStyle),
                 ),
                 if (videoDetailCtr.currentAudioQa != null)
@@ -352,7 +344,7 @@ class HeaderControlState extends State<HeaderControl> {
                     leading: const Icon(Icons.album_outlined, size: 20),
                     title: const Text('选择音质', style: titleStyle),
                     subtitle: Text(
-                        '当前音质 ${videoDetailCtr.currentAudioQa!.description}',
+                        '当前音质 ${videoDetailCtr.currentAudioQa!.desc}',
                         style: subTitleStyle),
                   ),
                 ListTile(
@@ -369,7 +361,7 @@ class HeaderControlState extends State<HeaderControl> {
                   onTap: () => {Get.back(), showSetRepeat()},
                   leading: const Icon(Icons.repeat, size: 20),
                   title: const Text('播放顺序', style: titleStyle),
-                  subtitle: Text(widget.controller.playRepeat.description,
+                  subtitle: Text(widget.controller.playRepeat.desc,
                       style: subTitleStyle),
                 ),
                 ListTile(
@@ -406,9 +398,8 @@ class HeaderControlState extends State<HeaderControl> {
                       builder: (context) {
                         return AlertDialog(
                           title: const Text('播放信息'),
-                          content: SizedBox(
-                            width: double.infinity,
-                            child: ListView(
+                          content: SingleChildScrollView(
+                            child: Column(
                               children: [
                                 ListTile(
                                   dense: true,
@@ -539,7 +530,6 @@ class HeaderControlState extends State<HeaderControl> {
                   leading: const Icon(Icons.error_outline, size: 20),
                   title: const Text('举报', style: titleStyle),
                 ),
-                const SizedBox(height: 14),
               ],
             ),
           ),
@@ -581,7 +571,8 @@ class HeaderControlState extends State<HeaderControl> {
             clipBehavior: Clip.hardEdge,
             color: theme.colorScheme.surface,
             borderRadius: const BorderRadius.all(Radius.circular(12)),
-            child: Column(
+            child: ListView(
+              padding: EdgeInsets.zero,
               children: [
                 SizedBox(
                   height: 45,
@@ -589,10 +580,10 @@ class HeaderControlState extends State<HeaderControl> {
                     onTap: () => SmartDialog.showToast(
                         '标灰画质需要bilibili会员（已是会员？请关闭无痕模式）；4k和杜比视界播放效果可能不佳'),
                     child: Row(
+                      spacing: 8,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Text('选择画质', style: titleStyle),
-                        SizedBox(width: buttonSpace),
                         Icon(
                           Icons.info_outline,
                           size: 16,
@@ -602,77 +593,59 @@ class HeaderControlState extends State<HeaderControl> {
                     ),
                   ),
                 ),
-                Expanded(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Scrollbar(
-                      child: ListView(
-                        padding: EdgeInsets.zero,
-                        children: [
-                          for (int i = 0; i < totalQaSam; i++) ...[
-                            ListTile(
-                              dense: true,
-                              onTap: () async {
-                                if (currentVideoQa.code ==
-                                    videoFormat[i].quality) {
-                                  return;
-                                }
-                                Get.back();
-                                final int quality = videoFormat[i].quality!;
-                                videoDetailCtr
-                                  ..currentVideoQa =
-                                      VideoQuality.fromCode(quality)
-                                  ..updatePlayer();
+                ...List.generate(totalQaSam, (index) {
+                  final item = videoFormat[index];
+                  return ListTile(
+                    dense: true,
+                    onTap: () async {
+                      if (currentVideoQa.code == item.quality) {
+                        return;
+                      }
+                      Get.back();
+                      final int quality = item.quality!;
+                      videoDetailCtr
+                        ..currentVideoQa = VideoQuality.fromCode(quality)
+                        ..updatePlayer();
 
-                                // update
-                                late String oldQualityDesc;
-                                await Connectivity()
-                                    .checkConnectivity()
-                                    .then((res) {
-                                  if (res.contains(ConnectivityResult.wifi)) {
-                                    oldQualityDesc = VideoQuality.fromCode(
-                                            GStorage.defaultVideoQa)
-                                        .description;
-                                    setting.put(
-                                      SettingBoxKey.defaultVideoQa,
-                                      quality,
-                                    );
-                                  } else {
-                                    oldQualityDesc = VideoQuality.fromCode(
-                                            GStorage.defaultVideoQaCellular)
-                                        .description;
-                                    setting.put(
-                                      SettingBoxKey.defaultVideoQaCellular,
-                                      quality,
-                                    );
-                                  }
-                                });
-                                SmartDialog.showToast(
-                                  "默认画质由：$oldQualityDesc 变为：${VideoQuality.fromCode(quality).description}",
-                                );
-                              },
-                              // 可能包含会员解锁画质
-                              enabled: i >= totalQaSam - userfulQaSam,
-                              contentPadding:
-                                  const EdgeInsets.only(left: 20, right: 20),
-                              title: Text(videoFormat[i].newDesc!),
-                              trailing:
-                                  currentVideoQa.code == videoFormat[i].quality
-                                      ? Icon(
-                                          Icons.done,
-                                          color: theme.colorScheme.primary,
-                                        )
-                                      : Text(
-                                          videoFormat[i].format!,
-                                          style: subTitleStyle,
-                                        ),
-                            ),
-                          ]
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                      // update
+                      late String oldQualityDesc;
+                      await Connectivity().checkConnectivity().then((res) {
+                        if (res.contains(ConnectivityResult.wifi)) {
+                          oldQualityDesc =
+                              VideoQuality.fromCode(Pref.defaultVideoQa).desc;
+                          setting.put(
+                            SettingBoxKey.defaultVideoQa,
+                            quality,
+                          );
+                        } else {
+                          oldQualityDesc =
+                              VideoQuality.fromCode(Pref.defaultVideoQaCellular)
+                                  .desc;
+                          setting.put(
+                            SettingBoxKey.defaultVideoQaCellular,
+                            quality,
+                          );
+                        }
+                      });
+                      SmartDialog.showToast(
+                        "默认画质由：$oldQualityDesc 变为：${VideoQuality.fromCode(quality).desc}",
+                      );
+                    },
+                    // 可能包含会员解锁画质
+                    enabled: index >= totalQaSam - userfulQaSam,
+                    contentPadding: const EdgeInsets.only(left: 20, right: 20),
+                    title: Text(item.newDesc!),
+                    trailing: currentVideoQa.code == item.quality
+                        ? Icon(
+                            Icons.done,
+                            color: theme.colorScheme.primary,
+                          )
+                        : Text(
+                            item.format!,
+                            style: subTitleStyle,
+                          ),
+                  );
+                }),
               ],
             ),
           ),
@@ -694,77 +667,66 @@ class HeaderControlState extends State<HeaderControl> {
             clipBehavior: Clip.hardEdge,
             color: theme.colorScheme.surface,
             borderRadius: const BorderRadius.all(Radius.circular(12)),
-            child: Column(
+            child: ListView(
+              padding: EdgeInsets.zero,
               children: [
                 const SizedBox(
-                    height: 45,
-                    child: Center(child: Text('选择音质', style: titleStyle))),
-                Expanded(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: ListView(
-                      padding: EdgeInsets.zero,
-                      children: [
-                        for (final AudioItem i in audio) ...[
-                          ListTile(
-                            dense: true,
-                            onTap: () async {
-                              if (currentAudioQa.code == i.id) {
-                                return;
-                              }
-                              Get.back();
-                              final int quality = i.id!;
-                              videoDetailCtr
-                                ..currentAudioQa =
-                                    AudioQuality.fromCode(quality)
-                                ..updatePlayer();
-
-                              // update
-                              late String oldQualityDesc;
-                              await Connectivity()
-                                  .checkConnectivity()
-                                  .then((res) {
-                                if (res.contains(ConnectivityResult.wifi)) {
-                                  oldQualityDesc = AudioQuality.fromCode(
-                                          GStorage.defaultAudioQa)
-                                      .description;
-                                  setting.put(
-                                    SettingBoxKey.defaultAudioQa,
-                                    quality,
-                                  );
-                                } else {
-                                  oldQualityDesc = AudioQuality.fromCode(
-                                          GStorage.defaultAudioQaCellular)
-                                      .description;
-                                  setting.put(
-                                    SettingBoxKey.defaultAudioQaCellular,
-                                    quality,
-                                  );
-                                }
-                              });
-                              SmartDialog.showToast(
-                                "默认音质由：$oldQualityDesc 变为：${AudioQuality.fromCode(quality).description}",
-                              );
-                            },
-                            contentPadding:
-                                const EdgeInsets.only(left: 20, right: 20),
-                            title: Text(i.quality),
-                            subtitle: Text(
-                              i.codecs!,
-                              style: subTitleStyle,
-                            ),
-                            trailing: currentAudioQa.code == i.id
-                                ? Icon(
-                                    Icons.done,
-                                    color: theme.colorScheme.primary,
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                        ]
-                      ],
-                    ),
+                  height: 45,
+                  child: Center(
+                    child: Text('选择音质', style: titleStyle),
                   ),
                 ),
+                for (final AudioItem i in audio) ...[
+                  ListTile(
+                    dense: true,
+                    onTap: () async {
+                      if (currentAudioQa.code == i.id) {
+                        return;
+                      }
+                      Get.back();
+                      final int quality = i.id!;
+                      videoDetailCtr
+                        ..currentAudioQa = AudioQuality.fromCode(quality)
+                        ..updatePlayer();
+
+                      // update
+                      late String oldQualityDesc;
+                      await Connectivity().checkConnectivity().then((res) {
+                        if (res.contains(ConnectivityResult.wifi)) {
+                          oldQualityDesc =
+                              AudioQuality.fromCode(Pref.defaultAudioQa).desc;
+                          setting.put(
+                            SettingBoxKey.defaultAudioQa,
+                            quality,
+                          );
+                        } else {
+                          oldQualityDesc =
+                              AudioQuality.fromCode(Pref.defaultAudioQaCellular)
+                                  .desc;
+                          setting.put(
+                            SettingBoxKey.defaultAudioQaCellular,
+                            quality,
+                          );
+                        }
+                      });
+                      SmartDialog.showToast(
+                        "默认音质由：$oldQualityDesc 变为：${AudioQuality.fromCode(quality).desc}",
+                      );
+                    },
+                    contentPadding: const EdgeInsets.only(left: 20, right: 20),
+                    title: Text(i.quality),
+                    subtitle: Text(
+                      i.codecs!,
+                      style: subTitleStyle,
+                    ),
+                    trailing: currentAudioQa.code == i.id
+                        ? Icon(
+                            Icons.done,
+                            color: theme.colorScheme.primary,
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ]
               ],
             ),
           ),
@@ -801,45 +763,45 @@ class HeaderControlState extends State<HeaderControl> {
             child: Column(
               children: [
                 const SizedBox(
-                    height: 45,
-                    child: Center(child: Text('选择解码格式', style: titleStyle))),
+                  height: 45,
+                  child: Center(
+                    child: Text('选择解码格式', style: titleStyle),
+                  ),
+                ),
                 Expanded(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: ListView(
-                      padding: EdgeInsets.zero,
-                      children: [
-                        for (var i in list) ...[
-                          ListTile(
-                            dense: true,
-                            onTap: () {
-                              if (i.startsWith(currentDecodeFormats.code)) {
-                                return;
-                              }
-                              videoDetailCtr
-                                ..currentDecodeFormats =
-                                    VideoDecodeFormatTypeExt.fromString(i)!
-                                ..updatePlayer();
-                              Get.back();
-                            },
-                            contentPadding:
-                                const EdgeInsets.only(left: 20, right: 20),
-                            title: Text(VideoDecodeFormatTypeExt.fromString(i)!
-                                .description),
-                            subtitle: Text(
-                              i!,
-                              style: subTitleStyle,
-                            ),
-                            trailing: i.startsWith(currentDecodeFormats.code)
-                                ? Icon(
-                                    Icons.done,
-                                    color: theme.colorScheme.primary,
-                                  )
-                                : const SizedBox.shrink(),
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      for (var i in list) ...[
+                        ListTile(
+                          dense: true,
+                          onTap: () {
+                            if (i.startsWith(currentDecodeFormats.code)) {
+                              return;
+                            }
+                            videoDetailCtr
+                              ..currentDecodeFormats =
+                                  VideoDecodeFormatTypeExt.fromString(i)!
+                              ..updatePlayer();
+                            Get.back();
+                          },
+                          contentPadding:
+                              const EdgeInsets.only(left: 20, right: 20),
+                          title: Text(VideoDecodeFormatTypeExt.fromString(i)!
+                              .description),
+                          subtitle: Text(
+                            i!,
+                            style: subTitleStyle,
                           ),
-                        ]
-                      ],
-                    ),
+                          trailing: i.startsWith(currentDecodeFormats.code)
+                              ? Icon(
+                                  Icons.done,
+                                  color: theme.colorScheme.primary,
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ]
+                    ],
                   ),
                 ),
               ],
@@ -1252,11 +1214,11 @@ class HeaderControlState extends State<HeaderControl> {
     // 显示区域
     double showArea = widget.controller.showArea;
     // 不透明度
-    double opacity = widget.controller.opacity;
+    double opacity = widget.controller.danmakuOpacity;
     // 字体大小
-    double fontSize = widget.controller.fontSize;
+    double fontSize = widget.controller.danmakuFontScale;
     // 全屏字体大小
-    double fontSizeFS = widget.controller.fontSizeFS;
+    double fontSizeFS = widget.controller.danmakuFontScaleFS;
     double danmakuLineHeight = widget.controller.danmakuLineHeight;
     // 弹幕速度
     double danmakuDuration = widget.controller.danmakuDuration;
@@ -1330,7 +1292,7 @@ class HeaderControlState extends State<HeaderControl> {
         void updateFontSizeFS(double val) {
           fontSizeFS = val;
           widget.controller
-            ..fontSizeFS = fontSizeFS
+            ..danmakuFontScaleFS = fontSizeFS
             ..putDanmakuSettings();
           setState(() {});
           if (widget.controller.isFullScreen.value == true) {
@@ -1347,7 +1309,7 @@ class HeaderControlState extends State<HeaderControl> {
         void updateFontSize(double val) {
           fontSize = val;
           widget.controller
-            ..fontSize = fontSize
+            ..danmakuFontScale = fontSize
             ..putDanmakuSettings();
           setState(() {});
           if (widget.controller.isFullScreen.value == false) {
@@ -1390,7 +1352,7 @@ class HeaderControlState extends State<HeaderControl> {
         void updateOpacity(double val) {
           opacity = val;
           widget.controller
-            ..opacity = opacity
+            ..danmakuOpacity = opacity
             ..putDanmakuSettings();
           setState(() {});
           try {
@@ -1789,39 +1751,32 @@ class HeaderControlState extends State<HeaderControl> {
             clipBehavior: Clip.hardEdge,
             color: theme.colorScheme.surface,
             borderRadius: const BorderRadius.all(Radius.circular(12)),
-            child: Column(
+            child: ListView(
+              padding: EdgeInsets.zero,
               children: [
                 const SizedBox(
-                    height: 45,
-                    child: Center(child: Text('选择播放顺序', style: titleStyle))),
-                Expanded(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: ListView(
-                      padding: EdgeInsets.zero,
-                      children: [
-                        for (final PlayRepeat i in PlayRepeat.values) ...[
-                          ListTile(
-                            dense: true,
-                            onTap: () {
-                              widget.controller.setPlayRepeat(i);
-                              Get.back();
-                            },
-                            contentPadding:
-                                const EdgeInsets.only(left: 20, right: 20),
-                            title: Text(i.description),
-                            trailing: widget.controller.playRepeat == i
-                                ? Icon(
-                                    Icons.done,
-                                    color: theme.colorScheme.primary,
-                                  )
-                                : const SizedBox.shrink(),
-                          )
-                        ],
-                      ],
-                    ),
+                  height: 45,
+                  child: Center(
+                    child: Text('选择播放顺序', style: titleStyle),
                   ),
                 ),
+                for (final PlayRepeat i in PlayRepeat.values) ...[
+                  ListTile(
+                    dense: true,
+                    onTap: () {
+                      widget.controller.setPlayRepeat(i);
+                      Get.back();
+                    },
+                    contentPadding: const EdgeInsets.only(left: 20, right: 20),
+                    title: Text(i.desc),
+                    trailing: widget.controller.playRepeat == i
+                        ? Icon(
+                            Icons.done,
+                            color: theme.colorScheme.primary,
+                          )
+                        : const SizedBox.shrink(),
+                  )
+                ],
               ],
             ),
           ),
@@ -1830,12 +1785,15 @@ class HeaderControlState extends State<HeaderControl> {
     );
   }
 
+  static final _format = DateFormat('HH:mm');
+
   void startClock() {
     clock ??= Timer.periodic(const Duration(seconds: 1), (Timer t) {
       if (!mounted) {
+        clock?.cancel();
         return;
       }
-      now.value = DateTime.now().toString().split(' ')[1].substring(0, 5);
+      now.value = _format.format(DateTime.now());
     });
   }
 
@@ -1866,7 +1824,7 @@ class HeaderControlState extends State<HeaderControl> {
                     onPressed: () {
                       if (isFullScreen) {
                         widget.controller.triggerFullScreen(status: false);
-                      } else if (MediaQuery.of(context).orientation ==
+                      } else if (MediaQuery.orientationOf(context) ==
                               Orientation.landscape &&
                           !horizontalScreen) {
                         verticalScreenForTwoSeconds();
@@ -1877,7 +1835,7 @@ class HeaderControlState extends State<HeaderControl> {
                   ),
                 ),
                 if (!isFullScreen ||
-                    MediaQuery.of(context).orientation != Orientation.portrait)
+                    MediaQuery.orientationOf(context) != Orientation.portrait)
                   SizedBox(
                     width: 42,
                     height: 34,
@@ -1898,7 +1856,7 @@ class HeaderControlState extends State<HeaderControl> {
                     (isFullScreen ||
                         (!isFullScreen &&
                             !horizontalScreen &&
-                            MediaQuery.of(context).orientation ==
+                            MediaQuery.orientationOf(context) ==
                                 Orientation.landscape)))
                   Expanded(
                     child: Column(
@@ -1999,7 +1957,7 @@ class HeaderControlState extends State<HeaderControl> {
                 Obx(
                   () {
                     if ((isFullScreen || !horizontalScreen) &&
-                        MediaQuery.of(context).orientation ==
+                        MediaQuery.orientationOf(context) ==
                             Orientation.landscape) {
                       startClock();
                       return Text(
@@ -2086,18 +2044,18 @@ class HeaderControlState extends State<HeaderControl> {
                   child: Obx(
                     () => IconButton(
                       tooltip:
-                          "${plPlayerController.isOpenDanmu.value ? '关闭' : '开启'}弹幕",
+                          "${plPlayerController.enableShowDanmaku.value ? '关闭' : '开启'}弹幕",
                       style: ButtonStyle(
                         padding: WidgetStateProperty.all(EdgeInsets.zero),
                       ),
                       onPressed: () {
-                        plPlayerController.isOpenDanmu.value =
-                            !plPlayerController.isOpenDanmu.value;
+                        plPlayerController.enableShowDanmaku.value =
+                            !plPlayerController.enableShowDanmaku.value;
                         setting.put(SettingBoxKey.enableShowDanmaku,
-                            plPlayerController.isOpenDanmu.value);
+                            plPlayerController.enableShowDanmaku.value);
                       },
                       icon: Icon(
-                        plPlayerController.isOpenDanmu.value
+                        plPlayerController.enableShowDanmaku.value
                             ? Icons.subtitles_outlined
                             : Icons.subtitles_off_outlined,
                         size: 19,
@@ -2119,10 +2077,8 @@ class HeaderControlState extends State<HeaderControl> {
                         bool canUsePiP = await Floating().isPipAvailable;
                         widget.controller.hiddenControls(false);
                         if (canUsePiP) {
-                          bool enableBackgroundPlay = setting.get(
-                              SettingBoxKey.enableBackgroundPlay,
-                              defaultValue: true);
-                          if (!enableBackgroundPlay && mounted) {
+                          if (!videoPlayerServiceHandler.enableBackgroundPlay &&
+                              mounted) {
                             final theme = Theme.of(context);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -2356,21 +2312,19 @@ class HeaderControlState extends State<HeaderControl> {
                                 ),
                                 selectIcon:
                                     const Icon(FontAwesomeIcons.solidThumbsUp),
-                                onTap: bangumiIntroController.actionLikeVideo,
+                                onTap: pgcIntroController.actionLikeVideo,
                                 onLongPress: () {
-                                  bangumiIntroController.actionOneThree();
+                                  pgcIntroController.actionOneThree();
                                   plPlayerController
                                     ..isTriple = null
                                     ..hideTaskControls();
                                 },
-                                selectStatus:
-                                    bangumiIntroController.hasLike.value,
+                                selectStatus: pgcIntroController.hasLike.value,
                                 semanticsLabel: '点赞',
                                 needAnim: true,
-                                hasTriple:
-                                    bangumiIntroController.hasLike.value &&
-                                        bangumiIntroController.hasCoin &&
-                                        bangumiIntroController.hasFav.value,
+                                hasTriple: pgcIntroController.hasLike.value &&
+                                    pgcIntroController.hasCoin &&
+                                    pgcIntroController.hasFav.value,
                                 callBack: (start) {
                                   if (start) {
                                     HapticFeedback.lightImpact();
@@ -2402,8 +2356,8 @@ class HeaderControlState extends State<HeaderControl> {
                                   color: Colors.white,
                                 ),
                                 selectIcon: const Icon(FontAwesomeIcons.b),
-                                onTap: bangumiIntroController.actionCoinVideo,
-                                selectStatus: bangumiIntroController.hasCoin,
+                                onTap: pgcIntroController.actionCoinVideo,
+                                selectStatus: pgcIntroController.hasCoin,
                                 semanticsLabel: '投币',
                                 needAnim: true,
                               ),
@@ -2422,13 +2376,12 @@ class HeaderControlState extends State<HeaderControl> {
                                 ),
                                 selectIcon:
                                     const Icon(FontAwesomeIcons.solidStar),
-                                onTap: () => bangumiIntroController
+                                onTap: () => pgcIntroController
                                     .showFavBottomSheet(context),
-                                onLongPress: () => bangumiIntroController
+                                onLongPress: () => pgcIntroController
                                     .showFavBottomSheet(context,
                                         type: 'longPress'),
-                                selectStatus:
-                                    bangumiIntroController.hasFav.value,
+                                selectStatus: pgcIntroController.hasFav.value,
                                 semanticsLabel: '收藏',
                                 needAnim: true,
                               ),
@@ -2443,8 +2396,8 @@ class HeaderControlState extends State<HeaderControl> {
                                 FontAwesomeIcons.shareFromSquare,
                                 color: Colors.white,
                               ),
-                              onTap: () => bangumiIntroController
-                                  .actionShareVideo(context),
+                              onTap: () =>
+                                  pgcIntroController.actionShareVideo(context),
                               semanticsLabel: '转发',
                             ),
                           ),

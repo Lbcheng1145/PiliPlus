@@ -1,7 +1,9 @@
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
-import 'package:PiliPlus/common/widgets/video_card/video_card_h.dart';
-import 'package:PiliPlus/models/model_hot_video_item.dart';
+import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
+import 'package:PiliPlus/models_new/later/data.dart';
+import 'package:PiliPlus/models_new/later/list.dart';
 import 'package:PiliPlus/pages/common/common_search_page.dart';
+import 'package:PiliPlus/pages/later/widgets/video_card_h_later.dart';
 import 'package:PiliPlus/pages/later_search/controller.dart';
 import 'package:PiliPlus/utils/grid.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
@@ -17,7 +19,7 @@ class LaterSearchPage extends CommonSearchPage {
 }
 
 class _LaterSearchPageState
-    extends CommonSearchPageState<LaterSearchPage, Map, HotVideoItemModel> {
+    extends CommonSearchPageState<LaterSearchPage, LaterData, LaterItemModel> {
   @override
   final LaterSearchController controller = Get.put(
     LaterSearchController(),
@@ -25,7 +27,7 @@ class _LaterSearchPageState
   );
 
   @override
-  Widget buildList(List<HotVideoItemModel> list) {
+  Widget buildList(List<LaterItemModel> list) {
     return SliverGrid(
       gridDelegate: Grid.videoCardHDelegate(context, minHeight: 110),
       delegate: SliverChildBuilderDelegate(
@@ -38,9 +40,8 @@ class _LaterSearchPageState
           return Stack(
             clipBehavior: Clip.none,
             children: [
-              VideoCardH(
+              VideoCardHLater(
                 videoItem: item,
-                source: 'later',
                 onViewLater: (cid) {
                   PageUtils.toVideoPage(
                     'bvid=${item.bvid}&cid=$cid',
@@ -64,10 +65,15 @@ class _LaterSearchPageState
                 child: iconButton(
                   tooltip: '移除',
                   context: context,
-                  onPressed: () => controller.toViewDel(
-                    context,
-                    index,
-                    item.aid,
+                  onPressed: () => showConfirmDialog(
+                    context: context,
+                    title: '提示',
+                    content: '即将移除该视频，确定是否移除',
+                    onConfirm: () => controller.toViewDel(
+                      context,
+                      index,
+                      item.aid,
+                    ),
                   ),
                   icon: Icons.clear,
                   iconColor: Theme.of(context).colorScheme.onSurfaceVariant,

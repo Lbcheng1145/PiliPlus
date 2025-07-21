@@ -3,10 +3,11 @@ import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/common/account_type.dart';
 import 'package:PiliPlus/models/home/rcmd/result.dart';
 import 'package:PiliPlus/models/model_video.dart';
-import 'package:PiliPlus/models/space_archive/item.dart';
+import 'package:PiliPlus/models_new/space/space_archive/item.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/pages/search/widgets/search_text.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/accounts.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -57,9 +58,7 @@ class VideoCustomActions {
           '访问：${videoItem.owner.name}',
           'visit',
           const Icon(MdiIcons.accountCircleOutline, size: 16),
-          () => Get.toNamed('/member?mid=${videoItem.owner.mid}', arguments: {
-            'heroTag': '${videoItem.owner.mid}',
-          }),
+          () => Get.toNamed('/member?mid=${videoItem.owner.mid}'),
         ),
       if (videoItem is! SpaceArchiveItem)
         VideoCustomAction(
@@ -246,13 +245,16 @@ class VideoCustomActions {
                   ),
                   TextButton(
                     onPressed: () async {
+                      Get.back();
                       var res = await VideoHttp.relationMod(
                         mid: videoItem.owner.mid!,
                         act: 5,
                         reSrc: 11,
                       );
-                      GStorage.setBlackMid(videoItem.owner.mid!);
-                      Get.back();
+                      if (res['status']) {
+                        Pref.setBlackMid(videoItem.owner.mid!);
+                        onRemove?.call();
+                      }
                       SmartDialog.showToast(res['msg'] ?? '成功');
                     },
                     child: const Text('确认'),
@@ -268,7 +270,7 @@ class VideoCustomActions {
         MineController.anonymity.value
             ? const Icon(MdiIcons.incognitoOff, size: 16)
             : const Icon(MdiIcons.incognito, size: 16),
-        () => MineController.onChangeAnonymity(context),
+        MineController.onChangeAnonymity,
       )
     ];
   }

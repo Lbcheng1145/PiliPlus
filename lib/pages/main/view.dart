@@ -10,17 +10,14 @@ import 'package:PiliPlus/pages/dynamics/view.dart';
 import 'package:PiliPlus/pages/home/controller.dart';
 import 'package:PiliPlus/pages/home/view.dart';
 import 'package:PiliPlus/pages/main/controller.dart';
-import 'package:PiliPlus/pages/main/nav.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
-import 'package:PiliPlus/utils/event_bus.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:flutter/material.dart'
-    hide NavigationBar, NavigationDestination;
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -37,30 +34,16 @@ class MainApp extends StatefulWidget {
 }
 
 class _MainAppState extends State<MainApp>
-    with SingleTickerProviderStateMixin, RouteAware, WidgetsBindingObserver {
+    with RouteAware, WidgetsBindingObserver {
   final MainController _mainController = Get.put(MainController());
   late final _homeController = Get.put(HomeController());
   late final _dynamicController = Get.put(DynamicsController());
 
   late int _lastSelectTime = 0;
-  late bool enableMYBar;
-  late bool useSideBar;
 
   @override
   void initState() {
     super.initState();
-    _lastSelectTime = DateTime.now().millisecondsSinceEpoch;
-    _mainController.controller = _mainController.mainTabBarView
-        ? TabController(
-            vsync: this,
-            initialIndex: _mainController.selectedIndex.value,
-            length: _mainController.navigationBars.length,
-          )
-        : PageController(initialPage: _mainController.selectedIndex.value);
-    enableMYBar =
-        GStorage.setting.get(SettingBoxKey.enableMYBar, defaultValue: true);
-    useSideBar =
-        GStorage.setting.get(SettingBoxKey.useSideBar, defaultValue: false);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -111,7 +94,7 @@ class _MainAppState extends State<MainApp>
   }
 
   void _checkUnread([bool shouldCheck = false]) {
-    if (_mainController.isLogin.value &&
+    if (_mainController.accountService.isLogin.value &&
         _mainController.homeIndex != -1 &&
         _mainController.msgBadgeMode != DynamicBadgeMode.hidden) {
       if (shouldCheck &&
@@ -172,9 +155,16 @@ class _MainAppState extends State<MainApp>
     MainApp.routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     GStorage.close();
-    EventBus().off(EventName.loginEvent);
     PiliScheme.listener?.cancel();
     super.dispose();
+  }
+
+  void onBack() {
+    if (Platform.isAndroid) {
+      Utils.channel.invokeMethod('back');
+    } else {
+      SystemNavigator.pop();
+    }
   }
 
   @override
@@ -184,15 +174,15 @@ class _MainAppState extends State<MainApp>
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (_mainController.selectedIndex.value != 0) {
-          setIndex(0);
-          _mainController.bottomBarStream?.add(true);
-          _homeController.searchBarStream?.add(true);
+        if (_mainController.directExitOnBack) {
+          onBack();
         } else {
-          if (Platform.isAndroid) {
-            Utils.channel.invokeMethod('back');
+          if (_mainController.selectedIndex.value != 0) {
+            setIndex(0);
+            _mainController.bottomBarStream?.add(true);
+            _homeController.searchBarStream?.add(true);
           } else {
-            SystemNavigator.pop();
+            onBack();
           }
         }
       },
@@ -209,9 +199,9 @@ class _MainAppState extends State<MainApp>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (useSideBar || !isPortrait) ...[
+                if (_mainController.useSideBar || !isPortrait) ...[
                   _mainController.navigationBars.length > 1
-                      ? context.isTablet && GStorage.optTabletNav
+                      ? context.isTablet && _mainController.optTabletNav
                           ? Column(
                               children: [
                                 const SizedBox(height: 25),
@@ -306,7 +296,7 @@ class _MainAppState extends State<MainApp>
               ],
             ),
           ),
-          bottomNavigationBar: useSideBar || !isPortrait
+          bottomNavigationBar: _mainController.useSideBar || !isPortrait
               ? null
               : StreamBuilder(
                   stream: _mainController.hideTabBar
@@ -322,7 +312,7 @@ class _MainAppState extends State<MainApp>
                       curve: Curves.easeInOutCubicEmphasized,
                       duration: const Duration(milliseconds: 500),
                       offset: Offset(0, snapshot.data ? 0 : 1),
-                      child: enableMYBar
+                      child: _mainController.enableMYBar
                           ? _mainController.navigationBars.length > 1
                               ? Obx(
                                   () => NavigationBar(
@@ -396,7 +386,7 @@ class _MainAppState extends State<MainApp>
         Semantics(
           label: "我的",
           child: Obx(
-            () => _homeController.isLogin.value
+            () => _mainController.accountService.isLogin.value
                 ? Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -404,11 +394,11 @@ class _MainAppState extends State<MainApp>
                         type: ImageType.avatar,
                         width: 34,
                         height: 34,
-                        src: _homeController.userFace.value,
+                        src: _mainController.accountService.face.value,
                       ),
                       Positioned.fill(
                         child: Material(
-                          color: Colors.transparent,
+                          type: MaterialType.transparency,
                           child: InkWell(
                             onTap: () =>
                                 _homeController.showUserInfoDialog(context),
@@ -450,7 +440,7 @@ class _MainAppState extends State<MainApp>
         ),
         const SizedBox(height: 8),
         Obx(
-          () => _homeController.isLogin.value
+          () => _mainController.accountService.isLogin.value
               ? msgBadge(_mainController)
               : const SizedBox.shrink(),
         ),

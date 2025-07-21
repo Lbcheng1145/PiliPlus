@@ -13,23 +13,28 @@ import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
-import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart' show DynamicStat;
 import 'package:PiliPlus/pages/article/controller.dart';
+import 'package:PiliPlus/pages/article/widgets/article_ops.dart';
 import 'package:PiliPlus/pages/article/widgets/html_render.dart';
 import 'package:PiliPlus/pages/article/widgets/opus_content.dart';
-import 'package:PiliPlus/pages/article/widgets/read_opus.dart';
 import 'package:PiliPlus/pages/dynamics_repost/view.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/pages/video/reply_reply/view.dart';
+import 'package:PiliPlus/utils/date_util.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/grid.dart';
+import 'package:PiliPlus/utils/image_util.dart';
+import 'package:PiliPlus/utils/num_util.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -55,7 +60,7 @@ class _ArticlePageState extends State<ArticlePage>
   late final AnimationController fabAnimationCtr;
   late final Animation<Offset> _anim;
 
-  late final List<double> _ratio = GStorage.dynamicDetailRatio;
+  late final List<double> _ratio = Pref.dynamicDetailRatio;
 
   bool get _horizontalPreview =>
       context.orientation == Orientation.landscape &&
@@ -192,7 +197,7 @@ class _ArticlePageState extends State<ArticlePage>
                 id: id,
                 oid: oid,
                 rpid: rpid,
-                source: 'dynamic',
+                isVideoDetail: false,
                 replyType: _articleCtr.commentType,
                 firstFloor: replyItem,
                 onDispose: onDispose,
@@ -362,14 +367,14 @@ class _ArticlePageState extends State<ArticlePage>
             if (_articleCtr.isLoaded.value) {
               late Widget content;
               if (_articleCtr.opus != null) {
-                debugPrint('json page');
+                if (kDebugMode) debugPrint('json page');
                 content = OpusContent(
                   opus: _articleCtr.opus!,
                   callback: _getImageCallback,
                   maxWidth: maxWidth,
                 );
               } else if (_articleCtr.opusData?.modules.moduleBlocked != null) {
-                debugPrint('moduleBlocked');
+                if (kDebugMode) debugPrint('moduleBlocked');
                 final moduleBlocked =
                     _articleCtr.opusData!.modules.moduleBlocked!;
                 content = SliverToBoxAdapter(
@@ -378,9 +383,9 @@ class _ArticlePageState extends State<ArticlePage>
               } else if (_articleCtr.articleData?.content != null) {
                 if (_articleCtr.articleData?.type == 3) {
                   // json
-                  return ReadOpus(ops: _articleCtr.articleData?.ops);
+                  return ArticleOpus(ops: _articleCtr.articleData?.ops);
                 }
-                debugPrint('html page');
+                if (kDebugMode) debugPrint('html page');
                 final res = parser.parse(_articleCtr.articleData!.content!);
                 if (res.body!.children.isEmpty) {
                   content = SliverToBoxAdapter(
@@ -454,6 +459,7 @@ class _ArticlePageState extends State<ArticlePage>
                                     return GestureDetector(
                                       behavior: HitTestBehavior.opaque,
                                       onTap: () => context.imageView(
+                                        quality: 60,
                                         imgList: pics
                                             .map(
                                                 (e) => SourceModel(url: e.url!))
@@ -471,8 +477,13 @@ class _ArticlePageState extends State<ArticlePage>
                                                 fit: pic.isLongPic == true
                                                     ? BoxFit.cover
                                                     : null,
-                                                imageUrl: Utils.thumbnailImgUrl(
-                                                    pic.url, 60),
+                                                imageUrl:
+                                                    ImageUtil.thumbnailUrl(
+                                                        pic.url, 60),
+                                                fadeInDuration: const Duration(
+                                                    milliseconds: 120),
+                                                fadeOutDuration: const Duration(
+                                                    milliseconds: 120),
                                               ),
                                             ),
                                             if (pic.isLongPic == true)
@@ -521,7 +532,6 @@ class _ArticlePageState extends State<ArticlePage>
                         child: Row(
                           children: [
                             NetworkImgLayer(
-                              // TODO Avatar
                               width: 40,
                               height: 40,
                               type: ImageType.avatar,
@@ -540,7 +550,7 @@ class _ArticlePageState extends State<ArticlePage>
                                 ),
                                 if (pubTime != null)
                                   Text(
-                                    Utils.dateFormat(pubTime),
+                                    DateUtil.format(pubTime),
                                     style: TextStyle(
                                       color: theme.colorScheme.outline,
                                       fontSize:
@@ -590,7 +600,7 @@ class _ArticlePageState extends State<ArticlePage>
                   return Container(
                     alignment: Alignment.center,
                     margin: EdgeInsets.only(
-                        bottom: MediaQuery.of(context).padding.bottom),
+                        bottom: MediaQuery.paddingOf(context).bottom),
                     height: 125,
                     child: Text(
                       _articleCtr.isEnd ? '没有更多了' : '加载中...',
@@ -603,26 +613,24 @@ class _ArticlePageState extends State<ArticlePage>
                 } else {
                   return ReplyItemGrpc(
                     replyItem: response[index],
-                    replyLevel: '1',
+                    replyLevel: 1,
                     replyReply: (replyItem, id) =>
                         replyReply(context, replyItem, id),
-                    onReply: () => _articleCtr.onReply(
+                    onReply: (replyItem) => _articleCtr.onReply(
                       context,
-                      replyItem: response[index],
-                      index: index,
+                      replyItem: replyItem,
                     ),
-                    onDelete: (subIndex) =>
-                        _articleCtr.onRemove(index, subIndex),
+                    onDelete: (item, subIndex) =>
+                        _articleCtr.onRemove(index, item, subIndex),
                     upMid: _articleCtr.upMid,
                     callback: _getImageCallback,
                     onCheckReply: (item) =>
-                        _articleCtr.onCheckReply(context, item, isManual: true),
-                    onToggleTop: (isUpTop, rpid) => _articleCtr.onToggleTop(
+                        _articleCtr.onCheckReply(item, isManual: true),
+                    onToggleTop: (item) => _articleCtr.onToggleTop(
+                      item,
                       index,
                       _articleCtr.commentId,
                       _articleCtr.commentType,
-                      isUpTop,
-                      rpid,
                     ),
                   );
                 }
@@ -640,7 +648,7 @@ class _ArticlePageState extends State<ArticlePage>
     return SliverPersistentHeader(
       pinned: true,
       delegate: CustomSliverPersistentHeaderDelegate(
-        extent: 40,
+        extent: 45,
         bgColor: theme.colorScheme.surface,
         child: Container(
           height: 45,
@@ -649,11 +657,11 @@ class _ArticlePageState extends State<ArticlePage>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Obx(() => Text(
-                  '${_articleCtr.count.value == -1 ? 0 : Utils.numFormat(_articleCtr.count.value)}条回复')),
+                  '${_articleCtr.count.value == -1 ? 0 : NumUtil.numFormat(_articleCtr.count.value)}条回复')),
               SizedBox(
                 height: 35,
                 child: TextButton.icon(
-                  onPressed: () => _articleCtr.queryBySort(),
+                  onPressed: _articleCtr.queryBySort,
                   icon: const Icon(Icons.sort, size: 16),
                   label: Obx(
                     () => Text(
@@ -700,7 +708,7 @@ class _ArticlePageState extends State<ArticlePage>
                         value: _ratio.first,
                         onChanged: (value) {
                           if (value >= 10 && value <= 90) {
-                            _ratio[0] = value;
+                            _ratio[0] = value.toPrecision(2);
                             _ratio[1] = 100 - value;
                             GStorage.setting.put(
                               SettingBoxKey.dynamicDetailRatio,
@@ -822,7 +830,7 @@ class _ArticlePageState extends State<ArticlePage>
                       child: Padding(
                         padding: EdgeInsets.only(
                           right: 14,
-                          bottom: MediaQuery.of(context).padding.bottom + 14,
+                          bottom: MediaQuery.paddingOf(context).bottom + 14,
                         ),
                         child: button(),
                       ),
@@ -852,7 +860,7 @@ class _ArticlePageState extends State<ArticlePage>
                             foregroundColor: theme.colorScheme.outline,
                           ),
                           label: Text(stat?.count != null
-                              ? Utils.numFormat(stat!.count)
+                              ? NumUtil.numFormat(stat!.count)
                               : text),
                         );
                       }
@@ -867,7 +875,7 @@ class _ArticlePageState extends State<ArticlePage>
                               bottom: 14 +
                                   (_articleCtr.stats.value != null
                                       ? 0
-                                      : MediaQuery.of(context).padding.bottom),
+                                      : MediaQuery.paddingOf(context).bottom),
                             ),
                             child: button(),
                           ),
@@ -1011,7 +1019,7 @@ class _ArticlePageState extends State<ArticlePage>
                                                 _articleCtr.stats.value?.like
                                                             ?.count !=
                                                         null
-                                                    ? Utils.numFormat(
+                                                    ? NumUtil.numFormat(
                                                         _articleCtr.stats.value!
                                                             .like!.count)
                                                     : '点赞',

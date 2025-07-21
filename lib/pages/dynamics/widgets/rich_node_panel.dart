@@ -1,12 +1,19 @@
+import 'dart:io' show Platform;
+
 import 'package:PiliPlus/common/widgets/image/image_view.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/search.dart';
+import 'package:PiliPlus/models/common/image_preview_type.dart'
+    show SourceModel;
 import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/vote.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
+import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -234,40 +241,80 @@ TextSpan? richNode(
                 ),
               );
             break;
-          case 'RICH_TEXT_NODE_TYPE_VIEW_PICTURE'
-              when (i.pics?.isNotEmpty == true):
-            spanChildren
-              ..add(const TextSpan(text: '\n'))
-              ..add(
-                WidgetSpan(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return imageView(
-                        constraints.maxWidth,
-                        i.pics!
-                            .map((item) => ImageModel(
-                                  url: item.src ?? '',
-                                  width: item.width,
-                                  height: item.height,
-                                ))
-                            .toList(),
-                      );
-                    },
+          case 'RICH_TEXT_NODE_TYPE_VIEW_PICTURE':
+            if (i.pics?.isNotEmpty == true) {
+              spanChildren
+                ..add(const TextSpan(text: '\n'))
+                ..add(
+                  WidgetSpan(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return imageView(
+                          constraints.maxWidth,
+                          i.pics!
+                              .map((item) => ImageModel(
+                                    url: item.src ?? '',
+                                    width: item.width,
+                                    height: item.height,
+                                  ))
+                              .toList(),
+                        );
+                      },
+                    ),
                   ),
+                );
+            } else {
+              spanChildren.add(
+                TextSpan(
+                  text: i.text,
+                  style: style,
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () {
+                      void onView(List<OpusPicModel> list) {
+                        Get.context!.imageView(
+                            imgList: list
+                                .map((e) => SourceModel(url: e.src!))
+                                .toList());
+                      }
+
+                      if (i.pics?.isNotEmpty == true) {
+                        onView(i.pics!);
+                        return;
+                      }
+                      if (i.dynPic?.isNotEmpty == true) {
+                        onView(i.dynPic!);
+                        return;
+                      }
+
+                      DynamicsHttp.dynPic(i.rid).then((res) {
+                        if (res.isSuccess) {
+                          var list = res.data;
+                          if (Platform.isAndroid) {
+                            i.pics = list;
+                          } else {
+                            i.dynPic = list;
+                          }
+                          if (list?.isNotEmpty == true) {
+                            onView(list!);
+                          }
+                        } else {
+                          res.toast();
+                        }
+                      });
+                    },
                 ),
               );
+            }
             break;
           default:
-            spanChildren.add(
-              TextSpan(text: i.text, style: style),
-            );
+            spanChildren.add(TextSpan(text: i.text, style: style));
             break;
         }
       }
       return TextSpan(children: spanChildren);
     }
   } catch (err) {
-    debugPrint('❌rich_node_panel err: $err');
+    if (kDebugMode) debugPrint('❌rich_node_panel err: $err');
     return null;
   }
 }

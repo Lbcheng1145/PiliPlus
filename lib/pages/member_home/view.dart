@@ -2,18 +2,21 @@ import 'dart:math';
 
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
-import 'package:PiliPlus/common/widgets/video_card/video_card_v_member_home.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/space/data.dart';
-import 'package:PiliPlus/models/space/tab_item.dart';
-import 'package:PiliPlus/pages/bangumi/widgets/bangumi_card_v_member_home.dart';
+import 'package:PiliPlus/models_new/space/space/data.dart';
+import 'package:PiliPlus/models_new/space/space/tab2.dart';
 import 'package:PiliPlus/pages/member/controller.dart';
 import 'package:PiliPlus/pages/member_article/widget/item.dart';
-import 'package:PiliPlus/pages/member_coin/view.dart';
+import 'package:PiliPlus/pages/member_audio/widgets/item.dart';
+import 'package:PiliPlus/pages/member_coin_arc/view.dart';
+import 'package:PiliPlus/pages/member_comic/widgets/item.dart';
 import 'package:PiliPlus/pages/member_contribute/controller.dart';
-import 'package:PiliPlus/pages/member_home/widget/fav_item.dart';
-import 'package:PiliPlus/pages/member_like/view.dart';
+import 'package:PiliPlus/pages/member_home/widgets/fav_item.dart';
+import 'package:PiliPlus/pages/member_home/widgets/video_card_v_member_home.dart';
+import 'package:PiliPlus/pages/member_like_arc/view.dart';
+import 'package:PiliPlus/pages/member_pgc/widgets/pgc_card_v_member_pgc.dart';
 import 'package:PiliPlus/utils/grid.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -42,13 +45,17 @@ class _MemberHomeState extends State<MemberHome>
 
   Widget _buildBody(LoadingState<SpaceData?> loadingState) {
     final isVertical = context.orientation == Orientation.portrait;
+    final setting = _ctr.spaceSetting;
+    final isOwner = setting != null;
+    final color = Theme.of(context).colorScheme.outline;
     return switch (loadingState) {
       Loading() => loadingWidget,
       Success(response: final res) => res != null
           ? CustomScrollView(
               slivers: [
                 if (res.archive?.item?.isNotEmpty == true) ...[
-                  _videoHeader(
+                  _header(
+                    color,
                     title: '视频',
                     param: 'contribute',
                     param1: 'video',
@@ -80,10 +87,12 @@ class _MemberHomeState extends State<MemberHome>
                   ),
                 ],
                 if (res.favourite2?.item?.isNotEmpty == true) ...[
-                  _videoHeader(
+                  _header(
+                    color,
                     title: '收藏',
                     param: 'favorite',
                     count: res.favourite2!.count!,
+                    visible: isOwner ? setting.favVideo == 1 : null,
                   ),
                   SliverToBoxAdapter(
                     child: SizedBox(
@@ -95,10 +104,12 @@ class _MemberHomeState extends State<MemberHome>
                   ),
                 ],
                 if (res.coinArchive?.item?.isNotEmpty == true) ...[
-                  _videoHeader(
+                  _header(
+                    color,
                     title: '最近投币的视频',
                     param: 'coinArchive',
                     count: res.coinArchive!.count!,
+                    visible: isOwner ? setting.coinsVideo == 1 : null,
                   ),
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(
@@ -126,10 +137,12 @@ class _MemberHomeState extends State<MemberHome>
                   ),
                 ],
                 if (res.likeArchive?.item?.isNotEmpty == true) ...[
-                  _videoHeader(
+                  _header(
+                    color,
                     title: '最近点赞的视频',
                     param: 'likeArchive',
                     count: res.likeArchive!.count!,
+                    visible: isOwner ? setting.likesVideo == 1 : null,
                   ),
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(
@@ -157,7 +170,8 @@ class _MemberHomeState extends State<MemberHome>
                   ),
                 ],
                 if (res.article?.item?.isNotEmpty == true) ...[
-                  _videoHeader(
+                  _header(
+                    color,
                     title: '图文',
                     param: 'contribute',
                     param1: 'opus',
@@ -176,19 +190,55 @@ class _MemberHomeState extends State<MemberHome>
                   ),
                 ],
                 if (res.audios?.item?.isNotEmpty == true) ...[
-                  _videoHeader(
+                  _header(
+                    color,
                     title: '音频',
                     param: 'contribute',
                     param1: 'audio',
                     count: res.audios!.count!,
                   ),
-                  // TODO
+                  SliverGrid(
+                    gridDelegate: SliverGridDelegateWithExtentAndRatio(
+                      mainAxisSpacing: 2,
+                      maxCrossAxisExtent: Grid.smallCardWidth * 2,
+                      childAspectRatio: StyleString.aspectRatio * 2.6,
+                      minHeight: MediaQuery.textScalerOf(context).scale(90),
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        return MemberAudioItem(
+                          item: res.audios!.item![index],
+                        );
+                      },
+                      childCount: isVertical ? 1 : min(2, res.audios!.count!),
+                    ),
+                  )
+                ],
+                if (res.comic?.item?.isNotEmpty == true) ...[
+                  _header(
+                    color,
+                    title: '漫画',
+                    param: 'contribute',
+                    param1: 'comic',
+                    count: res.comic!.count!,
+                  ),
+                  SliverGrid(
+                    gridDelegate: Grid.videoCardHDelegate(context),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        return MemberComicItem(item: res.comic!.item![index]);
+                      },
+                      childCount: isVertical ? 1 : min(2, res.comic!.count!),
+                    ),
+                  ),
                 ],
                 if (res.season?.item?.isNotEmpty == true) ...[
-                  _videoHeader(
+                  _header(
+                    color,
                     title: '追番',
                     param: 'bangumi',
                     count: res.season!.count!,
+                    visible: isOwner ? setting.bangumi == 1 : null,
                   ),
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(
@@ -205,8 +255,8 @@ class _MemberHomeState extends State<MemberHome>
                       ),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
-                          return BangumiCardVMemberHome(
-                            bangumiItem: res.season!.item![index],
+                          return PgcCardVMemberPgc(
+                            item: res.season!.item![index],
                           );
                         },
                         childCount:
@@ -217,7 +267,7 @@ class _MemberHomeState extends State<MemberHome>
                 ],
                 SliverToBoxAdapter(
                   child: SizedBox(
-                    height: 80 + MediaQuery.of(context).padding.bottom,
+                    height: 80 + MediaQuery.paddingOf(context).bottom,
                   ),
                 ),
               ],
@@ -227,13 +277,14 @@ class _MemberHomeState extends State<MemberHome>
     };
   }
 
-  Widget _videoHeader({
+  Widget _header(
+    Color color, {
     required String title,
     required String param,
     String? param1,
     required int count,
+    bool? visible,
   }) {
-    final color = Theme.of(context).colorScheme.outline;
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -248,6 +299,20 @@ class _MemberHomeState extends State<MemberHome>
                     text: count.toString(),
                     style: TextStyle(fontSize: 13, color: color),
                   ),
+                  if (visible != null)
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.middle,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 10),
+                        child: Icon(
+                          visible == true
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          size: 17,
+                          color: color,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -256,8 +321,9 @@ class _MemberHomeState extends State<MemberHome>
                 int index =
                     _ctr.tab2!.indexWhere((item) => item.param == param);
                 if (index != -1) {
-                  if (const ['video', 'opus', 'audio'].contains(param1)) {
-                    List<SpaceTabItem> items = _ctr.tab2!
+                  if (const ['video', 'opus', 'audio', 'comic']
+                      .contains(param1)) {
+                    List<SpaceTab2Item> items = _ctr.tab2!
                         .firstWhere((item) => item.param == param)
                         .items!;
                     int index1 =
@@ -270,17 +336,17 @@ class _MemberHomeState extends State<MemberHome>
                         if (contributeCtr.tabController?.index != index1) {
                           contributeCtr.tabController?.index = index1;
                         }
-                        debugPrint('initialized');
+                        if (kDebugMode) debugPrint('initialized');
                       } catch (e) {
                         _ctr.contributeInitialIndex.value = index1;
-                        debugPrint('not initialized');
+                        if (kDebugMode) debugPrint('not initialized');
                       }
                     }
                   }
                   _ctr.tabController?.animateTo(index);
                 } else {
                   if (param == 'coinArchive') {
-                    Get.to(MemberCoinPage(
+                    Get.to(MemberCoinArcPage(
                       mid: _ctr.mid,
                       name: _ctr.username,
                     ));
@@ -288,7 +354,7 @@ class _MemberHomeState extends State<MemberHome>
                   }
 
                   if (param == 'likeArchive') {
-                    Get.to(MemberLikePage(
+                    Get.to(MemberLikeArcPage(
                       mid: _ctr.mid,
                       name: _ctr.username,
                     ));

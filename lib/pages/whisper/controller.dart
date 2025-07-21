@@ -2,9 +2,9 @@ import 'package:PiliPlus/grpc/bilibili/app/im/v1.pb.dart'
     show Offset, Session, SessionMainReply, SessionPageType, ThreeDotItem;
 import 'package:PiliPlus/grpc/im.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/msg/msgfeed_unread.dart';
+import 'package:PiliPlus/models_new/msg/msgfeed_unread.dart';
 import 'package:PiliPlus/pages/common/common_whisper_controller.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -26,8 +26,6 @@ class WhisperController extends CommonWhisperController<SessionMainReply> {
   @override
   void onInit() {
     super.onInit();
-    final disableLikeMsg =
-        GStorage.setting.get(SettingBoxKey.disableLikeMsg, defaultValue: false);
     msgFeedTopItems = [
       const (
         name: "回复我的",
@@ -45,7 +43,7 @@ class WhisperController extends CommonWhisperController<SessionMainReply> {
         name: "收到的赞",
         icon: Icons.favorite_border_outlined,
         route: "/likeMe",
-        enabled: !disableLikeMsg,
+        enabled: !Pref.disableLikeMsg,
       ),
       const (
         name: "系统通知",

@@ -1,14 +1,16 @@
 import 'package:PiliPlus/common/widgets/pair.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/msg.dart';
-import 'package:PiliPlus/models/msg/msgfeed_like_me.dart';
+import 'package:PiliPlus/models_new/msg/msg_like/data.dart';
+import 'package:PiliPlus/models_new/msg/msg_like/item.dart';
 import 'package:PiliPlus/pages/common/common_data_controller.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
-class LikeMeController extends CommonDataController<MsgFeedLikeMe, dynamic> {
-  int cursor = -1;
-  int cursorTime = -1;
+class LikeMeController extends CommonDataController<MsgLikeData,
+    Pair<List<MsgLikeItem>, List<MsgLikeItem>>> {
+  int? cursor;
+  int? cursorTime;
 
   bool isEnd = false;
 
@@ -27,18 +29,18 @@ class LikeMeController extends CommonDataController<MsgFeedLikeMe, dynamic> {
   }
 
   @override
-  bool customHandleResponse(bool isRefresh, Success<MsgFeedLikeMe> response) {
-    MsgFeedLikeMe data = response.response;
+  bool customHandleResponse(bool isRefresh, Success<MsgLikeData> response) {
+    MsgLikeData data = response.response;
     if (data.total?.cursor?.isEnd == true ||
         data.total?.items.isNullOrEmpty == true) {
       isEnd = true;
     }
-    cursor = data.total?.cursor?.id ?? -1;
-    cursorTime = data.total?.cursor?.time ?? -1;
-    List<LikeMeItems> latest = data.latest?.items ?? [];
-    List<LikeMeItems> total = data.total?.items ?? [];
+    cursor = data.total?.cursor?.id;
+    cursorTime = data.total?.cursor?.time;
+    List<MsgLikeItem> latest = data.latest?.items ?? <MsgLikeItem>[];
+    List<MsgLikeItem> total = data.total?.items ?? <MsgLikeItem>[];
     if (!isRefresh && loadingState.value.isSuccess) {
-      Pair<List<LikeMeItems>, List<LikeMeItems>> pair = loadingState.value.data;
+      Pair<List<MsgLikeItem>, List<MsgLikeItem>> pair = loadingState.value.data;
       latest.insertAll(0, pair.first);
       total.insertAll(0, pair.second);
     }
@@ -48,20 +50,20 @@ class LikeMeController extends CommonDataController<MsgFeedLikeMe, dynamic> {
 
   @override
   Future<void> onRefresh() {
-    cursor = -1;
-    cursorTime = -1;
+    cursor = null;
+    cursorTime = null;
     return super.onRefresh();
   }
 
   @override
-  Future<LoadingState<MsgFeedLikeMe>> customGetData() =>
+  Future<LoadingState<MsgLikeData>> customGetData() =>
       MsgHttp.msgFeedLikeMe(cursor: cursor, cursorTime: cursorTime);
 
   Future<void> onRemove(dynamic id, int index, bool isLatest) async {
     try {
       var res = await MsgHttp.delMsgfeed(0, id);
       if (res['status']) {
-        Pair<List<LikeMeItems>, List<LikeMeItems>> pair =
+        Pair<List<MsgLikeItem>, List<MsgLikeItem>> pair =
             loadingState.value.data;
         if (isLatest) {
           pair.first.removeAt(index);
@@ -76,17 +78,11 @@ class LikeMeController extends CommonDataController<MsgFeedLikeMe, dynamic> {
     } catch (_) {}
   }
 
-  Future<void> onSetNotice(
-      int? id, int index, bool isNotice, bool isLatest) async {
+  Future<void> onSetNotice(MsgLikeItem item, bool isNotice) async {
     int noticeState = isNotice ? 1 : 0;
-    var res = await MsgHttp.msgSetNotice(id: id, noticeState: noticeState);
+    var res = await MsgHttp.msgSetNotice(id: item.id, noticeState: noticeState);
     if (res['status']) {
-      Pair<List<LikeMeItems>, List<LikeMeItems>> pair = loadingState.value.data;
-      if (isLatest) {
-        pair.first[index].noticeState = noticeState;
-      } else {
-        pair.second[index].noticeState = noticeState;
-      }
+      item.noticeState = noticeState;
       loadingState.refresh();
       SmartDialog.showToast('操作成功');
     } else {

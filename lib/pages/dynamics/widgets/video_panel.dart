@@ -4,13 +4,13 @@ import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/num_util.dart';
 import 'package:flutter/material.dart';
 
 Widget videoSeasonWidget(
   ThemeData theme,
   bool isSave,
-  String? source,
+  bool isDetail,
   DynamicItemModel item,
   BuildContext context,
   String type,
@@ -29,9 +29,7 @@ Widget videoSeasonWidget(
               const SizedBox(width: 5),
               Text(
                 item.modules.moduleDynamic!.major!.none!.tips!,
-                style: TextStyle(
-                  color: theme.colorScheme.outline,
-                ),
+                style: TextStyle(color: theme.colorScheme.outline),
               ),
             ],
           )
@@ -68,6 +66,7 @@ Widget videoSeasonWidget(
               width: width,
               height: width / StyleString.aspectRatio,
               src: itemContent.cover,
+              quality: 40,
             ),
             if (itemContent.badge?.text != null)
               PBadge(
@@ -89,7 +88,6 @@ Widget videoSeasonWidget(
                 height: 70,
                 alignment: Alignment.bottomLeft,
                 padding: const EdgeInsets.fromLTRB(10, 0, 8, 8),
-                clipBehavior: Clip.hardEdge,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -113,16 +111,18 @@ Widget videoSeasonWidget(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       if (itemContent.durationText != null) ...[
-                        Text(
-                          itemContent.durationText!,
-                          semanticsLabel:
-                              '时长${Utils.durationReadFormat(itemContent.durationText!)}',
+                        DecoratedBox(
+                          decoration: const BoxDecoration(
+                            color: Colors.black45,
+                            borderRadius: BorderRadius.all(Radius.circular(4)),
+                          ),
+                          child: Text(' ${itemContent.durationText} '),
                         ),
                         const SizedBox(width: 6),
                       ],
-                      Text('${Utils.numFormat(itemContent.stat?.play)}次围观'),
+                      Text('${NumUtil.numFormat(itemContent.stat?.play)}次围观'),
                       const SizedBox(width: 6),
-                      Text('${Utils.numFormat(itemContent.stat?.danmu)}条弹幕'),
+                      Text('${NumUtil.numFormat(itemContent.stat?.danmu)}条弹幕'),
                       const Spacer(),
                       Image.asset(
                         'assets/images/play.png',
@@ -142,15 +142,16 @@ Widget videoSeasonWidget(
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
-    mainAxisAlignment: MainAxisAlignment.start,
     children: [
       if (itemContent.cover != null)
-        Padding(
-          padding: floor == 1
-              ? const EdgeInsets.symmetric(horizontal: StyleString.safeSpace)
-              : EdgeInsets.zero,
-          child: buildCover(),
-        ),
+        if (floor == 1)
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: StyleString.safeSpace),
+            child: buildCover(),
+          )
+        else
+          buildCover(),
       const SizedBox(height: 6),
       if (itemContent.title != null)
         Padding(
@@ -159,9 +160,9 @@ Widget videoSeasonWidget(
               : EdgeInsets.zero,
           child: Text(
             itemContent.title!,
-            maxLines: source == 'detail' ? null : 1,
+            maxLines: isDetail ? null : 1,
             style: const TextStyle(fontWeight: FontWeight.bold),
-            overflow: source == 'detail' ? null : TextOverflow.ellipsis,
+            overflow: isDetail ? null : TextOverflow.ellipsis,
           ),
         ),
     ],

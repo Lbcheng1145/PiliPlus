@@ -11,7 +11,7 @@ import 'package:PiliPlus/pages/home/controller.dart';
 import 'package:PiliPlus/pages/hot/controller.dart';
 import 'package:PiliPlus/pages/rank/view.dart';
 import 'package:PiliPlus/utils/grid.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/image_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -43,7 +43,7 @@ class _HotPageState extends CommonPageState<HotPage, HotController>
         mainAxisSize: MainAxisSize.min,
         children: [
           CachedNetworkImage(
-              width: 35, height: 35, imageUrl: Utils.thumbnailImgUrl(iconUrl)),
+              width: 35, height: 35, imageUrl: ImageUtil.thumbnailUrl(iconUrl)),
           const SizedBox(height: 4),
           Text(
             title,
@@ -132,7 +132,7 @@ class _HotPageState extends CommonPageState<HotPage, HotController>
           SliverPadding(
             padding: EdgeInsets.only(
               top: StyleString.safeSpace - 5,
-              bottom: MediaQuery.of(context).padding.bottom + 80,
+              bottom: MediaQuery.paddingOf(context).bottom + 80,
             ),
             sliver: Obx(
               () => _buildBody(controller.loadingState.value),
@@ -168,7 +168,9 @@ class _HotPageState extends CommonPageState<HotPage, HotController>
                   }
                   return VideoCardH(
                     videoItem: response[index],
-                    showPubdate: true,
+                    onRemove: () => controller.loadingState
+                      ..value.data!.removeAt(index)
+                      ..refresh(),
                   );
                 },
                 childCount: response!.length,

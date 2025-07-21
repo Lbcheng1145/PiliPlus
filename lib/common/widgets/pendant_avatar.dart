@@ -2,8 +2,8 @@ import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/models/common/avatar_badge_type.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/utils/extension.dart';
-import 'package:PiliPlus/utils/storage.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/image_util.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -38,7 +38,7 @@ class PendantAvatar extends StatelessWidget {
                     : BadgeType.none,
         badgeSize = badgeSize ?? size / 3;
 
-  static bool showDynDecorate = GStorage.showDynDecorate;
+  static bool showDynDecorate = Pref.showDynDecorate;
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +62,7 @@ class PendantAvatar extends StatelessWidget {
               child: CachedNetworkImage(
                 width: size * 1.75,
                 height: size * 1.75,
-                imageUrl: Utils.thumbnailImgUrl(garbPendantImage),
+                imageUrl: ImageUtil.thumbnailUrl(garbPendantImage),
               ),
             ),
           ),

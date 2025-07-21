@@ -1,21 +1,20 @@
 import 'package:PiliPlus/models/model_rec_video_item.dart';
 import 'package:PiliPlus/models/model_video.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/num_util.dart';
 
 class RecVideoItemAppModel extends BaseRecVideoItemModel {
-  int? id;
+  int? get id => aid;
   String? talkBack;
 
   String? cardType;
   ThreePoint? threePoint;
 
   RecVideoItemAppModel.fromJson(Map<String, dynamic> json) {
-    id = json['player_args']?['aid'] ?? int.tryParse(json['param'] ?? '0');
-    aid = id;
-    bvid = json['bvid'] ?? IdUtils.av2bv(id!);
-    cid = json['player_args']?['cid'] ?? 0;
-    pic = json['cover'];
+    aid = json['player_args']?['aid'] ?? int.tryParse(json['param'] ?? '0');
+    bvid = json['bvid'] ?? IdUtils.av2bv(aid!);
+    cid = json['player_args']?['cid'];
+    cover = json['cover'];
     stat = RcmdStat.fromJson(json);
     // 改用player_args中的duration作为原始数据（秒数）
     duration = json['player_args']?['duration'] ?? 0;
@@ -27,7 +26,7 @@ class RecVideoItemAppModel extends BaseRecVideoItemModel {
     //     json['top_rcmd_reason'];
     if (rcmdReason != null && rcmdReason!.contains('赞')) {
       // 有时能在推荐原因里获得点赞数
-      (stat as RcmdStat).like = Utils.parseNum(rcmdReason!);
+      (stat as RcmdStat).like = NumUtil.parseNum(rcmdReason!);
     }
     // 由于app端api并不会直接返回与owner的关注状态
     // 所以借用推荐原因是否为“已关注”、“新关注”判别关注状态，从而与web端接口等效
@@ -41,7 +40,7 @@ class RecVideoItemAppModel extends BaseRecVideoItemModel {
     talkBack = json['talk_back'];
 
     if (json['goto'] == 'bangumi') {
-      bangumiBadge = json['cover_right_text'];
+      pgcBadge = json['cover_right_text'];
     }
 
     cardType = json['card_type'];
@@ -50,34 +49,13 @@ class RecVideoItemAppModel extends BaseRecVideoItemModel {
         : null;
     desc = json['desc'];
   }
-
-  // @override
-  // int? get pubdate => null;
 }
 
-class RcmdStat implements BaseStat {
-  @override
-  int? like;
-
-  @override
-  int? get view => Utils.parseNum(viewStr);
-  @override
-  int? get danmu => Utils.parseNum(danmuStr);
-
-  @override
-  late String viewStr;
-  @override
-  late String danmuStr;
-
+class RcmdStat extends BaseStat {
   RcmdStat.fromJson(Map<String, dynamic> json) {
-    viewStr = json["cover_left_text_1"];
-    danmuStr = json['cover_left_text_2'];
+    view = NumUtil.parseNum(json["cover_left_text_1"] ?? '');
+    danmu = NumUtil.parseNum(json["cover_left_text_2"] ?? '');
   }
-
-  @override
-  set danmu(_) {}
-  @override
-  set view(_) {}
 }
 
 class RcmdOwner extends BaseOwner {

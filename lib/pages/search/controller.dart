@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/search.dart';
-import 'package:PiliPlus/models/search/search_trending/trending_data.dart';
 import 'package:PiliPlus/models/search/suggest.dart';
+import 'package:PiliPlus/models_new/search/search_rcmd/data.dart';
+import 'package:PiliPlus/models_new/search/search_trending/data.dart';
+import 'package:PiliPlus/utils/id_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_rx/src/rx_workers/utils/debouncer.dart';
+import 'package:stream_transform/stream_transform.dart';
 
 class SSearchController extends GetxController {
   SSearchController(this.tag);
@@ -15,30 +20,30 @@ class SSearchController extends GetxController {
   final searchFocusNode = FocusNode();
   final controller = TextEditingController();
 
-  RxList<String> historyList = <String>[].obs;
-
-  RxList<SearchSuggestItem> searchSuggestList = <SearchSuggestItem>[].obs;
-
   String hintText = '搜索';
-
-  late bool enableHotKey;
-  late bool enableSearchRcmd;
-
-  Rx<LoadingState<TrendingData>> loadingState =
-      LoadingState<TrendingData>.loading().obs;
-
-  Rx<LoadingState<SearchKeywordData>> recommendData =
-      LoadingState<SearchKeywordData>.loading().obs;
 
   int initIndex = 0;
 
-  RxBool showUidBtn = false.obs;
+  // uid
+  final RxBool showUidBtn = false.obs;
 
-  final _debouncer = Debouncer(delay: const Duration(milliseconds: 200));
-  late final searchSuggestion = GStorage.searchSuggestion;
-  late final RxBool recordSearchHistory = GStorage.recordSearchHistory.obs;
+  // history
+  final RxBool recordSearchHistory = Pref.recordSearchHistory.obs;
+  late final RxList<String> historyList;
 
-  late final digitOnlyRegExp = RegExp(r'^\d+$');
+  // suggestion
+  final bool searchSuggestion = Pref.searchSuggestion;
+  StreamController<String>? _ctr;
+  StreamSubscription<String>? _sub;
+  late final RxList<SearchSuggestItem> searchSuggestList;
+
+  // trending
+  final bool enableHotKey = Pref.enableHotKey;
+  late final Rx<LoadingState<SearchTrendingData>> loadingState;
+
+  // rcmd
+  final bool enableSearchRcmd = Pref.enableSearchRcmd;
+  late final Rx<LoadingState<SearchRcmdData>> recommendData;
 
   @override
   void onInit() {
@@ -54,33 +59,40 @@ class SSearchController extends GetxController {
       controller.text = Get.parameters['text']!;
     }
 
-    historyList.value = List.from(GStorage.historyWord.get('cacheList') ?? []);
+    historyList =
+        List<String>.from(GStorage.historyWord.get('cacheList') ?? []).obs;
 
-    enableHotKey =
-        GStorage.setting.get(SettingBoxKey.enableHotKey, defaultValue: true);
-
-    enableSearchRcmd = GStorage.setting
-        .get(SettingBoxKey.enableSearchRcmd, defaultValue: true);
+    if (searchSuggestion) {
+      _ctr = StreamController<String>();
+      _sub = _ctr!.stream
+          .debounce(const Duration(milliseconds: 200), trailing: true)
+          .listen(querySearchSuggest);
+      searchSuggestList = <SearchSuggestItem>[].obs;
+    }
 
     if (enableHotKey) {
+      loadingState = LoadingState<SearchTrendingData>.loading().obs;
       queryHotSearchList();
     }
 
     if (enableSearchRcmd) {
+      recommendData = LoadingState<SearchRcmdData>.loading().obs;
       queryRecommendList();
     }
   }
 
   void validateUid() {
-    showUidBtn.value = digitOnlyRegExp.hasMatch(controller.text);
+    showUidBtn.value = IdUtils.digitOnlyRegExp.hasMatch(controller.text);
   }
 
   void onChange(String value) {
     validateUid();
-    if (value.isEmpty) {
-      searchSuggestList.clear();
-    } else if (searchSuggestion) {
-      _debouncer.call(() => querySearchSuggest(value));
+    if (searchSuggestion) {
+      if (value.isEmpty) {
+        searchSuggestList.clear();
+      } else {
+        _ctr!.add(value);
+      }
     }
   }
 
@@ -146,15 +158,16 @@ class SSearchController extends GetxController {
   }
 
   Future<void> querySearchSuggest(String value) async {
-    var result = await SearchHttp.searchSuggest(term: value);
-    if (result['status']) {
-      if (result['data'] is SearchSuggestModel) {
-        searchSuggestList.value = result['data'].tag;
+    var res = await SearchHttp.searchSuggest(term: value);
+    if (res['status']) {
+      SearchSuggestModel data = res['data'];
+      if (data.tag?.isNotEmpty == true) {
+        searchSuggestList.value = data.tag!;
       }
     }
   }
 
-  void onLongSelect(word) {
+  void onLongSelect(String word) {
     historyList.remove(word);
     GStorage.historyWord.put('cacheList', historyList);
   }
@@ -174,7 +187,8 @@ class SSearchController extends GetxController {
   void onClose() {
     searchFocusNode.dispose();
     controller.dispose();
-    _debouncer.cancel();
+    _sub?.cancel();
+    _ctr?.close();
     super.onClose();
   }
 }

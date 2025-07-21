@@ -22,7 +22,7 @@ class SearchVideoPanel extends CommonSearchPanel {
 }
 
 class _SearchVideoPanelState extends CommonSearchPanelState<SearchVideoPanel,
-    SearchVideoModel, SearchVideoItemModel> {
+    SearchVideoData, SearchVideoItemModel> {
   @override
   late final SearchVideoController controller = Get.put(
     SearchVideoController(
@@ -112,7 +112,9 @@ class _SearchVideoPanelState extends CommonSearchPanelState<SearchVideoPanel,
           }
           return VideoCardH(
             videoItem: list[index],
-            showPubdate: true,
+            onRemove: () => controller.loadingState
+              ..value.data!.removeAt(index)
+              ..refresh(),
           );
         },
         childCount: list.length,

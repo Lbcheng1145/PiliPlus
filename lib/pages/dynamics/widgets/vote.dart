@@ -4,8 +4,10 @@ import 'package:PiliPlus/common/widgets/dialog/report.dart';
 import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/dynamics/vote_model.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/date_util.dart';
+import 'package:PiliPlus/utils/num_util.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class VotePanel extends StatefulWidget {
   final VoteInfo voteInfo;
@@ -25,7 +27,7 @@ class _VotePanelState extends State<VotePanel> {
   bool anonymity = false;
 
   late VoteInfo _voteInfo;
-  late final groupValue = _voteInfo.myVotes?.toSet() ?? {};
+  late final RxSet<int> groupValue = (_voteInfo.myVotes?.toSet() ?? {}).obs;
   late var _percentage = _cnt2Percentage(_voteInfo.options);
   late bool _enabled = groupValue.isEmpty &&
       _voteInfo.endTime! * 1000 > DateTime.now().millisecondsSinceEpoch;
@@ -56,13 +58,13 @@ class _VotePanelState extends State<VotePanel> {
             runSpacing: 5,
             children: [
               Text(
-                '至 ${DateTime.fromMillisecondsSinceEpoch(_voteInfo.endTime! * 1000).toString().substring(0, 19)}',
+                '至 ${DateUtil.format(_voteInfo.endTime, format: DateUtil.longFormatDs)}',
               ),
               Text.rich(
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: Utils.numFormat(_voteInfo.joinNum),
+                      text: NumUtil.numFormat(_voteInfo.joinNum),
                       style: TextStyle(color: theme.colorScheme.primary),
                     ),
                     const TextSpan(text: '人参与'),
@@ -82,35 +84,37 @@ class _VotePanelState extends State<VotePanel> {
                       ? '已结束'
                       : '已完成',
             ),
-            if (_enabled) Text('${groupValue.length} / $_maxCnt'),
+            if (_enabled) Obx(() => Text('${groupValue.length} / $_maxCnt'))
           ],
         ),
         Flexible(fit: FlexFit.loose, child: _buildContext()),
         if (_enabled)
           Padding(
             padding: const EdgeInsets.only(top: 16),
-            child: OutlinedButton(
-              onPressed: groupValue.isNotEmpty
-                  ? () async {
-                      final res = await widget.callback(
-                        groupValue,
-                        anonymity,
-                      );
-                      if (res.isSuccess) {
-                        if (mounted) {
-                          setState(() {
-                            _enabled = false;
-                            _showPercentage = true;
-                            _voteInfo = res.data;
-                            _percentage = _cnt2Percentage(_voteInfo.options);
-                          });
+            child: Obx(
+              () => OutlinedButton(
+                onPressed: groupValue.isNotEmpty
+                    ? () async {
+                        final res = await widget.callback(
+                          groupValue,
+                          anonymity,
+                        );
+                        if (res.isSuccess) {
+                          if (mounted) {
+                            setState(() {
+                              _enabled = false;
+                              _showPercentage = true;
+                              _voteInfo = res.data;
+                              _percentage = _cnt2Percentage(_voteInfo.options);
+                            });
+                          }
+                        } else {
+                          res.toast();
                         }
-                      } else {
-                        res.toast();
                       }
-                    }
-                  : null,
-              child: const Center(child: Text('投票')),
+                    : null,
+                child: const Center(child: Text('投票')),
+              ),
             ),
           ),
       ],
@@ -137,28 +141,40 @@ class _VotePanelState extends State<VotePanel> {
       ];
 
   Widget _buildOptions(int index) {
-    final opt = _voteInfo.options[index];
-    final selected = groupValue.contains(opt.optidx);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: PercentageChip(
-        label: opt.optdesc!,
-        percentage: _showPercentage ? _percentage[index] : null,
-        selected: selected,
-        onSelected: !_enabled || (groupValue.length >= _maxCnt && !selected)
-            ? null
-            : (value) => _onSelected(value, opt.optidx!),
+      child: Builder(
+        builder: (context) {
+          final opt = _voteInfo.options[index];
+          final selected = groupValue.contains(opt.optIdx);
+          return PercentageChip(
+            label: opt.optDesc!,
+            percentage: _showPercentage ? _percentage[index] : null,
+            selected: selected,
+            onSelected: !_enabled || (groupValue.length >= _maxCnt && !selected)
+                ? null
+                : (value) => _onSelected(context, value, opt.optIdx!),
+          );
+        },
       ),
     );
   }
 
-  void _onSelected(bool value, int optidx) {
+  void _onSelected(BuildContext context, bool value, int optidx) {
+    bool isMax = groupValue.length >= _maxCnt;
     if (value) {
       groupValue.add(optidx);
     } else {
       groupValue.remove(optidx);
     }
-    setState(() {});
+    if ((isMax &&
+            _maxCnt != _voteInfo.options.length &&
+            groupValue.length < _maxCnt) ||
+        (groupValue.length >= _maxCnt && _maxCnt < _voteInfo.options.length)) {
+      setState(() {});
+    } else {
+      (context as Element).markNeedsBuild();
+    }
   }
 
   Widget _buildContext() {
@@ -204,7 +220,7 @@ class PercentageChip extends StatelessWidget {
       labelPadding: EdgeInsets.zero,
       padding: EdgeInsets.zero,
       showCheckmark: false,
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: Clip.hardEdge,
       label: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
@@ -225,23 +241,28 @@ class PercentageChip extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
-              // mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              spacing: 8,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    if (selected)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: Icon(
+                Expanded(
+                  child: Row(
+                    spacing: 4,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (selected)
+                        Icon(
                           Icons.check_circle,
                           size: 12,
                           color: colorScheme.onPrimaryContainer,
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
                 if (percentage != null)
                   Text('${(percentage! * 100).toStringAsFixed(0)}%'),

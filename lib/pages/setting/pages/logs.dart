@@ -3,8 +3,13 @@ import 'dart:io';
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
 import 'package:PiliPlus/services/loggeer.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
+import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 class LogsPage extends StatefulWidget {
   const LogsPage({super.key});
@@ -18,6 +23,7 @@ class _LogsPageState extends State<LogsPage> {
   late String fileContent;
   List logsContent = [];
   DateTime? latestLog;
+  late bool enableLog = Pref.enableLog;
 
   @override
   void initState() {
@@ -67,7 +73,7 @@ class _LogsPageState extends State<LogsPage> {
                   l.split("Crash occurred on")[1].trim(),
                 );
               } catch (e) {
-                debugPrint(e.toString());
+                if (kDebugMode) debugPrint(e.toString());
                 date = l.toString();
               }
               return "";
@@ -113,6 +119,11 @@ class _LogsPageState extends State<LogsPage> {
           PopupMenuButton<String>(
             onSelected: (String type) {
               switch (type) {
+                case 'log':
+                  enableLog = !enableLog;
+                  GStorage.setting.put(SettingBoxKey.enableLog, enableLog);
+                  SmartDialog.showToast('已${enableLog ? '开启' : '关闭'}，重启生效');
+                  break;
                 case 'copy':
                   copyLogs();
                   break;
@@ -127,6 +138,10 @@ class _LogsPageState extends State<LogsPage> {
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'log',
+                child: Text('${enableLog ? '关闭' : '开启'}日志'),
+              ),
               const PopupMenuItem<String>(
                 value: 'copy',
                 child: Text('复制日志'),
@@ -148,6 +163,9 @@ class _LogsPageState extends State<LogsPage> {
           ? SafeArea(
               bottom: false,
               child: ListView.separated(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.paddingOf(context).bottom + 80,
+                ),
                 itemCount: logsContent.length,
                 itemBuilder: (context, index) {
                   final log = logsContent[index];
@@ -197,8 +215,6 @@ class _LogsPageState extends State<LogsPage> {
                           ],
                         ),
                         Card(
-                          elevation: 1,
-                          margin: EdgeInsets.zero,
                           child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(12.0),

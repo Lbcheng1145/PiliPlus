@@ -2,12 +2,13 @@ import 'dart:io';
 
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/models/common/webview_menu_type.dart';
+import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/cache_manage.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
-import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -170,9 +171,7 @@ class _WebviewPageState extends State<WebviewPage> {
                 callback: (args) async {
                   WebUri? uri = await controller.getUrl();
                   if (uri != null) {
-                    String? oid = RegExp(r'oid=(\d+)')
-                        .firstMatch(uri.toString())
-                        ?.group(1);
+                    String? oid = uri.queryParameters['oid'];
                     if (oid != null) {
                       PiliScheme.videoPush(int.parse(oid), null);
                     }
@@ -229,7 +228,7 @@ class _WebviewPageState extends State<WebviewPage> {
                           suggestedFilename =
                               Uri.decodeComponent(suggestedFilename);
                         } catch (e) {
-                          debugPrint(e.toString());
+                          if (kDebugMode) debugPrint(e.toString());
                         }
                         return AlertDialog(
                           title: Text(
@@ -240,7 +239,12 @@ class _WebviewPageState extends State<WebviewPage> {
                           actions: [
                             TextButton(
                               onPressed: Get.back,
-                              child: const Text('取消'),
+                              child: Text(
+                                '取消',
+                                style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.outline),
+                              ),
                             ),
                             TextButton(
                                 onPressed: () {
@@ -284,7 +288,7 @@ class _WebviewPageState extends State<WebviewPage> {
               selfHandle: true,
               off: _off,
             );
-            // debugPrint('webview: [$url], [$hasMatch]');
+            // if (kDebugMode) debugPrint('webview: [$url], [$hasMatch]');
             if (hasMatch) {
               progress.value = 1;
               return NavigationActionPolicy.CANCEL;

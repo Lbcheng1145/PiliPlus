@@ -1,7 +1,6 @@
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
-import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/search/result.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -15,13 +14,11 @@ class LiveItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
-      elevation: 1,
       clipBehavior: Clip.hardEdge,
-      margin: EdgeInsets.zero,
       child: InkWell(
         onTap: () => Get.toNamed('/liveRoom?roomid=${liveItem.roomid}'),
         onLongPress: () => imageSaveDialog(
-          title: liveItem.title?.map((item) => item['text']).join() ?? '',
+          title: liveItem.title.map((item) => item.text).join(),
           cover: liveItem.cover,
         ),
         child: Column(
@@ -36,9 +33,9 @@ class LiveItem extends StatelessWidget {
                   children: [
                     NetworkImgLayer(
                       src: liveItem.cover,
-                      type: ImageType.emote,
                       width: maxWidth,
                       height: maxHeight,
+                      radius: 0,
                     ),
                     Positioned(
                       left: 0,
@@ -73,20 +70,16 @@ class LiveItem extends StatelessWidget {
             children: [
               Text.rich(
                 TextSpan(
-                  children: [
-                    for (var i in liveItem.title!) ...[
-                      TextSpan(
-                        text: i['text'],
-                        style: TextStyle(
-                          letterSpacing: 0.3,
-                          color: i['type'] == 'em'
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurface,
-                        ),
-                      ),
-                    ]
-                  ],
-                ),
+                    children: liveItem.title
+                        .map((e) => TextSpan(
+                              text: e.text,
+                              style: TextStyle(
+                                color: e.isEm
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurface,
+                              ),
+                            ))
+                        .toList()),
               ),
               SizedBox(
                 width: double.infinity,

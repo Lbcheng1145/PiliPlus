@@ -5,20 +5,21 @@ import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
-import 'package:PiliPlus/common/widgets/video_card/video_card_h_member_video.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/member/info.dart';
-import 'package:PiliPlus/models/space_archive/item.dart';
+import 'package:PiliPlus/models_new/space/space_archive/item.dart';
+import 'package:PiliPlus/pages/member_video/widgets/video_card_h_member_video.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
 import 'package:PiliPlus/pages/video/introduction/ugc/controller.dart';
 import 'package:PiliPlus/pages/video/member/controller.dart';
+import 'package:PiliPlus/services/account_service.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/grid.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
+import 'package:PiliPlus/utils/num_util.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
-import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -42,7 +43,7 @@ class HorizontalMemberPage extends StatefulWidget {
 
 class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
   late final HorizontalMemberPageController _controller;
-  int? _ownerMid;
+  AccountService accountService = Get.find<AccountService>();
   dynamic _bvid;
 
   @override
@@ -56,7 +57,6 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
       tag: widget.videoDetailController.heroTag,
     );
     _bvid = widget.videoDetailController.bvid;
-    _ownerMid = Accounts.main.mid;
   }
 
   @override
@@ -181,7 +181,7 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
       Success(:var response) => response?.isNotEmpty == true
           ? SliverPadding(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).padding.bottom + 80,
+                bottom: MediaQuery.paddingOf(context).bottom + 80,
               ),
               sliver: SliverGrid(
                 gridDelegate: Grid.videoCardHDelegate(context),
@@ -191,26 +191,23 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
                       _controller.onLoadMore();
                     }
                     final SpaceArchiveItem videoItem = response[index];
-                    return Material(
-                      color: Colors.transparent,
-                      child: VideoCardHMemberVideo(
-                        videoItem: videoItem,
-                        bvid: _bvid,
-                        onTap: () {
-                          final status =
-                              widget.videoIntroController.changeSeasonOrbangu(
-                            null,
-                            videoItem.bvid,
-                            videoItem.cid,
-                            IdUtils.bv2av(videoItem.bvid!),
-                            videoItem.cover,
-                          );
-                          if (status) {
-                            _bvid = videoItem.bvid;
-                            setState(() {});
-                          }
-                        },
-                      ),
+                    return VideoCardHMemberVideo(
+                      videoItem: videoItem,
+                      bvid: _bvid,
+                      onTap: () {
+                        final status =
+                            widget.videoIntroController.changeSeasonOrbangu(
+                          null,
+                          videoItem.bvid,
+                          videoItem.cid,
+                          IdUtils.bv2av(videoItem.bvid!),
+                          videoItem.cover,
+                        );
+                        if (status) {
+                          _bvid = videoItem.bvid;
+                          setState(() {});
+                        }
+                      },
                     );
                   },
                   childCount: response!.length,
@@ -229,7 +226,7 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
     return Row(
       children: [
         const SizedBox(width: 16),
-        _buildAvatar(memberInfoModel.face),
+        _buildAvatar(memberInfoModel.face!),
         const SizedBox(width: 10),
         Expanded(child: _buildInfo(theme, memberInfoModel)),
         const SizedBox(width: 16),
@@ -274,12 +271,14 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
                     title: const ['粉丝', '关注', '获赞'][index ~/ 2],
                     num: index == 0
                         ? _controller.userStat['follower'] != null
-                            ? Utils.numFormat(_controller.userStat['follower'])
+                            ? NumUtil.numFormat(
+                                _controller.userStat['follower'])
                             : ''
                         : index == 2
                             ? _controller.userStat['following'] ?? ''
                             : _controller.userStat['likes'] != null
-                                ? Utils.numFormat(_controller.userStat['likes'])
+                                ? NumUtil.numFormat(
+                                    _controller.userStat['likes'])
                                 : '',
                     onTap: () {
                       if (index == 0) {
@@ -320,10 +319,10 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
                     visualDensity: const VisualDensity(vertical: -2),
                   ),
                   onPressed: () {
-                    if (widget.mid == _ownerMid) {
+                    if (widget.mid == accountService.mid) {
                       Get.toNamed('/editProfile');
                     } else {
-                      if (_ownerMid == null) {
+                      if (!accountService.isLogin.value) {
                         SmartDialog.showToast('账号未登录');
                         return;
                       }
@@ -340,7 +339,7 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
                     }
                   },
                   child: Text(
-                    widget.mid == _ownerMid
+                    widget.mid == accountService.mid
                         ? '编辑资料'
                         : memberInfoModel.isFollowed == true
                             ? '已关注'
@@ -388,22 +387,19 @@ class _HorizontalMemberPageState extends State<HorizontalMemberPage> {
     );
   }
 
-  Hero _buildAvatar(face) => Hero(
-        tag: face,
-        child: GestureDetector(
-          onTap: () {
-            widget.videoDetailController.onViewImage();
-            context.imageView(
-              imgList: [SourceModel(url: face)],
-              onDismissed: widget.videoDetailController.onDismissed,
-            );
-          },
-          child: NetworkImgLayer(
-            src: face,
-            type: ImageType.avatar,
-            width: 70,
-            height: 70,
-          ),
+  Widget _buildAvatar(String face) => GestureDetector(
+        onTap: () {
+          widget.videoDetailController.onViewImage();
+          context.imageView(
+            imgList: [SourceModel(url: face)],
+            onDismissed: widget.videoDetailController.onDismissed,
+          );
+        },
+        child: NetworkImgLayer(
+          src: face,
+          type: ImageType.avatar,
+          width: 70,
+          height: 70,
         ),
       );
 }

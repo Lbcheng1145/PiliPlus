@@ -1,10 +1,17 @@
+import 'dart:async';
+
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
-import 'package:PiliPlus/models/common/settings_type.dart';
-import 'package:PiliPlus/pages/setting/widgets/model.dart';
+import 'package:PiliPlus/pages/setting/models/extra_settings.dart';
+import 'package:PiliPlus/pages/setting/models/model.dart';
+import 'package:PiliPlus/pages/setting/models/play_settings.dart';
+import 'package:PiliPlus/pages/setting/models/privacy_settings.dart';
+import 'package:PiliPlus/pages/setting/models/recommend_settings.dart';
+import 'package:PiliPlus/pages/setting/models/style_settings.dart';
+import 'package:PiliPlus/pages/setting/models/video_settings.dart';
 import 'package:PiliPlus/utils/grid.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:stream_transform/stream_transform.dart';
 import 'package:waterfall_flow/waterfall_flow.dart';
 
 class SettingsSearchPage extends StatefulWidget {
@@ -24,10 +31,36 @@ class _SettingsSearchPageState extends State<SettingsSearchPage> {
     ...videoSettings,
     ...playSettings,
     ...styleSettings,
-  ]..removeWhere((item) => item.settingsType == SettingsType.divider);
+  ];
+  late StreamController<String> _ctr;
+  late StreamSubscription<String> _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctr = StreamController<String>();
+    _sub = _ctr.stream
+        .debounce(const Duration(milliseconds: 200), trailing: true)
+        .listen((value) {
+      if (value.isEmpty) {
+        _list.clear();
+      } else {
+        value = value.toLowerCase();
+        _list.value = _settings
+            .where((item) =>
+                (item.title ?? item.getTitle?.call())
+                    ?.toLowerCase()
+                    .contains(value) ||
+                item.subtitle?.toLowerCase().contains(value) == true)
+            .toList();
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _sub.cancel();
+    _ctr.close();
     _textEditingController.dispose();
     super.dispose();
   }
@@ -54,23 +87,7 @@ class _SettingsSearchPageState extends State<SettingsSearchPage> {
           autofocus: true,
           controller: _textEditingController,
           textAlignVertical: TextAlignVertical.center,
-          onChanged: (value) {
-            EasyThrottle.throttle(
-                'searchSettings', const Duration(milliseconds: 200), () {
-              if (value.isEmpty) {
-                _list.clear();
-              } else {
-                value = value.toLowerCase();
-                _list.value = _settings
-                    .where((item) =>
-                        (item.title ?? item.getTitle?.call())
-                            ?.toLowerCase()
-                            .contains(value) ||
-                        item.subtitle?.toLowerCase().contains(value) == true)
-                    .toList();
-              }
-            });
-          },
+          onChanged: _ctr.add,
           decoration: const InputDecoration(
             isDense: true,
             hintText: '搜索',

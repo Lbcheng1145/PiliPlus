@@ -1,4 +1,5 @@
-import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
+import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/member.dart';
 import 'package:PiliPlus/models/member/tags.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
@@ -22,32 +23,44 @@ class GroupPanel extends StatefulWidget {
 }
 
 class _GroupPanelState extends State<GroupPanel> {
-  late Future _futureBuilderFuture;
-  late List<MemberTagItemModel> tagsList;
-  bool showDefaultBtn = true;
+  LoadingState<List<MemberTagItemModel>> loadingState =
+      LoadingState<List<MemberTagItemModel>>.loading();
+  RxBool showDefaultBtn = true.obs;
 
   @override
   void initState() {
     super.initState();
-    _futureBuilderFuture = MemberHttp.followUpTags();
-    () async {
-      var result = await _futureBuilderFuture;
-      if (result['status']) {
-        tagsList = result['data'];
-        tagsList.removeWhere((item) => item.tagid == 0);
-        tagsList = tagsList.map((item) {
-          return item..checked = widget.tags?.contains(item.tagid) == true;
-        }).toList();
-        setState(() {
-          showDefaultBtn = !tagsList.any((e) => e.checked == true);
-        });
+    _query();
+  }
+
+  void _query() {
+    MemberHttp.followUpTags().then((res) {
+      if (mounted) {
+        if (res['status']) {
+          List<MemberTagItemModel> tagsList = (res['data']
+              as List<MemberTagItemModel>)
+            ..removeWhere((item) => item.tagid == 0)
+            ..map((item) {
+              return item.checked = widget.tags?.contains(item.tagid) == true;
+            }).toList();
+          showDefaultBtn.value = !tagsList.any((e) => e.checked == true);
+          loadingState = Success(tagsList);
+        } else {
+          loadingState = Error(res['msg']);
+        }
+        setState(() {});
       }
-    }();
+    });
   }
 
   Future<void> onSave() async {
+    if (!loadingState.isSuccess) {
+      Get.back();
+      return;
+    }
     feedBack();
     // 是否有选中的 有选中的带id，没选使用默认0
+    List<MemberTagItemModel> tagsList = loadingState.data;
     final bool anyHasChecked =
         tagsList.any((MemberTagItemModel e) => e.checked == true);
     late List<int> tagidList;
@@ -66,6 +79,54 @@ class _GroupPanelState extends State<GroupPanel> {
     }
   }
 
+  Widget get _buildBody {
+    return switch (loadingState) {
+      Loading() => loadingWidget,
+      Success(:var response) => ListView.builder(
+          controller: widget.scrollController,
+          itemCount: response.length,
+          itemBuilder: (context, index) {
+            final item = response[index];
+            return Material(
+              type: MaterialType.transparency,
+              child: Builder(
+                builder: (context) {
+                  void onTap() {
+                    item.checked = !item.checked!;
+                    (context as Element).markNeedsBuild();
+                    showDefaultBtn.value =
+                        !response.any((e) => e.checked == true);
+                  }
+
+                  return ListTile(
+                    onTap: onTap,
+                    dense: true,
+                    leading: const Icon(Icons.group_outlined),
+                    minLeadingWidth: 0,
+                    title: Text(item.name ?? ''),
+                    subtitle:
+                        item.tip?.isNotEmpty == true ? Text(item.tip!) : null,
+                    trailing: Transform.scale(
+                      scale: 0.9,
+                      child: Checkbox(
+                        value: item.checked,
+                        onChanged: (bool? checkValue) => onTap(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      Error(:var errMsg) => scrollErrorWidget(
+          controller: widget.scrollController,
+          errMsg: errMsg,
+          onReload: _query,
+        ),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -79,77 +140,7 @@ class _GroupPanelState extends State<GroupPanel> {
               icon: const Icon(Icons.close_outlined)),
           title: const Text('设置关注分组'),
         ),
-        Expanded(
-          child: FutureBuilder(
-            future: _futureBuilderFuture,
-            builder: (BuildContext context, AsyncSnapshot snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
-                // TODO: refactor
-                if (snapshot.data is! Map) {
-                  return HttpError(
-                    isSliver: false,
-                    onReload: () => setState(() {
-                      _futureBuilderFuture = MemberHttp.followUpTags();
-                    }),
-                  );
-                }
-                Map data = snapshot.data as Map;
-                if (data['status']) {
-                  return Material(
-                    color: Colors.transparent,
-                    child: ListView.builder(
-                      controller: widget.scrollController,
-                      itemCount: tagsList.length,
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          onTap: () {
-                            tagsList[index].checked = !tagsList[index].checked!;
-                            showDefaultBtn =
-                                !tagsList.any((e) => e.checked == true);
-                            setState(() {});
-                          },
-                          dense: true,
-                          leading: const Icon(Icons.group_outlined),
-                          minLeadingWidth: 0,
-                          title: Text(tagsList[index].name ?? ''),
-                          subtitle: tagsList[index].tip != ''
-                              ? Text(tagsList[index].tip ?? '')
-                              : null,
-                          trailing: Transform.scale(
-                            scale: 0.9,
-                            child: Checkbox(
-                              value: tagsList[index].checked,
-                              onChanged: (bool? checkValue) {
-                                tagsList[index].checked = checkValue;
-                                showDefaultBtn =
-                                    !tagsList.any((e) => e.checked == true);
-                                setState(() {});
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                } else {
-                  return CustomScrollView(
-                    controller: widget.scrollController,
-                    slivers: [
-                      HttpError(
-                        errMsg: data['msg'],
-                        onReload: () => setState(() {}),
-                      ),
-                    ],
-                  );
-                }
-              } else {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
-            },
-          ),
-        ),
+        Expanded(child: _buildBody),
         Divider(
           height: 1,
           color: theme.disabledColor.withValues(alpha: 0.08),
@@ -159,19 +150,19 @@ class _GroupPanelState extends State<GroupPanel> {
             left: 20,
             right: 20,
             top: 12,
-            bottom: MediaQuery.of(context).padding.bottom + 12,
+            bottom: MediaQuery.paddingOf(context).bottom + 12,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                onPressed: () => onSave(),
+                onPressed: onSave,
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.only(left: 30, right: 30),
                   foregroundColor: theme.colorScheme.onPrimary,
                   backgroundColor: theme.colorScheme.primary,
                 ),
-                child: Text(showDefaultBtn ? '保存至默认分组' : '保存'),
+                child: Obx(() => Text(showDefaultBtn.value ? '保存至默认分组' : '保存')),
               ),
             ],
           ),

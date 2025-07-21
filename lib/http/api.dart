@@ -16,11 +16,11 @@ class Api {
 
   // 视频流
   // https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/video/videostream_url.md
-  static const String videoUrl = '/x/player/wbi/playurl';
+  static const String ugcUrl = '/x/player/wbi/playurl';
 
   // 番剧视频流
   // https://api.bilibili.com/pgc/player/web/v2/playurl?cid=104236640&bvid=BV13t411n7ex
-  static const String bangumiVideoUrl = '/pgc/player/web/v2/playurl';
+  static const String pgcUrl = '/pgc/player/web/v2/playurl';
 
   // 字幕
   // aid, cid
@@ -51,7 +51,7 @@ class Api {
   // https://api.bilibili.com/x/web-interface/archive/has/like
   // static const String hasLikeVideo = '/x/web-interface/archive/has/like';
 
-  static const String bangumiLikeCoinFav = '/pgc/season/episode/community';
+  static const String pgcLikeCoinFav = '/pgc/season/episode/community';
 
   // 视频点踩 web端不支持
 
@@ -202,7 +202,7 @@ class Api {
   // https://api.bilibili.com/x/v3/fav/folder/created/list?pn=1&ps=10&up_mid=17340771
   static const String userFavFolder = '/x/v3/fav/folder/created/list';
 
-  static const String folderInfo = '/x/v3/fav/folder/info';
+  static const String favFolderInfo = '/x/v3/fav/folder/info';
 
   static const String addFolder = '/x/v3/fav/folder/add';
 
@@ -279,7 +279,7 @@ class Api {
   static const String ab2c = '/x/player/pagelist';
 
   // 番剧/剧集明细
-  static const String bangumiInfo = '/pgc/view/web/season';
+  static const String pgcInfo = '/pgc/view/web/season';
 
   // https://api.bilibili.com/pgc/season/episode/web/info?ep_id=12345678
   static const String episodeInfo = '/pgc/season/episode/web/info';
@@ -370,12 +370,11 @@ class Api {
   // order_avoided=true&
   // w_rid=d893cf98a4e010cf326373194a648360&
   // wts=1689767832
-  static const String memberArchive = '/x/space/wbi/arc/search';
+  static const String searchArchive = '/x/space/wbi/arc/search';
 
   // 用户动态搜索
   // static const String memberDynamicSearch = '/x/space/dynamic/search';
-  static const String memberDynamicSearch =
-      '/x/polymer/web-dynamic/v1/feed/space/search';
+  static const String dynSearch = '/x/polymer/web-dynamic/v1/feed/space/search';
 
   // 用户动态
   static const String memberDynamic = '/x/polymer/web-dynamic/v1/feed/space';
@@ -390,12 +389,12 @@ class Api {
   static const String toViewClear = '/x/v2/history/toview/clear';
 
   // 追番
-  static const String bangumiAdd = '/pgc/web/follow/add';
+  static const String pgcAdd = '/pgc/web/follow/add';
 
   // 取消追番
-  static const String bangumiDel = '/pgc/web/follow/del';
+  static const String pgcDel = '/pgc/web/follow/del';
 
-  static const String bangumiUpdate = '/pgc/web/follow/status/update';
+  static const String pgcUpdate = '/pgc/web/follow/status/update';
 
   // 番剧列表
   // https://api.bilibili.com/pgc/season/index/result?
@@ -415,11 +414,11 @@ class Api {
   // season_type=1&
   // pagesize=20&
   // type=1
-  static const String bangumiList =
+  static const String pgcIndex =
       '/pgc/season/index/result?st=1&order=3&season_version=-1&spoken_language_type=-1&area=-1&is_finish=-1&copyright=-1&season_status=-1&season_month=-1&year=-1&style_id=-1&sort=0&season_type=1&pagesize=20&type=1';
 
   // 我的追番/追剧 ?type=1&pn=1&ps=15
-  static const String bangumiFollowList = '/x/space/bangumi/follow/list';
+  static const String favPgc = '/x/space/bangumi/follow/list';
 
   // 黑名单
   static const String blackLst = '/x/relation/blacks';
@@ -476,11 +475,11 @@ class Api {
 
   // 获取未读私信数
   // https://api.vc.bilibili.com/session_svr/v1/session_svr/single_unread
-  // static const String msgUnread =
-  //     '${HttpString.tUrl}/session_svr/v1/session_svr/single_unread';
+  static const String msgUnread =
+      '${HttpString.tUrl}/session_svr/v1/session_svr/single_unread';
 
   // 获取消息中心未读信息
-  // static const String msgFeedUnread = '/x/msgfeed/unread';
+  static const String msgFeedUnread = '/x/msgfeed/unread';
   //https://api.bilibili.com/x/msgfeed/reply?platform=web&build=0&mobi_app=web
   static const String msgFeedReply = '/x/msgfeed/reply';
   //https://api.bilibili.com/x/msgfeed/at?platform=web&build=0&mobi_app=web
@@ -698,9 +697,6 @@ class Api {
 
   static const String pgcSeasonRank = "/pgc/season/rank/web/list";
 
-  /// 取消订阅-合集
-  static const String unfavSeason = '/x/v3/fav/season/unfav';
-
   /// 取消订阅-播单
   static const String unfavFolder = '/x/v3/fav/folder/unfav';
 
@@ -732,7 +728,9 @@ class Api {
   // 点赞投币收藏关注
   static const String videoRelation = '/x/web-interface/archive/relation';
 
-  static const String seasonFav = '/x/v3/fav/season/'; // + fav unfav
+  static const String favSeason = '/x/v3/fav/season/fav';
+
+  static const String unfavSeason = '/x/v3/fav/season/unfav';
 
   /// 稍后再看&收藏夹视频列表
   static const String mediaList = '/x/v2/medialist/resource/list';
@@ -776,6 +774,8 @@ class Api {
   static const String searchTrending = '/x/v2/search/trending/ranking';
 
   static const String setTopDyn = '/x/dynamic/feed/space/set_top';
+
+  static const String rmTopDyn = '/x/dynamic/feed/space/rm_top';
 
   static const String searchRecommend =
       '${HttpString.appBaseUrl}/x/v2/search/recommend';
@@ -872,4 +872,67 @@ class Api {
 
   static const String topicPubSearch =
       '${HttpString.appBaseUrl}/x/topic/pub/search';
+
+  static const String upowerRank = '/x/upower/up/member/rank/v2';
+
+  static const String favFavFolder = '/x/v3/fav/folder/fav';
+
+  static const String unfavFavFolder = '/x/v3/fav/folder/unfav';
+
+  static const String coinArc = '${HttpString.appBaseUrl}/x/v2/space/coinarc';
+
+  static const String likeArc = '${HttpString.appBaseUrl}/x/v2/space/likearc';
+
+  static const String spaceSetting = '/x/space/setting/app';
+
+  static const String spaceSettingMod = '/x/space/privacy/batch/modify';
+
+  static const String vipExpAdd = '/x/vip/experience/add';
+
+  static const String coinLog = '/x/member/web/coin/log';
+
+  static const String dynTopicRcmd = '/x/topic/web/dynamic/rcmd';
+
+  static const String matchInfo = '/x/esports/match/info';
+
+  static const String dynPic = '/x/polymer/web-dynamic/v1/detail/pic';
+
+  static const String msgLikeDetail = '/x/msgfeed/like_detail';
+
+  static const String getLiveInfoByUser =
+      '${HttpString.liveBaseUrl}/xlive/web-room/v1/index/getInfoByUser';
+
+  static const String liveSetSilent =
+      '${HttpString.liveBaseUrl}/liveact/user_silent';
+
+  static const String addShieldKeyword =
+      '${HttpString.liveBaseUrl}/xlive/web-ucenter/v1/banned/AddShieldKeyword';
+
+  static const String delShieldKeyword =
+      '${HttpString.liveBaseUrl}/xlive/web-ucenter/v1/banned/DelShieldKeyword';
+
+  static const String liveShieldUser =
+      '${HttpString.liveBaseUrl}/liveact/shield_user';
+
+  static const String spaceComic = '${HttpString.appBaseUrl}/x/v2/space/comic';
+
+  static const String spaceAudio = '/audio/music-service/web/song/upper';
+
+  static const String dynMention = '/x/polymer/web-dynamic/v1/mention/search';
+
+  static const String createVote = '/x/vote/create';
+
+  static const String updateVote = '/x/vote/update';
+
+  static const String createReserve = '/x/new-reserve/up/reserve/create';
+
+  static const String updateReserve = '/x/new-reserve/up/reserve/update';
+
+  static const String reserveInfo = '/x/new-reserve/up/reserve/info';
+
+  static const String loginLog = '/x/member/web/login/log';
+
+  static const String expLog = '/x/member/web/exp/log';
+
+  static const String moralLog = '/x/member/web/moral/log';
 }

@@ -4,10 +4,10 @@ import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
-import 'package:PiliPlus/models/user/black.dart';
+import 'package:PiliPlus/models_new/blacklist/list.dart';
 import 'package:PiliPlus/pages/blacklist/controller.dart';
-import 'package:PiliPlus/utils/storage.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/date_util.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -24,7 +24,7 @@ class _BlackListPageState extends State<BlackListPage> {
   @override
   void dispose() {
     if (_blackListController.loadingState.value.isSuccess) {
-      GStorage.blackMids = _blackListController.loadingState.value.data!
+      Pref.blackMids = _blackListController.loadingState.value.data!
           .map((e) => e.mid!)
           .toSet();
     }
@@ -59,6 +59,7 @@ class _BlackListPageState extends State<BlackListPage> {
   }
 
   Widget _buildBody(LoadingState<List<BlackListItem>?> loadingState) {
+    late final style = TextStyle(color: Theme.of(context).colorScheme.outline);
     return switch (loadingState) {
       Loading() => SliverList.builder(
           itemCount: 12,
@@ -89,10 +90,9 @@ class _BlackListPageState extends State<BlackListPage> {
                     style: const TextStyle(fontSize: 14),
                   ),
                   subtitle: Text(
-                    Utils.dateFormat(item.mtime),
+                    '添加时间: ${DateUtil.format(item.mtime, format: DateUtil.longFormatDs)}',
                     maxLines: 1,
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.outline),
+                    style: style,
                     overflow: TextOverflow.ellipsis,
                   ),
                   dense: true,

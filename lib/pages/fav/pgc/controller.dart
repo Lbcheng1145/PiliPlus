@@ -1,15 +1,17 @@
-import 'package:PiliPlus/http/bangumi.dart';
+import 'package:PiliPlus/http/fav.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/video.dart';
-import 'package:PiliPlus/models/pgc/list.dart';
+import 'package:PiliPlus/models_new/fav/fav_pgc/data.dart';
+import 'package:PiliPlus/models_new/fav/fav_pgc/list.dart';
 import 'package:PiliPlus/pages/common/multi_select_controller.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/accounts.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
 class FavPgcController
-    extends MultiSelectController<BangumiListDataModel, BangumiListItemModel> {
+    extends MultiSelectController<FavPgcData, FavPgcItemModel> {
   final int type;
   final int followStatus;
 
@@ -22,8 +24,8 @@ class FavPgcController
   }
 
   @override
-  void onSelect(int index, [bool disableSelect = true]) {
-    super.onSelect(index, false);
+  void onSelect(FavPgcItemModel item, [bool disableSelect = true]) {
+    super.onSelect(item, false);
   }
 
   @override
@@ -33,13 +35,12 @@ class FavPgcController
   }
 
   @override
-  List<BangumiListItemModel>? getDataList(BangumiListDataModel response) {
+  List<FavPgcItemModel>? getDataList(FavPgcData response) {
     return response.list;
   }
 
   @override
-  Future<LoadingState<BangumiListDataModel>> customGetData() =>
-      BangumiHttp.bangumiFollowList(
+  Future<LoadingState<FavPgcData>> customGetData() => FavHttp.favPgc(
         mid: Accounts.main.mid,
         type: type,
         followStatus: followStatus,
@@ -54,8 +55,8 @@ class FavPgcController
   }
 
   // 取消追番
-  Future<void> bangumiDel(index, seasonId) async {
-    var result = await VideoHttp.bangumiDel(seasonId: seasonId);
+  Future<void> pgcDel(int index, seasonId) async {
+    var result = await VideoHttp.pgcDel(seasonId: seasonId);
     if (result['status']) {
       loadingState
         ..value.data!.removeAt(index)
@@ -64,16 +65,16 @@ class FavPgcController
     SmartDialog.showToast(result['msg']);
   }
 
-  Future<void> onUpdateList(followStatus) async {
-    List<BangumiListItemModel> dataList = loadingState.value.data!;
-    Set<BangumiListItemModel> updateList =
+  Future<void> onUpdateList(int followStatus) async {
+    List<FavPgcItemModel> dataList = loadingState.value.data!;
+    Set<FavPgcItemModel> updateList =
         dataList.where((item) => item.checked == true).toSet();
-    final res = await VideoHttp.bangumiUpdate(
+    final res = await VideoHttp.pgcUpdate(
       seasonId: updateList.map((item) => item.seasonId).toList(),
       status: followStatus,
     );
     if (res['status']) {
-      List<BangumiListItemModel> remainList =
+      List<FavPgcItemModel> remainList =
           dataList.toSet().difference(updateList).toList();
       loadingState.value = Success(remainList);
       enableMultiSelect.value = false;
@@ -88,19 +89,19 @@ class FavPgcController
           ctr.allSelected.value = false;
         }
       } catch (e) {
-        debugPrint('fav pgc onUpdate: $e');
+        if (kDebugMode) debugPrint('fav pgc onUpdate: $e');
       }
     }
     SmartDialog.showToast(res['msg']);
   }
 
-  Future<void> onUpdate(index, followStatus, seasonId) async {
-    var result = await VideoHttp.bangumiUpdate(
+  Future<void> onUpdate(int index, int followStatus, int? seasonId) async {
+    var result = await VideoHttp.pgcUpdate(
       seasonId: [seasonId],
       status: followStatus,
     );
     if (result['status']) {
-      List<BangumiListItemModel> list = loadingState.value.data!;
+      List<FavPgcItemModel> list = loadingState.value.data!;
       final item = list.removeAt(index);
       loadingState.refresh();
       try {
@@ -112,7 +113,7 @@ class FavPgcController
           ctr.allSelected.value = false;
         }
       } catch (e) {
-        debugPrint('fav pgc bangumiUpdate: $e');
+        if (kDebugMode) debugPrint('fav pgc pgcUpdate: $e');
       }
     }
     SmartDialog.showToast(result['msg']);

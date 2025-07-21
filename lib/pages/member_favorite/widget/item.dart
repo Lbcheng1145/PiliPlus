@@ -2,9 +2,10 @@ import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
-import 'package:PiliPlus/models/common/badge_type.dart';
-import 'package:PiliPlus/models/space_fav/list.dart';
-import 'package:PiliPlus/models/user/sub_folder.dart';
+import 'package:PiliPlus/models_new/space/space_fav/list.dart';
+import 'package:PiliPlus/models_new/sub/sub/list.dart';
+import 'package:PiliPlus/utils/fav_util.dart';
+import 'package:PiliPlus/utils/num_util.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -19,7 +20,7 @@ class MemberFavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Material(
-      color: Colors.transparent,
+      type: MaterialType.transparency,
       child: InkWell(
         onTap: () async {
           if (item.state == 1) {
@@ -27,7 +28,7 @@ class MemberFavItem extends StatelessWidget {
             return;
           }
 
-          if (item.type == 0) {
+          if (item.type == 0 || item.type == 11) {
             var res = await Get.toNamed(
               '/favDetail',
               parameters: {
@@ -39,15 +40,11 @@ class MemberFavItem extends StatelessWidget {
           } else {
             Get.toNamed(
               '/subDetail',
-              arguments: SubFolderItemData(
+              arguments: SubItemModel(
                 type: item.type,
                 title: item.title,
                 cover: item.cover,
-                upper: Upper(
-                  mid: item.upper?.mid,
-                  name: item.upper?.name,
-                  face: item.upper?.face,
-                ),
+                upper: item.upper,
                 mediaCount: item.mediaCount,
                 viewCount: item.viewCount,
               ),
@@ -68,7 +65,6 @@ class MemberFavItem extends StatelessWidget {
             vertical: 5,
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AspectRatio(
@@ -85,28 +81,15 @@ class MemberFavItem extends StatelessWidget {
                         ),
                         if (item.type == 21)
                           const PBadge(
-                            right: 3,
-                            bottom: 3,
+                            right: 6,
+                            top: 6,
                             text: '合集',
-                            isBold: false,
-                            size: PBadgeSize.small,
                           )
-                        else if (item.type == 0 || item.type == 11)
-                          Positioned(
-                            right: 3,
-                            bottom: 3,
-                            child: Container(
-                              padding: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: theme.colorScheme.primary,
-                              ),
-                              child: Icon(
-                                Icons.video_library_outlined,
-                                size: 12,
-                                color: theme.colorScheme.onPrimary,
-                              ),
-                            ),
+                        else if (item.type == 11)
+                          const PBadge(
+                            right: 6,
+                            top: 6,
+                            text: '收藏夹',
                           ),
                       ],
                     );
@@ -127,11 +110,11 @@ class MemberFavItem extends StatelessWidget {
                     const Spacer(),
                     Text(
                       item.type == 0
-                          ? '${item.mediaCount}个内容 · ${Utils.isPublicFavText(item.attr ?? 0)}'
+                          ? '${item.mediaCount}个内容 · ${FavUtil.isPublicFavText(item.attr)}'
                           : item.type == 11
                               ? '${item.mediaCount}个内容 · ${item.upper?.name}'
                               : item.type == 21
-                                  ? '创建者: ${item.upper?.name}\n${item.mediaCount}个视频 · ${Utils.numFormat(item.viewCount)}播放'
+                                  ? '创建者: ${item.upper?.name}\n${item.mediaCount}个视频 · ${NumUtil.numFormat(item.viewCount)}播放'
                                   : '${item.mediaCount}个内容',
                       style: TextStyle(
                         fontSize: 12,

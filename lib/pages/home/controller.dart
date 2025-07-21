@@ -6,8 +6,12 @@ import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/models/common/home_tab_type.dart';
 import 'package:PiliPlus/pages/common/common_controller.dart';
 import 'package:PiliPlus/pages/mine/view.dart';
+import 'package:PiliPlus/services/account_service.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -16,14 +20,11 @@ class HomeController extends GetxController
   late List<HomeTabType> tabs;
   late TabController tabController;
 
-  RxBool isLogin = false.obs;
-  RxString userFace = ''.obs;
-
   StreamController<bool>? searchBarStream;
-  late bool hideSearchBar;
-  late bool useSideBar;
+  final bool hideSearchBar = Pref.hideSearchBar;
+  final bool useSideBar = Pref.useSideBar;
 
-  late bool enableSearchWord;
+  final bool enableSearchWord = Pref.enableSearchWord;
   late RxString defaultSearch = ''.obs;
   late int lateCheckSearchAt = 0;
 
@@ -32,35 +33,29 @@ class HomeController extends GetxController
   @override
   ScrollController get scrollController => controller.scrollController;
 
+  AccountService accountService = Get.find<AccountService>();
+
   @override
   void onInit() {
     super.onInit();
-    final userInfo = GStorage.userInfo.get('userInfoCache');
-    isLogin.value = userInfo != null;
-    userFace.value = userInfo != null ? userInfo.face! : '';
 
-    hideSearchBar =
-        GStorage.setting.get(SettingBoxKey.hideSearchBar, defaultValue: true);
     if (hideSearchBar) {
       searchBarStream = StreamController<bool>.broadcast();
     }
 
-    enableSearchWord = GStorage.setting
-        .get(SettingBoxKey.enableSearchWord, defaultValue: true);
     if (enableSearchWord) {
       lateCheckSearchAt = DateTime.now().millisecondsSinceEpoch;
       querySearchDefault();
     }
-
-    useSideBar =
-        GStorage.setting.get(SettingBoxKey.useSideBar, defaultValue: false);
 
     setTabConfig();
   }
 
   @override
   Future<void> onRefresh() {
-    return controller.onRefresh().catchError((e) => debugPrint(e.toString()));
+    return controller.onRefresh().catchError((e) {
+      if (kDebugMode) debugPrint(e.toString());
+    });
   }
 
   void setTabConfig() {
@@ -90,7 +85,7 @@ class HomeController extends GetxController
     } catch (_) {}
   }
 
-  void showUserInfoDialog(context) {
+  void showUserInfoDialog(BuildContext context) {
     feedBack();
     showDialog(
       context: context,

@@ -2,14 +2,15 @@ import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/http/black.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/video.dart';
-import 'package:PiliPlus/models/user/black.dart';
+import 'package:PiliPlus/models_new/blacklist/data.dart';
+import 'package:PiliPlus/models_new/blacklist/list.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
 class BlackListController
-    extends CommonListController<BlackListDataModel, BlackListItem> {
+    extends CommonListController<BlackListData, BlackListItem> {
   int pageSize = 50;
   RxInt total = (-1).obs;
 
@@ -20,7 +21,8 @@ class BlackListController
   }
 
   @override
-  List<BlackListItem>? getDataList(BlackListDataModel response) {
+  List<BlackListItem>? getDataList(BlackListData response) {
+    total.value = response.total ?? 0;
     return response.list;
   }
 
@@ -29,13 +31,6 @@ class BlackListController
     if (length >= total.value) {
       isEnd = true;
     }
-  }
-
-  @override
-  bool customHandleResponse(
-      bool isRefresh, Success<BlackListDataModel> response) {
-    total.value = response.response.total ?? 0;
-    return false;
   }
 
   void onRemove(BuildContext context, int index, name, mid) {
@@ -56,6 +51,6 @@ class BlackListController
   }
 
   @override
-  Future<LoadingState<BlackListDataModel>> customGetData() =>
+  Future<LoadingState<BlackListData>> customGetData() =>
       BlackHttp.blackList(pn: page, ps: pageSize);
 }

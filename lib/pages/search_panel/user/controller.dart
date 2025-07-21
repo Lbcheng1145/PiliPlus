@@ -8,7 +8,7 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
 class SearchUserController
-    extends SearchPanelController<SearchUserModel, SearchUserItemModel> {
+    extends SearchPanelController<SearchUserData, SearchUserItemModel> {
   SearchUserController({
     required super.keyword,
     required super.searchType,
@@ -37,7 +37,6 @@ class SearchUserController
       context: context,
       useSafeArea: true,
       isScrollControlled: true,
-      clipBehavior: Clip.hardEdge,
       constraints: BoxConstraints(
         maxWidth: min(640, context.mediaQueryShortestSide),
       ),
@@ -50,7 +49,7 @@ class SearchUserController
               top: 20,
               left: 16,
               right: 16,
-              bottom: 80 + MediaQuery.of(context).padding.bottom,
+              bottom: 80 + MediaQuery.paddingOf(context).bottom,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,

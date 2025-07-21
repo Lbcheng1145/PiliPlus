@@ -8,11 +8,11 @@ import 'package:PiliPlus/grpc/bilibili/app/im/v1.pbenum.dart'
     show IMSettingType;
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
-import 'package:PiliPlus/models/msg/msgfeed_like_me.dart';
+import 'package:PiliPlus/models_new/msg/msg_like/item.dart';
 import 'package:PiliPlus/pages/msg_feed_top/like_me/controller.dart';
 import 'package:PiliPlus/pages/whisper_settings/view.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/date_util.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -65,6 +65,12 @@ class _LikeMePageState extends State<LikeMePage> {
   }
 
   Widget _buildBody(ThemeData theme, LoadingState loadingState) {
+    late final divider = Divider(
+      indent: 72,
+      endIndent: 20,
+      height: 6,
+      color: Colors.grey.withValues(alpha: 0.1),
+    );
     return switch (loadingState) {
       Loading() => SliverList.builder(
           itemCount: 12,
@@ -72,78 +78,58 @@ class _LikeMePageState extends State<LikeMePage> {
             return const MsgFeedTopSkeleton();
           },
         ),
-      Success(:var response) => () {
-          Pair<List<LikeMeItems>, List<LikeMeItems>> pair = response;
-          List<LikeMeItems> latest = pair.first;
-          List<LikeMeItems> total = pair.second;
-          if (latest.isNotEmpty || total.isNotEmpty) {
-            return SliverMainAxisGroup(
-              slivers: [
-                if (latest.isNotEmpty) ...[
-                  _buildHeader(theme, '最新'),
-                  SliverList.separated(
-                    itemBuilder: (context, index) {
-                      if (total.isEmpty && index == latest.length - 1) {
-                        _likeMeController.onLoadMore();
-                      }
-                      return _buildItem(
-                        theme,
-                        latest[index],
-                        (id) {
-                          _likeMeController.onRemove(id, index, true);
-                        },
-                        (isNotice, id) {
-                          _likeMeController.onSetNotice(
-                              id, index, isNotice, true);
-                        },
-                      );
-                    },
-                    itemCount: latest.length,
-                    separatorBuilder: (BuildContext context, int index) {
-                      return Divider(
-                        indent: 72,
-                        endIndent: 20,
-                        height: 6,
-                        color: Colors.grey.withValues(alpha: 0.1),
-                      );
-                    },
-                  ),
+      Success(:var response) => Builder(
+          builder: (context) {
+            Pair<List<MsgLikeItem>, List<MsgLikeItem>> pair = response;
+            List<MsgLikeItem> latest = pair.first;
+            List<MsgLikeItem> total = pair.second;
+            if (latest.isNotEmpty || total.isNotEmpty) {
+              return SliverMainAxisGroup(
+                slivers: [
+                  if (latest.isNotEmpty) ...[
+                    _buildHeader(theme, '最新'),
+                    SliverList.separated(
+                      itemBuilder: (context, index) {
+                        if (total.isEmpty && index == latest.length - 1) {
+                          _likeMeController.onLoadMore();
+                        }
+                        return _buildItem(
+                          theme,
+                          latest[index],
+                          (id) {
+                            _likeMeController.onRemove(id, index, true);
+                          },
+                        );
+                      },
+                      itemCount: latest.length,
+                      separatorBuilder: (context, index) => divider,
+                    ),
+                  ],
+                  if (total.isNotEmpty) ...[
+                    _buildHeader(theme, '累计'),
+                    SliverList.separated(
+                      itemBuilder: (context, index) {
+                        if (index == total.length - 1) {
+                          _likeMeController.onLoadMore();
+                        }
+                        return _buildItem(
+                          theme,
+                          total[index],
+                          (id) {
+                            _likeMeController.onRemove(id, index, false);
+                          },
+                        );
+                      },
+                      itemCount: total.length,
+                      separatorBuilder: (context, index) => divider,
+                    ),
+                  ],
                 ],
-                if (total.isNotEmpty) ...[
-                  _buildHeader(theme, '累计'),
-                  SliverList.separated(
-                    itemBuilder: (context, index) {
-                      if (index == total.length - 1) {
-                        _likeMeController.onLoadMore();
-                      }
-                      return _buildItem(
-                        theme,
-                        total[index],
-                        (id) {
-                          _likeMeController.onRemove(id, index, false);
-                        },
-                        (isNotice, id) {
-                          _likeMeController.onSetNotice(
-                              id, index, isNotice, false);
-                        },
-                      );
-                    },
-                    itemCount: total.length,
-                    separatorBuilder: (BuildContext context, int index) {
-                      return Divider(
-                        indent: 72,
-                        endIndent: 20,
-                        height: 6,
-                        color: Colors.grey.withValues(alpha: 0.1),
-                      );
-                    },
-                  ),
-                ],
-              ],
-            );
-          }
-          return HttpError(onReload: _likeMeController.onReload);
-        }(),
+              );
+            }
+            return HttpError(onReload: _likeMeController.onReload);
+          },
+        ),
       Error(:var errMsg) => HttpError(
           errMsg: errMsg,
           onReload: _likeMeController.onReload,
@@ -171,16 +157,28 @@ class _LikeMePageState extends State<LikeMePage> {
 
   Widget _buildItem(
     ThemeData theme,
-    LikeMeItems item,
+    MsgLikeItem item,
     ValueChanged<int?> onRemove,
-    Function(bool isNotice, int? id) onSetNotice,
   ) {
     return ListTile(
       onTap: () {
         String? nativeUri = item.item?.nativeUri;
-        if (nativeUri != null) {
-          PiliScheme.routePushFromUrl(nativeUri);
+        bool isInvalid =
+            nativeUri == null || nativeUri.isEmpty || nativeUri.startsWith('?');
+        if (item.counts! > 1) {
+          Get.toNamed(
+            'msgLikeDetail',
+            parameters: {
+              'id': item.id!.toString(),
+              if (!isInvalid) 'uri': nativeUri,
+            },
+          );
+          return;
         }
+        if (isInvalid) {
+          return;
+        }
+        PiliScheme.routePushFromUrl(nativeUri);
       },
       onLongPress: () => showDialog(
         context: context,
@@ -216,10 +214,11 @@ class _LikeMePageState extends State<LikeMePage> {
                         context: context,
                         title: '不再通知',
                         content: '这条内容的点赞将不再通知，但仍可在列表内查看，是否继续？',
-                        onConfirm: () => onSetNotice(isNotice, item.id),
+                        onConfirm: () =>
+                            _likeMeController.onSetNotice(item, isNotice),
                       );
                     } else {
-                      onSetNotice(isNotice, item.id);
+                      _likeMeController.onSetNotice(item, isNotice);
                     }
                   },
                   dense: true,
@@ -300,7 +299,7 @@ class _LikeMePageState extends State<LikeMePage> {
           ],
           const SizedBox(height: 4),
           Text(
-            Utils.dateFormat(item.likeTime),
+            DateUtil.dateFormat(item.likeTime),
             style: theme.textTheme.bodyMedium!.copyWith(
               fontSize: 13,
               color: theme.colorScheme.outline,

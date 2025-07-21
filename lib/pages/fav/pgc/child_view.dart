@@ -4,7 +4,7 @@ import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/pgc/list.dart';
+import 'package:PiliPlus/models_new/fav/fav_pgc/list.dart';
 import 'package:PiliPlus/pages/fav/pgc/controller.dart';
 import 'package:PiliPlus/pages/fav/pgc/widget/item.dart';
 import 'package:PiliPlus/utils/grid.dart';
@@ -111,7 +111,7 @@ class _FavPgcChildPageState extends State<FavPgcChildPage>
                         ),
                       ),
                       const Spacer(),
-                      ...const <({int followStatus, String title})>[
+                      ...const [
                         (followStatus: 1, title: '想看'),
                         (followStatus: 2, title: '在看'),
                         (followStatus: 3, title: '看过'),
@@ -155,7 +155,7 @@ class _FavPgcChildPageState extends State<FavPgcChildPage>
     );
   }
 
-  Widget _buildBody(LoadingState<List<BangumiListItemModel>?> loadingState) {
+  Widget _buildBody(LoadingState<List<FavPgcItemModel>?> loadingState) {
     return switch (loadingState) {
       Loading() => SliverGrid(
           gridDelegate: Grid.videoCardHDelegate(context),
@@ -178,14 +178,14 @@ class _FavPgcChildPageState extends State<FavPgcChildPage>
                   return FavPgcItem(
                     item: item,
                     ctr: _favPgcController,
-                    onSelect: () => _favPgcController.onSelect(index),
+                    onSelect: () => _favPgcController.onSelect(item),
                     onUpdateStatus: () => showPgcFollowDialog(
                       context: context,
                       type: widget.type == 0 ? '追番' : '追剧',
                       followStatus: widget.followStatus,
                       onUpdateStatus: (followStatus) {
                         if (followStatus == -1) {
-                          _favPgcController.bangumiDel(
+                          _favPgcController.pgcDel(
                             index,
                             item.seasonId,
                           );

@@ -1,11 +1,12 @@
 import 'dart:math';
 
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/search/search_trending/trending_list.dart';
+import 'package:PiliPlus/models_new/search/search_trending/list.dart';
 import 'package:PiliPlus/pages/search_trending/controller.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/image_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -74,7 +75,7 @@ class _SearchTrendingPageState extends State<SearchTrendingPage> {
                 title: Opacity(
                   opacity: _scrollRatio.value,
                   child: Text(
-                    'B站热搜',
+                    'bilibili热搜',
                     style: TextStyle(
                       color: flag ? null : Colors.white,
                     ),
@@ -140,10 +141,15 @@ class _SearchTrendingPageState extends State<SearchTrendingPage> {
     });
   }
 
-  Widget _buildBody(
-      ThemeData theme, LoadingState<List<SearchKeywordList>?> loadingState) {
+  Widget _buildBody(ThemeData theme,
+      LoadingState<List<SearchTrendingItemModel>?> loadingState) {
+    late final divider = Divider(
+      height: 1,
+      indent: 48,
+      color: theme.colorScheme.outline.withValues(alpha: 0.1),
+    );
     return switch (loadingState) {
-      Loading() => const SliverToBoxAdapter(child: LinearProgressIndicator()),
+      Loading() => linearLoading,
       Success(:var response) => response?.isNotEmpty == true
           ? SliverList.separated(
               itemCount: response!.length,
@@ -191,7 +197,7 @@ class _SearchTrendingPageState extends State<SearchTrendingPage> {
                       if (item.icon?.isNotEmpty == true) ...[
                         const SizedBox(width: 4),
                         CachedNetworkImage(
-                          imageUrl: Utils.thumbnailImgUrl(item.icon!),
+                          imageUrl: ImageUtil.thumbnailUrl(item.icon!),
                           height: 16,
                         ),
                       ] else if (item.showLiveIcon == true) ...[
@@ -206,11 +212,7 @@ class _SearchTrendingPageState extends State<SearchTrendingPage> {
                   ),
                 );
               },
-              separatorBuilder: (context, index) => Divider(
-                height: 1,
-                indent: 48,
-                color: theme.colorScheme.outline.withValues(alpha: 0.1),
-              ),
+              separatorBuilder: (context, index) => divider,
             )
           : HttpError(
               onReload: _controller.onReload,

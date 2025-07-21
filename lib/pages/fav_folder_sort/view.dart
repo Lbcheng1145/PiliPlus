@@ -1,6 +1,6 @@
+import 'package:PiliPlus/http/fav.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/http/user.dart';
-import 'package:PiliPlus/models/user/fav_folder.dart';
+import 'package:PiliPlus/models_new/fav/fav_folder/list.dart';
 import 'package:PiliPlus/pages/fav/video/controller.dart';
 import 'package:PiliPlus/pages/fav/video/widgets/item.dart';
 import 'package:flutter/material.dart';
@@ -20,47 +20,8 @@ class _FavFolderSortPageState extends State<FavFolderSortPage> {
   FavController get _favController => widget.favController;
 
   final GlobalKey _key = GlobalKey();
-  late List<FavFolderItemData> sortList =
-      List<FavFolderItemData>.from(_favController.loadingState.value.data!);
-
-  final ScrollController _scrollController = ScrollController();
-
-  void listener() {
-    if (_favController.isEnd) {
-      return;
-    }
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      _favController.onLoadMore().whenComplete(() {
-        try {
-          if (_favController.loadingState.value.isSuccess) {
-            List<FavFolderItemData> list =
-                _favController.loadingState.value.data!;
-            sortList.addAll(list.sublist(sortList.length));
-            if (mounted) {
-              setState(() {});
-            }
-          }
-        } catch (_) {}
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    if (!_favController.isEnd) {
-      _scrollController.addListener(listener);
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController
-      ..removeListener(listener)
-      ..dispose();
-    super.dispose();
-  }
+  late List<FavFolderInfo> sortList =
+      List<FavFolderInfo>.from(_favController.loadingState.value.data!);
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +31,7 @@ class _FavFolderSortPageState extends State<FavFolderSortPage> {
         actions: [
           TextButton(
             onPressed: () async {
-              var res = await UserHttp.sortFavFolder(
+              var res = await FavHttp.sortFavFolder(
                 sort: sortList.map((item) => item.id).toList(),
               );
               if (res['status']) {
@@ -113,11 +74,10 @@ class _FavFolderSortPageState extends State<FavFolderSortPage> {
   Widget get _buildBody {
     return ReorderableListView.builder(
       key: _key,
-      scrollController: _scrollController,
       onReorder: onReorder,
       physics: const AlwaysScrollableScrollPhysics(),
       footer: SizedBox(
-        height: MediaQuery.of(context).padding.bottom + 80,
+        height: MediaQuery.paddingOf(context).bottom + 80,
       ),
       itemCount: sortList.length,
       itemBuilder: (context, index) {
@@ -126,9 +86,9 @@ class _FavFolderSortPageState extends State<FavFolderSortPage> {
         return SizedBox(
           key: Key(key),
           height: 98,
-          child: FavItem(
+          child: FavVideoItem(
             heroTag: key,
-            favFolderItem: item,
+            item: item,
             onLongPress:
                 index == 0 ? () => SmartDialog.showToast('默认收藏夹不支持排序') : null,
           ),

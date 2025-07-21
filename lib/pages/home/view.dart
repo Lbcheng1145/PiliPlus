@@ -39,24 +39,28 @@ class _HomePageState extends State<HomePage>
         if (_homeController.tabs.length > 1)
           Material(
             color: theme.colorScheme.surface,
-            child: Container(
-              height: 42,
+            child: Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: TabBar(
-                controller: _homeController.tabController,
-                tabs: [for (var i in _homeController.tabs) Tab(text: i.label)],
-                isScrollable: true,
-                dividerColor: Colors.transparent,
-                dividerHeight: 0,
-                enableFeedback: true,
-                splashBorderRadius: StyleString.mdRadius,
-                tabAlignment: TabAlignment.center,
-                onTap: (value) {
-                  feedBack();
-                  if (!_homeController.tabController.indexIsChanging) {
-                    _homeController.animateToTop();
-                  }
-                },
+              child: SizedBox(
+                height: 42,
+                width: double.infinity,
+                child: TabBar(
+                  controller: _homeController.tabController,
+                  tabs: [
+                    for (var i in _homeController.tabs) Tab(text: i.label)
+                  ],
+                  isScrollable: true,
+                  dividerColor: Colors.transparent,
+                  dividerHeight: 0,
+                  splashBorderRadius: StyleString.mdRadius,
+                  tabAlignment: TabAlignment.center,
+                  onTap: (_) {
+                    feedBack();
+                    if (!_homeController.tabController.indexIsChanging) {
+                      _homeController.animateToTop();
+                    }
+                  },
+                ),
               ),
             ),
           )
@@ -78,7 +82,7 @@ class _HomePageState extends State<HomePage>
         searchBar(theme),
         const SizedBox(width: 4),
         Obx(
-          () => _homeController.isLogin.value
+          () => _homeController.accountService.isLogin.value
               ? msgBadge(_mainController)
               : const SizedBox.shrink(),
         ),
@@ -86,7 +90,7 @@ class _HomePageState extends State<HomePage>
         Semantics(
           label: "我的",
           child: Obx(
-            () => _homeController.isLogin.value
+            () => _homeController.accountService.isLogin.value
                 ? Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -94,11 +98,11 @@ class _HomePageState extends State<HomePage>
                         type: ImageType.avatar,
                         width: 34,
                         height: 34,
-                        src: _homeController.userFace.value,
+                        src: _homeController.accountService.face.value,
                       ),
                       Positioned.fill(
                         child: Material(
-                          color: Colors.transparent,
+                          type: MaterialType.transparency,
                           child: InkWell(
                             onTap: () =>
                                 _homeController.showUserInfoDialog(context),
@@ -170,15 +174,13 @@ class _HomePageState extends State<HomePage>
 
   Widget searchBar(ThemeData theme) {
     return Expanded(
-      child: Container(
+      child: SizedBox(
         height: 44,
-        clipBehavior: Clip.hardEdge,
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(25)),
-        ),
         child: Material(
+          borderRadius: const BorderRadius.all(Radius.circular(25)),
           color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.05),
           child: InkWell(
+            borderRadius: const BorderRadius.all(Radius.circular(25)),
             splashColor:
                 theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
             onTap: () => Get.toNamed(

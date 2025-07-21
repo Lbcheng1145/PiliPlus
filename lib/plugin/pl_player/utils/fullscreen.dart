@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:auto_orientation/auto_orientation.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
@@ -28,8 +28,10 @@ Future<void> landScape() async {
       );
     }
   } catch (exception, stacktrace) {
-    debugPrint(exception.toString());
-    debugPrint(stacktrace.toString());
+    if (kDebugMode) {
+      debugPrint(exception.toString());
+      debugPrint(stacktrace.toString());
+    }
   }
 }
 
@@ -53,8 +55,7 @@ Future<void> verticalScreen() async {
 
 //全向
 Future<void> autoScreen() async {
-  if (!GStorage.setting
-      .get(SettingBoxKey.allowRotateScreen, defaultValue: true)) {
+  if (!Pref.allowRotateScreen) {
     return;
   }
   await SystemChrome.setPreferredOrientations([
@@ -98,7 +99,9 @@ Future<void> showStatusBar() async {
       );
     }
   } catch (exception, stacktrace) {
-    debugPrint(exception.toString());
-    debugPrint(stacktrace.toString());
+    if (kDebugMode) {
+      debugPrint(exception.toString());
+      debugPrint(stacktrace.toString());
+    }
   }
 }

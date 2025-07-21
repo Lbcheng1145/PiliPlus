@@ -1,6 +1,7 @@
+import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/main.dart';
 import 'package:PiliPlus/utils/extension.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flex_seed_scheme/flex_seed_scheme.dart';
 import 'package:flutter/material.dart';
 
@@ -12,7 +13,7 @@ class ThemeUtils {
     required FlexSchemeVariant variant,
   }) {
     final appFontWeight =
-        GStorage.appFontWeight.clamp(-1, FontWeight.values.length - 1);
+        Pref.appFontWeight.clamp(-1, FontWeight.values.length - 1);
     final fontWeight =
         appFontWeight == -1 ? null : FontWeight.values[appFontWeight];
     late final textStyle = TextStyle(fontWeight: fontWeight);
@@ -59,21 +60,15 @@ class ThemeUtils {
         actionTextColor: colorScheme.primary,
         backgroundColor: colorScheme.secondaryContainer,
         closeIconColor: colorScheme.secondary,
-        contentTextStyle: TextStyle(color: colorScheme.secondary),
+        contentTextStyle: TextStyle(color: colorScheme.onSecondaryContainer),
         elevation: 20,
-      ),
-      pageTransitionsTheme: const PageTransitionsTheme(
-        builders: <TargetPlatform, PageTransitionsBuilder>{
-          TargetPlatform.android: ZoomPageTransitionsBuilder(
-            allowEnterRouteSnapshotting: false,
-          ),
-        },
       ),
       popupMenuTheme: PopupMenuThemeData(
         surfaceTintColor: isDynamic ? colorScheme.onSurfaceVariant : null,
       ),
       cardTheme: CardThemeData(
         elevation: 1,
+        margin: EdgeInsets.zero,
         surfaceTintColor: isDynamic
             ? colorScheme.onSurfaceVariant
             : isDark
@@ -97,20 +92,29 @@ class ThemeUtils {
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: colorScheme.surface,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(18),
-            topRight: Radius.circular(18),
-          ),
+          borderRadius: StyleString.bottomSheetRadius,
         ),
       ),
       // ignore: deprecated_member_use
       sliderTheme: const SliderThemeData(year2023: false),
+      tooltipTheme: TooltipThemeData(
+        textStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.grey[700]!.withValues(alpha: 0.9),
+          borderRadius: const BorderRadius.all(Radius.circular(4)),
+        ),
+      ),
     );
-    if (isDark && GStorage.isPureBlackTheme) {
-      themeData = darkenTheme(themeData);
-    }
-    if (isDark && GStorage.darkVideoPage) {
-      MyApp.darkThemeData = themeData;
+    if (isDark) {
+      if (Pref.isPureBlackTheme) {
+        themeData = darkenTheme(themeData);
+      }
+      if (Pref.darkVideoPage) {
+        MyApp.darkThemeData = themeData;
+      }
     }
     return themeData;
   }

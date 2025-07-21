@@ -8,7 +8,7 @@ import 'package:get/get.dart';
 
 Widget livePanelSub(
   ThemeData theme,
-  String? source,
+  bool isDetail,
   DynamicItemModel item,
   BuildContext context, {
   int floor = 1,
@@ -37,12 +37,13 @@ Widget livePanelSub(
                       width: width,
                       height: width / StyleString.aspectRatio,
                       src: content.cover,
+                      quality: 40,
                     ),
                   ),
                   PBadge(
                     text: content.watchedShow?.textLarge,
                     top: 6,
-                    right: 70,
+                    right: 65,
                     fontSize: 10.5,
                     type: PBadgeType.gray,
                   ),
@@ -71,7 +72,6 @@ Widget livePanelSub(
                         height: 80,
                         alignment: Alignment.bottomLeft,
                         padding: const EdgeInsets.fromLTRB(12, 0, 10, 10),
-                        clipBehavior: Clip.hardEdge,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             begin: Alignment.topCenter,
@@ -113,9 +113,9 @@ Widget livePanelSub(
               const EdgeInsets.symmetric(horizontal: StyleString.safeSpace),
           child: Text(
             content.title!,
-            maxLines: source == 'detail' ? null : 1,
+            maxLines: isDetail ? null : 1,
             style: const TextStyle(fontWeight: FontWeight.bold),
-            overflow: source == 'detail' ? null : TextOverflow.ellipsis,
+            overflow: isDetail ? null : TextOverflow.ellipsis,
           ),
         ),
       const SizedBox(height: 2),

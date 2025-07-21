@@ -1,110 +1,133 @@
 import 'package:PiliPlus/common/constants.dart';
+import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
-import 'package:PiliPlus/models/user/sub_folder.dart';
+import 'package:PiliPlus/models_new/sub/sub/list.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
 class SubItem extends StatelessWidget {
-  final SubFolderItemData subFolderItem;
-  final Function(SubFolderItemData) cancelSub;
+  final SubItemModel item;
+  final VoidCallback cancelSub;
   const SubItem({
     super.key,
-    required this.subFolderItem,
+    required this.item,
     required this.cancelSub,
   });
 
   @override
   Widget build(BuildContext context) {
-    String heroTag = Utils.makeHeroTag(subFolderItem.id);
-    return InkWell(
-      onTap: () => Get.toNamed(
-        '/subDetail',
-        arguments: subFolderItem,
-        parameters: {
-          'heroTag': heroTag,
-          'id': subFolderItem.id.toString(),
+    String heroTag = Utils.makeHeroTag(item.id);
+    final type = switch (item.type) {
+      11 => '收藏夹',
+      21 => '合集',
+      _ => '其它(${item.type})',
+    };
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: () {
+          if (item.state == 1) {
+            SmartDialog.showToast('该$type已失效');
+            return;
+          }
+          if (item.type == 11) {
+            Get.toNamed(
+              '/favDetail',
+              parameters: {
+                'mediaId': item.id!.toString(),
+                'heroTag': heroTag,
+              },
+            );
+          } else {
+            Get.toNamed(
+              '/subDetail',
+              arguments: item,
+              parameters: {
+                'heroTag': heroTag,
+                'id': item.id.toString(),
+              },
+            );
+          }
         },
-      ),
-      onLongPress: () => imageSaveDialog(
-        title: subFolderItem.title,
-        cover: subFolderItem.cover,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: StyleString.aspectRatio,
-              child: LayoutBuilder(
-                builder: (context, boxConstraints) {
-                  double maxWidth = boxConstraints.maxWidth;
-                  double maxHeight = boxConstraints.maxHeight;
-                  return Hero(
-                    tag: heroTag,
-                    child: NetworkImgLayer(
-                      src: subFolderItem.cover,
-                      width: maxWidth,
-                      height: maxHeight,
-                    ),
-                  );
-                },
+        onLongPress: () => imageSaveDialog(
+          title: item.title,
+          cover: item.cover,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AspectRatio(
+                aspectRatio: StyleString.aspectRatio,
+                child: LayoutBuilder(
+                  builder: (context, boxConstraints) {
+                    double maxWidth = boxConstraints.maxWidth;
+                    double maxHeight = boxConstraints.maxHeight;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Hero(
+                          tag: heroTag,
+                          child: NetworkImgLayer(
+                            src: item.cover,
+                            width: maxWidth,
+                            height: maxHeight,
+                          ),
+                        ),
+                        PBadge(
+                          right: 6,
+                          top: 6,
+                          text: type,
+                        )
+                      ],
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            videoContent(context),
-          ],
+              const SizedBox(width: 10),
+              content(context),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget videoContent(context) {
+  Widget content(BuildContext context) {
     final theme = Theme.of(context);
-    // subFolderItem.type == 11：播单
-    // subFolderItem.type == 21：合集
-    // 其它：其它
-    String typeString = subFolderItem.type == 11
-        ? '播单'
-        : subFolderItem.type == 21
-            ? '合集'
-            : '其它:${subFolderItem.type}';
+    final style = TextStyle(
+      fontSize: 13,
+      color: theme.colorScheme.outline,
+    );
     return Expanded(
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Column(
+            spacing: 4,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                subFolderItem.title!,
+                item.title!,
                 textAlign: TextAlign.start,
                 style: const TextStyle(
                   letterSpacing: 0.3,
                 ),
               ),
-              const SizedBox(height: 2),
               Text(
-                '[$typeString] UP主：${subFolderItem.upper!.name!}',
+                'UP主: ${item.upper!.name!}',
                 textAlign: TextAlign.start,
-                style: TextStyle(
-                  fontSize: theme.textTheme.labelMedium!.fontSize,
-                  color: theme.colorScheme.outline,
-                ),
+                style: style,
               ),
-              const SizedBox(height: 2),
               Text(
-                '${subFolderItem.mediaCount}个视频',
+                '${item.mediaCount}个视频',
                 textAlign: TextAlign.start,
-                style: TextStyle(
-                  fontSize: theme.textTheme.labelMedium!.fontSize,
-                  color: theme.colorScheme.outline,
-                ),
+                style: style,
               ),
-              const Spacer(),
             ],
           ),
           Positioned(
@@ -114,7 +137,7 @@ class SubItem extends StatelessWidget {
               height: 35,
               width: 35,
               child: IconButton(
-                onPressed: () => cancelSub(subFolderItem),
+                onPressed: cancelSub,
                 style: TextButton.styleFrom(
                   foregroundColor: theme.colorScheme.outline,
                   padding: EdgeInsets.zero,

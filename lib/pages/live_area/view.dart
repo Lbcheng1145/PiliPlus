@@ -5,8 +5,8 @@ import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
-import 'package:PiliPlus/models/live/live_area_list/area_item.dart';
-import 'package:PiliPlus/models/live/live_area_list/area_list.dart';
+import 'package:PiliPlus/models_new/live/live_area_list/area_item.dart';
+import 'package:PiliPlus/models_new/live/live_area_list/area_list.dart';
 import 'package:PiliPlus/pages/live_area/controller.dart';
 import 'package:PiliPlus/pages/live_area_detail/view.dart';
 import 'package:PiliPlus/pages/search/widgets/search_text.dart';
@@ -32,7 +32,7 @@ class _LiveAreaPageState extends State<LiveAreaPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('全部标签'),
-        actions: _controller.isLogin
+        actions: _controller.accountService.isLogin.value
             ? [
                 TextButton(
                   onPressed: _controller.onEdit,
@@ -52,7 +52,7 @@ class _LiveAreaPageState extends State<LiveAreaPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_controller.isLogin)
+            if (_controller.accountService.isLogin.value)
               Obx(() => _buildFavWidget(theme, _controller.favState.value)),
             Expanded(
               child:
@@ -110,21 +110,25 @@ class _LiveAreaPageState extends State<LiveAreaPage> {
                                         item: item,
                                         onPressed: () {
                                           // success
-                                          if (item.isFav == true) {
+                                          bool? isFav =
+                                              _controller.favInfo[item.id];
+                                          if (isFav == true) {
+                                            _controller.favInfo[item.id] =
+                                                false;
                                             _controller.favState
                                               ..value.data.remove(item)
                                               ..refresh();
-                                            item.isFav = false;
                                             (context as Element)
                                                 .markNeedsBuild();
                                           } else {
                                             // check
                                             if (_controller
                                                 .favState.value.isSuccess) {
+                                              _controller.favInfo[item.id] =
+                                                  true;
                                               _controller.favState
                                                 ..value.data.add(item)
                                                 ..refresh();
-                                              item.isFav = true;
                                               (context as Element)
                                                   .markNeedsBuild();
                                             }
@@ -190,26 +194,9 @@ class _LiveAreaPageState extends State<LiveAreaPage> {
                         item: item,
                         onPressed: () {
                           list.remove(item);
-                          _controller.favState.refresh();
-
-                          // update isFav
-                          if (_controller.loadingState.value.isSuccess) {
-                            List<AreaList>? areaList =
-                                _controller.loadingState.value.data;
-                            if (areaList?.isNotEmpty == true) {
-                              for (var i in areaList!) {
-                                if (i.areaList?.isNotEmpty == true) {
-                                  for (var j in i.areaList!) {
-                                    if (j == item) {
-                                      j.isFav = false;
-                                      _controller.loadingState.refresh();
-                                      break;
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
+                          _controller
+                            ..favInfo[item.id] = false
+                            ..favState.refresh();
                         },
                       ),
                     )
@@ -277,26 +264,19 @@ class _LiveAreaPageState extends State<LiveAreaPage> {
               child: Obx(() {
                 if (_controller.isEditing.value &&
                     _controller.favState.value.isSuccess) {
-                  // init isFav
-                  item.isFav ??= _controller.favState.value.data.contains(item);
-
-                  return Builder(
-                    builder: (context) {
-                      return iconButton(
-                        size: 17,
-                        iconSize: 13,
-                        context: context,
-                        icon:
-                            item.isFav == true ? MdiIcons.check : MdiIcons.plus,
-                        bgColor: item.isFav == true
-                            ? theme.colorScheme.onInverseSurface
-                            : null,
-                        iconColor: item.isFav == true
-                            ? theme.colorScheme.outline
-                            : null,
-                        onPressed: onPressed,
-                      );
-                    },
+                  bool? isFav = _controller.favInfo[item.id];
+                  if (isFav == null) {
+                    isFav = _controller.favState.value.data.contains(item);
+                    _controller.favInfo[item.id] = isFav;
+                  }
+                  return iconButton(
+                    size: 17,
+                    iconSize: 13,
+                    context: context,
+                    icon: isFav ? MdiIcons.check : MdiIcons.plus,
+                    bgColor: isFav ? theme.colorScheme.onInverseSurface : null,
+                    iconColor: isFav ? theme.colorScheme.outline : null,
+                    onPressed: onPressed,
                   );
                 }
                 return const SizedBox.shrink();

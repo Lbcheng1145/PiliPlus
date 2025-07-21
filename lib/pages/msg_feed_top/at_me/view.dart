@@ -7,11 +7,11 @@ import 'package:PiliPlus/grpc/bilibili/app/im/v1.pbenum.dart'
     show IMSettingType;
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
-import 'package:PiliPlus/models/msg/msgfeed_at_me.dart';
+import 'package:PiliPlus/models_new/msg/msg_at/item.dart';
 import 'package:PiliPlus/pages/msg_feed_top/at_me/controller.dart';
 import 'package:PiliPlus/pages/whisper_settings/view.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/date_util.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -64,7 +64,13 @@ class _AtMePageState extends State<AtMePage> {
   }
 
   Widget _buildBody(
-      ThemeData theme, LoadingState<List<AtMeItems>?> loadingState) {
+      ThemeData theme, LoadingState<List<MsgAtItem>?> loadingState) {
+    late final divider = Divider(
+      indent: 72,
+      endIndent: 20,
+      height: 6,
+      color: Colors.grey.withValues(alpha: 0.1),
+    );
     return switch (loadingState) {
       Loading() => SliverList.builder(
           itemCount: 12,
@@ -83,9 +89,12 @@ class _AtMePageState extends State<AtMePage> {
                 return ListTile(
                   onTap: () {
                     String? nativeUri = item.item?.nativeUri;
-                    if (nativeUri != null) {
-                      PiliScheme.routePushFromUrl(nativeUri);
+                    if (nativeUri == null ||
+                        nativeUri.isEmpty ||
+                        nativeUri.startsWith('?')) {
+                      return;
                     }
+                    PiliScheme.routePushFromUrl(nativeUri);
                   },
                   onLongPress: () => showConfirmDialog(
                     context: context,
@@ -132,7 +141,7 @@ class _AtMePageState extends State<AtMePage> {
                       ],
                       const SizedBox(height: 4),
                       Text(
-                        Utils.dateFormat(item.atTime),
+                        DateUtil.dateFormat(item.atTime),
                         style: theme.textTheme.bodyMedium!.copyWith(
                           fontSize: 13,
                           color: theme.colorScheme.outline,
@@ -149,14 +158,7 @@ class _AtMePageState extends State<AtMePage> {
                       : null,
                 );
               },
-              separatorBuilder: (BuildContext context, int index) {
-                return Divider(
-                  indent: 72,
-                  endIndent: 20,
-                  height: 6,
-                  color: Colors.grey.withValues(alpha: 0.1),
-                );
-              },
+              separatorBuilder: (context, index) => divider,
             )
           : HttpError(onReload: _atMeController.onReload),
       Error(:var errMsg) => HttpError(

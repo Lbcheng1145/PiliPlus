@@ -19,14 +19,14 @@ extension ImageExtension on num? {
     if (this == null || this == 0) {
       return null;
     }
-    return (this! * MediaQuery.of(context).devicePixelRatio).round();
+    return (this! * MediaQuery.devicePixelRatioOf(context)).round();
   }
 }
 
 extension ScrollControllerExt on ScrollController {
   void animToTop() {
     if (!hasClients) return;
-    if (offset >= MediaQuery.of(Get.context!).size.height * 7) {
+    if (offset >= Get.mediaQuery.size.height * 7) {
       jumpTo(0);
     } else {
       animateTo(0,
@@ -58,6 +58,16 @@ extension ListExt<T> on List<T>? {
   T getOrElse(int index, {required T Function() orElse}) {
     return getOrNull(index) ?? orElse();
   }
+
+  bool removeFirstWhere(bool Function(T) test) {
+    if (this == null) return false;
+    final index = this!.indexWhere(test);
+    if (index != -1) {
+      this!.removeAt(index);
+      return true;
+    }
+    return false;
+  }
 }
 
 final _regExp = RegExp("^(http:)?//", caseSensitive: false);
@@ -75,14 +85,14 @@ extension BuildContextExt on BuildContext {
         : const Color(0xFFD44E7D);
   }
 
-  void imageView({
+  Future<void> imageView({
     int initialPage = 0,
     required List<SourceModel> imgList,
     ValueChanged<int>? onDismissed,
     int? quality,
   }) {
     bool isMemberPage = Get.currentRoute.startsWith('/member?');
-    Navigator.of(this).push(
+    return Navigator.of(this).push(
       HeroDialogRoute(
         builder: (context) => InteractiveviewerGallery(
           sources: imgList,

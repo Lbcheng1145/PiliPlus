@@ -11,8 +11,10 @@ import 'package:PiliPlus/pages/dynamics/widgets/live_panel.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/live_panel_sub.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/live_rcmd_panel.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/video_panel.dart';
+import 'package:PiliPlus/utils/date_util.dart';
+import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
@@ -22,7 +24,7 @@ Widget module(
   bool isSave,
   DynamicItemModel item,
   BuildContext context,
-  String? source,
+  bool isDetail,
   Function(List<String>, int)? callback, {
   floor = 1,
 }) {
@@ -36,7 +38,7 @@ Widget module(
     // 视频
     case 'DYNAMIC_TYPE_AV':
       return videoSeasonWidget(
-          theme, isSave, source, item, context, 'archive', callback,
+          theme, isSave, isDetail, item, context, 'archive', callback,
           floor: floor);
     // 转发
     case 'DYNAMIC_TYPE_FORWARD':
@@ -45,44 +47,68 @@ Widget module(
           orig.modules.moduleDynamic?.major?.type == 'MAJOR_TYPE_NONE';
       late final isNormalAuth =
           orig.modules.moduleAuthor!.type == 'AUTHOR_TYPE_NORMAL';
+      if (isNoneMajor) {
+        if (orig.modules.moduleDynamic?.major?.none?.tips?.isNotEmpty == true) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+            color: theme.dividerColor.withValues(alpha: 0.08),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.error,
+                  size: 18,
+                  color: theme.colorScheme.outline,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  orig.modules.moduleDynamic!.major!.none!.tips!,
+                  style: TextStyle(color: theme.colorScheme.outline),
+                ),
+              ],
+            ),
+          );
+        } else {
+          return const SizedBox.shrink();
+        }
+      }
       return InkWell(
-        onTap:
-            isNoneMajor ? null : () => PageUtils.pushDynDetail(orig, floor + 1),
-        onLongPress: isNoneMajor
-            ? null
-            : () {
-                late String? title, cover;
-                late var origMajor = orig.modules.moduleDynamic?.major;
-                late var major = item.modules.moduleDynamic?.major;
-                switch (orig.type) {
-                  case 'DYNAMIC_TYPE_AV':
-                    title = origMajor?.archive?.title;
-                    cover = origMajor?.archive?.cover;
-                    break;
-                  case 'DYNAMIC_TYPE_UGC_SEASON':
-                    title = origMajor?.ugcSeason?.title;
-                    cover = origMajor?.ugcSeason?.cover;
-                    break;
-                  case 'DYNAMIC_TYPE_PGC' || 'DYNAMIC_TYPE_PGC_UNION':
-                    title = origMajor?.pgc?.title;
-                    cover = origMajor?.pgc?.cover;
-                    break;
-                  case 'DYNAMIC_TYPE_LIVE_RCMD':
-                    title = major?.liveRcmd?.title;
-                    cover = major?.liveRcmd?.cover;
-                    break;
-                  case 'DYNAMIC_TYPE_LIVE':
-                    title = major?.live?.title;
-                    cover = major?.live?.cover;
-                    break;
-                  default:
-                    return;
-                }
-                imageSaveDialog(
-                  title: title,
-                  cover: cover,
-                );
-              },
+        onTap: () => PageUtils.pushDynDetail(orig, floor + 1),
+        onLongPress: () {
+          String? title, cover, bvid;
+          late var origMajor = orig.modules.moduleDynamic?.major;
+          late var major = item.modules.moduleDynamic?.major;
+          switch (orig.type) {
+            case 'DYNAMIC_TYPE_AV':
+              title = origMajor?.archive?.title;
+              cover = origMajor?.archive?.cover;
+              bvid = origMajor?.archive?.bvid;
+              break;
+            case 'DYNAMIC_TYPE_UGC_SEASON':
+              title = origMajor?.ugcSeason?.title;
+              cover = origMajor?.ugcSeason?.cover;
+              bvid = origMajor?.ugcSeason?.bvid;
+              break;
+            case 'DYNAMIC_TYPE_PGC' || 'DYNAMIC_TYPE_PGC_UNION':
+              title = origMajor?.pgc?.title;
+              cover = origMajor?.pgc?.cover;
+              break;
+            case 'DYNAMIC_TYPE_LIVE_RCMD':
+              title = major?.liveRcmd?.title;
+              cover = major?.liveRcmd?.cover;
+              break;
+            case 'DYNAMIC_TYPE_LIVE':
+              title = major?.live?.title;
+              cover = major?.live?.cover;
+              break;
+            default:
+              return;
+          }
+          imageSaveDialog(
+            title: title,
+            cover: cover,
+            bvid: bvid,
+          );
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
           color: theme.dividerColor.withValues(alpha: 0.08),
@@ -90,37 +116,34 @@ Widget module(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (orig.type != 'DYNAMIC_TYPE_NONE') ...[
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: isNormalAuth
-                          ? () => Get.toNamed(
-                                '/member?mid=${orig.modules.moduleAuthor!.mid}',
-                                arguments: {
-                                  'face': orig.modules.moduleAuthor!.face
-                                },
-                              )
-                          : null,
-                      child: Text(
-                        '${isNormalAuth ? '@' : ''}${orig.modules.moduleAuthor!.name}',
-                        style: TextStyle(color: theme.colorScheme.primary),
-                      ),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: isNormalAuth
+                        ? () => Get.toNamed(
+                            '/member?mid=${orig.modules.moduleAuthor!.mid}')
+                        : null,
+                    child: Text(
+                      '${isNormalAuth ? '@' : ''}${orig.modules.moduleAuthor!.name}',
+                      style: TextStyle(color: theme.colorScheme.primary),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      Utils.dateFormat(orig.modules.moduleAuthor!.pubTs),
-                      style: TextStyle(
-                          color: theme.colorScheme.outline,
-                          fontSize: theme.textTheme.labelSmall!.fontSize),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                content(theme, isSave, context, orig, source, callback,
-                    floor: floor + 1),
-              ],
-              module(theme, isSave, orig, context, source, callback,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isSave
+                        ? DateUtil.format(orig.modules.moduleAuthor!.pubTs,
+                            format: DateUtil.longFormatDs)
+                        : DateUtil.dateFormat(orig.modules.moduleAuthor!.pubTs),
+                    style: TextStyle(
+                        color: theme.colorScheme.outline,
+                        fontSize: theme.textTheme.labelSmall!.fontSize),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 5),
+              content(theme, isSave, context, orig, isDetail, callback,
+                  floor: floor + 1),
+              module(theme, isSave, orig, context, isDetail, callback,
                   floor: floor + 1),
               if (orig.modules.moduleDynamic?.additional != null)
                 addWidget(theme, orig, context, floor: floor + 1),
@@ -132,21 +155,21 @@ Widget module(
       );
     // 直播
     case 'DYNAMIC_TYPE_LIVE_RCMD':
-      return liveRcmdPanel(theme, source, item, context, floor: floor);
+      return liveRcmdPanel(theme, isDetail, item, context, floor: floor);
     // 直播
     case 'DYNAMIC_TYPE_LIVE':
-      return livePanel(theme, source, item, context, floor: floor);
+      return livePanel(theme, isDetail, item, context, floor: floor);
     // 合集
     case 'DYNAMIC_TYPE_UGC_SEASON':
       return videoSeasonWidget(
-          theme, isSave, source, item, context, 'ugcSeason', callback);
+          theme, isSave, isDetail, item, context, 'ugcSeason', callback);
     case 'DYNAMIC_TYPE_PGC':
       return videoSeasonWidget(
-          theme, isSave, source, item, context, 'pgc', callback,
+          theme, isSave, isDetail, item, context, 'pgc', callback,
           floor: floor);
     case 'DYNAMIC_TYPE_PGC_UNION':
       return videoSeasonWidget(
-          theme, isSave, source, item, context, 'pgc', callback,
+          theme, isSave, isDetail, item, context, 'pgc', callback,
           floor: floor);
     case 'DYNAMIC_TYPE_NONE':
       return Row(
@@ -194,36 +217,44 @@ Widget module(
             padding:
                 const EdgeInsets.only(left: 12, top: 10, right: 12, bottom: 10),
             child: Row(
+              spacing: 10,
               children: [
-                NetworkImgLayer(
-                  radius: 8,
-                  width: 45,
-                  height: 45,
-                  src: item.modules.moduleDynamic!.major!.common!.cover,
-                ),
-                const SizedBox(width: 10),
+                if (item.modules.moduleDynamic!.major!.common!.cover
+                        ?.isNotEmpty ==
+                    true)
+                  ClipRRect(
+                    borderRadius: const BorderRadius.all(Radius.circular(6)),
+                    child: CachedNetworkImage(
+                      width: 45,
+                      height: 45,
+                      fit: BoxFit.cover,
+                      imageUrl: item.modules.moduleDynamic!.major!.common!
+                          .cover!.http2https,
+                    ),
+                  ),
                 Expanded(
                   child: Column(
+                    spacing: 2,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         item.modules.moduleDynamic!.major!.common!.title!,
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                        ),
+                        style: TextStyle(color: theme.colorScheme.primary),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        item.modules.moduleDynamic!.major!.common!.desc!,
-                        style: TextStyle(
-                          color: theme.colorScheme.outline,
-                          fontSize: theme.textTheme.labelMedium!.fontSize,
+                      if (item.modules.moduleDynamic!.major!.common!.desc
+                              ?.isNotEmpty ==
+                          true)
+                        Text(
+                          item.modules.moduleDynamic!.major!.common!.desc!,
+                          style: TextStyle(
+                            color: theme.colorScheme.outline,
+                            fontSize: theme.textTheme.labelMedium!.fontSize,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
                     ],
                   ),
                 ),
@@ -310,7 +341,6 @@ Widget module(
               height: 110,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 4),
@@ -341,7 +371,7 @@ Widget module(
     case 'DYNAMIC_TYPE_SUBSCRIPTION_NEW'
         when item.modules.moduleDynamic?.major?.type ==
             'MAJOR_TYPE_SUBSCRIPTION_NEW':
-      return livePanelSub(theme, source, item, context, floor: floor);
+      return livePanelSub(theme, isDetail, item, context, floor: floor);
 
     default:
       return Padding(

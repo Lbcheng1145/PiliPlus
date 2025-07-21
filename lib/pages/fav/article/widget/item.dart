@@ -2,7 +2,8 @@ import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/stat/stat.dart';
-import 'package:PiliPlus/models/fav_article/item.dart';
+import 'package:PiliPlus/models/common/stat_type.dart';
+import 'package:PiliPlus/models_new/fav/fav_article/item.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -20,7 +21,7 @@ class FavArticleItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Material(
-      color: Colors.transparent,
+      type: MaterialType.transparency,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -38,7 +39,6 @@ class FavArticleItem extends StatelessWidget {
                 vertical: 5,
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (item.cover != null) ...[
@@ -74,34 +74,33 @@ class FavArticleItem extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        Row(
-                          children: [
-                            // StatView(
-                            //   context: context,
-                            //   value: item.stat!.view!,
-                            //   goto: 'picture',
-                            //   textColor: theme.colorScheme.outline,
-                            // ),
-                            // const SizedBox(width: 16),
-                            StatView(
-                              context: context,
-                              goto: 'like',
-                              value:
-                                  item.stat!.like == '' ? 0 : item.stat!.like!,
-                              textColor: theme.colorScheme.outline,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 3),
                         Text(
-                          '${item.author!.name} · ${item.pubTime}',
+                          item.author!.name!,
                           maxLines: 1,
                           style: TextStyle(
                             fontSize: 13,
                             height: 1,
                             color: theme.colorScheme.outline,
-                            overflow: TextOverflow.clip,
                           ),
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            StatWidget(
+                              type: StatType.like,
+                              value: item.stat!.like,
+                              color: theme.colorScheme.outline,
+                            ),
+                            Text(
+                              '  ·  ${item.pubTime}',
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: 13,
+                                height: 1,
+                                color: theme.colorScheme.outline,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

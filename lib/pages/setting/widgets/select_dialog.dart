@@ -4,9 +4,10 @@ import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/common/video/cdn_type.dart';
 import 'package:PiliPlus/models/video/play/url.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/video_utils.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
 class SelectDialog<T> extends StatelessWidget {
@@ -34,17 +35,20 @@ class SelectDialog<T> extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: List.generate(
             values.length,
-            (index) => RadioListTile<T>(
-              dense: true,
-              value: values[index].$1,
-              title: Text(
-                values[index].$2,
-                style: Theme.of(context).textTheme.titleMedium!,
-              ),
-              subtitle: subtitleBuilder?.call(context, index),
-              groupValue: value,
-              onChanged: Navigator.of(context).pop,
-            ),
+            (index) {
+              final item = values[index];
+              return RadioListTile<T>(
+                dense: true,
+                value: item.$1,
+                title: Text(
+                  item.$2,
+                  style: Theme.of(context).textTheme.titleMedium!,
+                ),
+                subtitle: subtitleBuilder?.call(context, index),
+                groupValue: value,
+                onChanged: Navigator.of(context).pop,
+              );
+            },
           ),
         ),
       ),
@@ -67,11 +71,11 @@ class CdnSelectDialog extends StatefulWidget {
 class _CdnSelectDialogState extends State<CdnSelectDialog> {
   late final List<ValueNotifier<String?>> _cdnResList;
   late final CancelToken _cancelToken;
-  bool _cdnSpeedTest = false;
+  late final bool _cdnSpeedTest;
 
   @override
   void initState() {
-    _cdnSpeedTest = GStorage.cdnSpeedTest;
+    _cdnSpeedTest = Pref.cdnSpeedTest;
     if (_cdnSpeedTest) {
       _cdnResList = List.generate(
           CDNService.values.length, (_) => ValueNotifier<String?>(null));
@@ -104,7 +108,7 @@ class _CdnSelectDialogState extends State<CdnSelectDialog> {
       final videoItem = widget.sample ?? await _getSampleUrl();
       await _testAllCdnServices(videoItem);
     } catch (e) {
-      debugPrint('CDN speed test failed: $e');
+      if (kDebugMode) debugPrint('CDN speed test failed: $e');
     }
   }
 
@@ -165,35 +169,39 @@ class _CdnSelectDialogState extends State<CdnSelectDialog> {
   }
 
   void _handleSpeedTestError(dynamic error, int index) {
-    if (_cdnResList[index].value != null) return;
+    final item = _cdnResList[index];
+    if (item.value != null) return;
 
-    debugPrint('CDN speed test error: $error');
+    if (kDebugMode) debugPrint('CDN speed test error: $error');
     if (!mounted) return;
     var message = error.toString();
     if (message.isEmpty) {
       message = '测速失败';
     }
-    _cdnResList[index].value = message;
+    item.value = message;
   }
 
   @override
   Widget build(BuildContext context) {
     return SelectDialog<String>(
       title: 'CDN 设置',
-      values: CDNService.values.map((i) => (i.code, i.description)).toList(),
-      value: GStorage.defaultCDNService,
+      values: CDNService.values.map((i) => (i.code, i.desc)).toList(),
+      value: VideoUtils.cdnService,
       subtitleBuilder: _cdnSpeedTest
-          ? (context, index) => ValueListenableBuilder(
-                valueListenable: _cdnResList[index],
+          ? (context, index) {
+              final item = _cdnResList[index];
+              return ValueListenableBuilder(
+                valueListenable: item,
                 builder: (context, value, _) {
                   return Text(
-                    _cdnResList[index].value ?? '---',
+                    item.value ?? '---',
                     style: const TextStyle(fontSize: 13),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   );
                 },
-              )
+              );
+            }
           : null,
     );
   }

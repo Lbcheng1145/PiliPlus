@@ -7,10 +7,10 @@ import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart';
 import 'package:PiliPlus/models/common/search_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
-import 'package:PiliPlus/models/live/live_room/item.dart';
-import 'package:PiliPlus/models/pgc/pgc_info_model/episode.dart';
-import 'package:PiliPlus/models/pgc/pgc_info_model/result.dart';
-import 'package:PiliPlus/models/pgc/pgc_info_model/section.dart';
+import 'package:PiliPlus/models_new/pgc/pgc_info_model/episode.dart';
+import 'package:PiliPlus/models_new/pgc/pgc_info_model/result.dart';
+import 'package:PiliPlus/models_new/pgc/pgc_info_model/section.dart';
+import 'package:PiliPlus/pages/common/common_intro_controller.dart';
 import 'package:PiliPlus/pages/contact/view.dart';
 import 'package:PiliPlus/pages/fav_panel/view.dart';
 import 'package:PiliPlus/pages/share/view.dart';
@@ -21,10 +21,11 @@ import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/global_data.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/url_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:floating/floating.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -34,7 +35,7 @@ import 'package:url_launcher/url_launcher.dart';
 class PageUtils {
   static Future<void> pmShare(BuildContext context,
       {required Map content}) async {
-    // debugPrint(content.toString());
+    // if (kDebugMode) debugPrint(content.toString());
 
     int? selectedIndex;
     List<UserModel> userList = <UserModel>[];
@@ -101,9 +102,7 @@ class PageUtils {
                       autofocus: true,
                       onChanged: (value) => duration = value,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'\d+')),
-                      ],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: const InputDecoration(suffixText: 'min'),
                     ),
                     actions: [
@@ -118,8 +117,9 @@ class PageUtils {
                         onPressed: () {
                           Get.back();
                           int choice = int.tryParse(duration) ?? 0;
-                          shutdownTimerService.scheduledExitInMinutes = choice;
-                          shutdownTimerService.startShutdownTimer();
+                          shutdownTimerService
+                            ..scheduledExitInMinutes = choice
+                            ..startShutdownTimer();
                           setState(() {});
                         },
                         child: const Text('确定'),
@@ -138,21 +138,15 @@ class PageUtils {
           final ThemeData theme = Theme.of(context);
           return Theme(
             data: theme,
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Material(
                 clipBehavior: Clip.hardEdge,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
-                ),
-                margin: const EdgeInsets.all(12),
-                padding: const EdgeInsets.only(left: 14, right: 14),
+                color: theme.colorScheme.surface,
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
                 child: ListView(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   children: [
-                    const SizedBox(height: 10),
                     const Center(child: Text('定时关闭', style: titleStyle)),
                     const SizedBox(height: 10),
                     ...[
@@ -167,84 +161,91 @@ class PageUtils {
                       (choice) => ListTile(
                         dense: true,
                         onTap: () => onTap(choice),
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(choice == -1
-                            ? '自定义'
-                            : choice == 0
-                                ? "禁用"
-                                : "$choice分钟后"),
+                        title: Text(
+                          choice == -1
+                              ? '自定义'
+                              : choice == 0
+                                  ? "禁用"
+                                  : "$choice分钟后",
+                          style: titleStyle,
+                        ),
                         trailing: shutdownTimerService.scheduledExitInMinutes ==
                                 choice
                             ? Icon(
+                                size: 20,
                                 Icons.done,
                                 color: theme.colorScheme.primary,
                               )
                             : null,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    const Center(
-                      child: SizedBox(
-                        width: 125,
-                        child: Divider(height: 1),
-                      ),
-                    ),
                     if (!isLive) ...[
-                      const SizedBox(height: 10),
-                      ListTile(
-                        dense: true,
-                        onTap: () {
-                          shutdownTimerService.waitForPlayingCompleted =
-                              !shutdownTimerService.waitForPlayingCompleted;
-                          setState(() {});
+                      Builder(
+                        builder: (context) {
+                          return ListTile(
+                            dense: true,
+                            onTap: () {
+                              shutdownTimerService.waitForPlayingCompleted =
+                                  !shutdownTimerService.waitForPlayingCompleted;
+                              (context as Element).markNeedsBuild();
+                            },
+                            title: const Text("额外等待视频播放完毕", style: titleStyle),
+                            trailing: Transform.scale(
+                              alignment: Alignment.centerRight,
+                              scale: 0.8,
+                              child: Switch(
+                                thumbIcon:
+                                    WidgetStateProperty.resolveWith<Icon?>(
+                                        (Set<WidgetState> states) {
+                                  if (states.isNotEmpty &&
+                                      states.first == WidgetState.selected) {
+                                    return const Icon(Icons.done);
+                                  }
+                                  return null;
+                                }),
+                                value: shutdownTimerService
+                                    .waitForPlayingCompleted,
+                                onChanged: (value) {
+                                  shutdownTimerService.waitForPlayingCompleted =
+                                      value;
+                                  (context as Element).markNeedsBuild();
+                                },
+                              ),
+                            ),
+                          );
                         },
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text("额外等待视频播放完毕", style: titleStyle),
-                        trailing: Transform.scale(
-                          alignment: Alignment.centerRight,
-                          scale: 0.8,
-                          child: Switch(
-                            thumbIcon: WidgetStateProperty.resolveWith<Icon?>(
-                                (Set<WidgetState> states) {
-                              if (states.isNotEmpty &&
-                                  states.first == WidgetState.selected) {
-                                return const Icon(Icons.done);
-                              }
-                              return null;
-                            }),
-                            value: shutdownTimerService.waitForPlayingCompleted,
-                            onChanged: (value) => setState(() =>
-                                shutdownTimerService.waitForPlayingCompleted =
-                                    value),
-                          ),
-                        ),
                       ),
                     ],
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const Text('倒计时结束:', style: titleStyle),
-                        const Spacer(),
-                        ActionRowLineItem(
-                          onTap: () {
-                            shutdownTimerService.exitApp = false;
-                            setState(() {});
-                          },
-                          text: " 暂停视频 ",
-                          selectStatus: !shutdownTimerService.exitApp,
-                        ),
-                        const Spacer(),
-                        ActionRowLineItem(
-                          onTap: () {
-                            shutdownTimerService.exitApp = true;
-                            setState(() {});
-                          },
-                          text: " 退出APP ",
-                          selectStatus: shutdownTimerService.exitApp,
-                        )
-                      ],
+                    Builder(
+                      builder: (context) {
+                        return Row(
+                          children: [
+                            const SizedBox(width: 18),
+                            const Text('倒计时结束:', style: titleStyle),
+                            const Spacer(),
+                            ActionRowLineItem(
+                              onTap: () {
+                                shutdownTimerService.exitApp = false;
+                                (context as Element).markNeedsBuild();
+                              },
+                              text: " 暂停视频 ",
+                              selectStatus: !shutdownTimerService.exitApp,
+                            ),
+                            const Spacer(),
+                            ActionRowLineItem(
+                              onTap: () {
+                                shutdownTimerService.exitApp = true;
+                                (context as Element).markNeedsBuild();
+                              },
+                              text: " 退出APP ",
+                              selectStatus: shutdownTimerService.exitApp,
+                            ),
+                            const SizedBox(width: 25),
+                          ],
+                        );
+                      },
                     ),
-                    const SizedBox(height: 10),
                   ],
                 ),
               ),
@@ -290,7 +291,7 @@ class PageUtils {
 
   static void showFavBottomSheet({
     required BuildContext context,
-    required dynamic ctr,
+    required CommonIntroController ctr,
   }) {
     showModalBottomSheet(
       context: context,
@@ -372,7 +373,7 @@ class PageUtils {
       return;
     }
 
-    // debugPrint('pushDynDetail: ${item.type}');
+    // if (kDebugMode) debugPrint('pushDynDetail: ${item.type}');
 
     switch (item.type) {
       case 'DYNAMIC_TYPE_AV':
@@ -411,44 +412,23 @@ class PageUtils {
 
       /// 专栏文章查看
       case 'DYNAMIC_TYPE_ARTICLE':
-        String? url = item.modules.moduleDynamic?.major?.opus?.jumpUrl;
-        if (url != null) {
-          if (url.contains('opus') || url.contains('read')) {
-            RegExp digitRegExp = RegExp(r'\d+');
-            Iterable<Match> matches = digitRegExp.allMatches(url);
-            String number = matches.first.group(0)!;
-            toDupNamed(
-              '/articlePage',
-              parameters: {
-                'id': number,
-                'type': url.split('//').last.split('/')[1],
-              },
-            );
-          } else {
-            handleWebview('https:$url');
-          }
-        }
-
+        toDupNamed(
+          '/articlePage',
+          parameters: {
+            'id': item.idStr,
+            'type': 'opus',
+          },
+        );
         break;
       case 'DYNAMIC_TYPE_PGC':
-        debugPrint('番剧');
+        if (kDebugMode) debugPrint('番剧');
         SmartDialog.showToast('暂未支持的类型，请联系开发者');
         break;
 
       case 'DYNAMIC_TYPE_LIVE_RCMD':
         DynamicLiveModel liveRcmd =
             item.modules.moduleDynamic!.major!.liveRcmd!;
-        ModuleAuthorModel author = item.modules.moduleAuthor!;
-        LiveItemModel liveItem = LiveItemModel.fromJson({
-          'title': liveRcmd.title,
-          'uname': author.name,
-          'cover': liveRcmd.cover,
-          'mid': author.mid,
-          'face': author.face,
-          'roomid': liveRcmd.roomId,
-          'watched_show': liveRcmd.watchedShow,
-        });
-        toDupNamed('/liveRoom?roomid=${liveItem.roomId}');
+        toDupNamed('/liveRoom?roomid=${liveRcmd.roomId}');
         break;
 
       /// 合集查看
@@ -473,10 +453,10 @@ class PageUtils {
 
       /// 番剧查看
       case 'DYNAMIC_TYPE_PGC_UNION':
-        debugPrint('DYNAMIC_TYPE_PGC_UNION 番剧');
+        if (kDebugMode) debugPrint('DYNAMIC_TYPE_PGC_UNION 番剧');
         DynamicArchiveModel pgc = item.modules.moduleDynamic!.major!.pgc!;
         if (pgc.epid != null) {
-          viewBangumi(epId: pgc.epid);
+          viewPgc(epId: pgc.epid);
         }
         break;
       case 'DYNAMIC_TYPE_MEDIALIST':
@@ -547,7 +527,7 @@ class PageUtils {
     String url, {
     bool off = false,
   }) {
-    if (GStorage.openInBrowser) {
+    if (Pref.openInBrowser) {
       launchURL(url);
     } else {
       if (off) {
@@ -586,7 +566,7 @@ class PageUtils {
     bool inApp = false,
     Map? parameters,
   }) async {
-    if (!inApp && GStorage.openInBrowser) {
+    if (!inApp && Pref.openInBrowser) {
       if (!await PiliScheme.routePushFromUrl(url, selfHandle: true)) {
         launchURL(url);
       }
@@ -596,7 +576,7 @@ class PageUtils {
           '/webview',
           parameters: {
             'url': url,
-            if (parameters != null) ...parameters,
+            ...?parameters,
           },
         );
       } else {
@@ -682,28 +662,30 @@ class PageUtils {
     }
   }
 
-  static bool viewPgcFromUri(String uri) {
-    String? id = RegExp(r'(ep|ss)\d+').firstMatch(uri)?.group(0);
-    if (id != null) {
-      bool isSeason = id.startsWith('ss');
-      id = id.substring(2);
-      viewBangumi(
+  static final _pgcRegex = RegExp(r'(ep|ss)(\d+)');
+  static bool viewPgcFromUri(String uri, {String? progress}) {
+    RegExpMatch? match = _pgcRegex.firstMatch(uri);
+    if (match != null) {
+      bool isSeason = match.group(1) == 'ss';
+      String id = match.group(2)!;
+      viewPgc(
         seasonId: isSeason ? id : null,
         epId: isSeason ? null : id,
+        progress: progress,
       );
       return true;
     }
     return false;
   }
 
-  static Future<void> viewBangumi(
+  static Future<void> viewPgc(
       {dynamic seasonId, dynamic epId, String? progress}) async {
     try {
       SmartDialog.showLoading(msg: '资源获取中');
-      var result = await SearchHttp.bangumiInfo(seasonId: seasonId, epId: epId);
+      var result = await SearchHttp.pgcInfo(seasonId: seasonId, epId: epId);
       SmartDialog.dismiss();
       if (result['status']) {
-        BangumiInfoModel data = result['data'];
+        PgcInfoModel data = result['data'];
 
         // epId episode -> progress episode -> first episode
         EpisodeItem? episode;
@@ -758,7 +740,7 @@ class PageUtils {
             'pic': episode.cover,
             'heroTag': Utils.makeHeroTag(episode.cid),
             'videoType': SearchType.media_bangumi,
-            'bangumiItem': data,
+            'pgcItem': data,
             if (progress != null) 'progress': int.tryParse(progress)
           },
           preventDuplicates: false,
@@ -769,7 +751,7 @@ class PageUtils {
     } catch (e) {
       SmartDialog.dismiss();
       SmartDialog.showToast('$e');
-      debugPrint('$e');
+      if (kDebugMode) debugPrint('$e');
     }
   }
 

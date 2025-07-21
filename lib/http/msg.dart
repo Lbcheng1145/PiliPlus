@@ -2,85 +2,121 @@ import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/bfs_res/data.dart';
-import 'package:PiliPlus/models/msg/account.dart';
-import 'package:PiliPlus/models/msg/im_user_infos/datum.dart';
-import 'package:PiliPlus/models/msg/msg_dnd/uid_setting.dart';
-import 'package:PiliPlus/models/msg/msgfeed_at_me.dart';
-import 'package:PiliPlus/models/msg/msgfeed_like_me.dart';
-import 'package:PiliPlus/models/msg/msgfeed_reply_me.dart';
-import 'package:PiliPlus/models/msg/msgfeed_sys_msg.dart';
-import 'package:PiliPlus/models/msg/session.dart';
-import 'package:PiliPlus/models/msg/session_ss/data.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/models_new/msg/im_user_infos/datum.dart';
+import 'package:PiliPlus/models_new/msg/msg_at/data.dart';
+import 'package:PiliPlus/models_new/msg/msg_dnd/uid_setting.dart';
+import 'package:PiliPlus/models_new/msg/msg_like/data.dart';
+import 'package:PiliPlus/models_new/msg/msg_like_detail/data.dart';
+import 'package:PiliPlus/models_new/msg/msg_reply/data.dart';
+import 'package:PiliPlus/models_new/msg/msg_sys/data.dart';
+import 'package:PiliPlus/models_new/msg/session_ss/data.dart';
+import 'package:PiliPlus/models_new/msgfeed_unread/data.dart';
+import 'package:PiliPlus/models_new/single_unread/data.dart';
+import 'package:PiliPlus/models_new/upload_bfs/data.dart';
+import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 class MsgHttp {
-  static Future<LoadingState<MsgFeedReplyMe>> msgFeedReplyMe(
-      {int cursor = -1, int cursorTime = -1}) async {
-    var res = await Request().get(Api.msgFeedReply, queryParameters: {
-      'id': cursor == -1 ? null : cursor,
-      'reply_time': cursorTime == -1 ? null : cursorTime,
-      'platform': 'android',
-      'mobi_app': 'android',
-      'build': '8350200',
-    });
+  static Future<LoadingState<MsgReplyData>> msgFeedReplyMe({
+    int? cursor,
+    int? cursorTime,
+  }) async {
+    var res = await Request().get(
+      Api.msgFeedReply,
+      queryParameters: {
+        if (cursor != null) 'id': cursor,
+        if (cursorTime != null) 'reply_time': cursorTime,
+        'platform': 'web',
+        'mobi_app': 'web',
+        'build': 0,
+        'web_location': 333.40164,
+      },
+    );
     if (res.data['code'] == 0) {
-      MsgFeedReplyMe data = MsgFeedReplyMe.fromJson(res.data['data']);
-      return Success(data);
+      return Success(MsgReplyData.fromJson(res.data['data']));
     } else {
       return Error(res.data['message']);
     }
   }
 
-  static Future<LoadingState<MsgFeedAtMe>> msgFeedAtMe(
-      {int cursor = -1, int cursorTime = -1}) async {
-    var res = await Request().get(Api.msgFeedAt, queryParameters: {
-      'id': cursor == -1 ? null : cursor,
-      'at_time': cursorTime == -1 ? null : cursorTime,
-      'platform': 'android',
-      'mobi_app': 'android',
-      'build': '8350200',
-    });
+  static Future<LoadingState<MsgAtData>> msgFeedAtMe(
+      {int? cursor, int? cursorTime}) async {
+    var res = await Request().get(
+      Api.msgFeedAt,
+      queryParameters: {
+        if (cursor != null) 'id': cursor,
+        if (cursorTime != null) 'at_time': cursorTime,
+        'platform': 'web',
+        'mobi_app': 'web',
+        'build': 0,
+        'web_location': 333.40164,
+      },
+    );
     if (res.data['code'] == 0) {
-      MsgFeedAtMe data = MsgFeedAtMe.fromJson(res.data['data']);
-      return Success(data);
+      return Success(MsgAtData.fromJson(res.data['data']));
     } else {
       return Error(res.data['message']);
     }
   }
 
-  static Future<LoadingState<MsgFeedLikeMe>> msgFeedLikeMe(
-      {int cursor = -1, int cursorTime = -1}) async {
+  static Future<LoadingState<MsgLikeData>> msgFeedLikeMe(
+      {int? cursor, int? cursorTime}) async {
     var res = await Request().get(Api.msgFeedLike, queryParameters: {
-      'id': cursor == -1 ? null : cursor,
-      'like_time': cursorTime == -1 ? null : cursorTime,
-      'platform': 'android',
-      'mobi_app': 'android',
-      'build': '8350200',
+      if (cursor != null) 'id': cursor,
+      if (cursorTime != null) 'like_time': cursorTime,
+      'platform': 'web',
+      'mobi_app': 'web',
+      'build': 0,
+      'web_location': 333.40164,
     });
     if (res.data['code'] == 0) {
-      MsgFeedLikeMe data = MsgFeedLikeMe.fromJson(res.data['data']);
-      return Success(data);
+      return Success(MsgLikeData.fromJson(res.data['data']));
     } else {
       return Error(res.data['message']);
     }
   }
 
-  static Future<LoadingState<List<SystemNotifyList>?>> msgFeedNotify(
-      {int cursor = -1, int pageSize = 20}) async {
-    var res = await Request().get(Api.msgSysNotify, queryParameters: {
-      'cursor': cursor == -1 ? null : cursor,
-      'page_size': pageSize,
-    });
+  static Future<LoadingState<MsgLikeDetailData>> msgLikeDetail({
+    required dynamic cardId,
+    required int pn,
+  }) async {
+    var res = await Request().get(
+      Api.msgLikeDetail,
+      queryParameters: {
+        'card_id': cardId,
+        'pn': pn,
+        'last_view_at': 0,
+        'platform': 'web',
+        'build': 0,
+        'mobi_app': 'web',
+        'web_location': 333.40164,
+      },
+    );
     if (res.data['code'] == 0) {
-      List<SystemNotifyList>? list = (res.data['data'] as List?)
-          ?.map((e) => SystemNotifyList.fromJson(e))
-          .toList();
-      return Success(list);
+      return Success(MsgLikeDetailData.fromJson(res.data['data']));
+    } else {
+      return Error(res.data['message']);
+    }
+  }
+
+  static Future<LoadingState<List<MsgSysItem>?>> msgFeedNotify(
+      {int? cursor, int pageSize = 20}) async {
+    var res = await Request().get(
+      Api.msgSysNotify,
+      queryParameters: {
+        if (cursor != null) 'cursor': cursor,
+        'page_size': pageSize,
+        'mobi_app': 'web',
+        'build': 0,
+        'web_location': 333.40164,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return Success((res.data['data'] as List?)
+          ?.map((e) => MsgSysItem.fromJson(e))
+          .toList());
     } else {
       return Error(res.data['message']);
     }
@@ -132,7 +168,7 @@ class MsgHttp {
   }
 
   static Future uploadBfs({
-    dynamic path,
+    required String path,
     String? category,
     String? biz,
     CancelToken? cancelToken,
@@ -152,7 +188,7 @@ class MsgHttp {
     if (res.data['code'] == 0) {
       return {
         'status': true,
-        'data': BfsResData.fromJson(res.data['data']),
+        'data': UploadBfsResData.fromJson(res.data['data']),
       };
     } else {
       return {
@@ -311,81 +347,6 @@ class MsgHttp {
         'status': false,
         'msg': res.data['message'],
       };
-    }
-  }
-
-  // 会话列表
-  static Future<LoadingState<List<SessionList>?>> sessionList(
-      {int? endTs}) async {
-    final params = await WbiSign.makSign({
-      'session_type': 1,
-      'group_fold': 1,
-      'unfollow_fold': 0,
-      'sort_rule': 2,
-      'build': 0,
-      'mobi_app': 'web',
-      if (endTs != null) 'end_ts': endTs,
-    });
-    var res = await Request().get(Api.sessionList, queryParameters: params);
-    if (res.data['code'] == 0) {
-      try {
-        return Success(
-          SessionDataModel.fromJson(res.data['data']).sessionList,
-        );
-      } catch (err) {
-        return Error(err.toString());
-      }
-    } else {
-      return Error(res.data['message']);
-    }
-  }
-
-  static Future accountList(uids) async {
-    var res = await Request().get(Api.sessionAccountList, queryParameters: {
-      'uids': uids,
-      'build': 0,
-      'mobi_app': 'web',
-    });
-    if (res.data['code'] == 0) {
-      try {
-        return {
-          'status': true,
-          'data': res.data['data']
-              .map<AccountListModel>((e) => AccountListModel.fromJson(e))
-              .toList(),
-        };
-      } catch (err) {
-        debugPrint('err🔟: $err');
-      }
-    } else {
-      return {'status': false, 'msg': res.data['message']};
-    }
-  }
-
-  static Future<LoadingState<SessionMsgDataModel>> sessionMsg({
-    int? talkerId,
-    beginSeqno,
-    endSeqno,
-  }) async {
-    final params = await WbiSign.makSign({
-      'talker_id': talkerId,
-      'session_type': 1,
-      'size': 20,
-      'sender_device_id': 1,
-      'build': 0,
-      'mobi_app': 'web',
-      if (beginSeqno != null) 'begin_seqno': beginSeqno,
-      if (endSeqno != null) 'end_seqno': endSeqno,
-    });
-    var res = await Request().get(Api.sessionMsg, queryParameters: params);
-    if (res.data['code'] == 0) {
-      try {
-        return Success(SessionMsgDataModel.fromJson(res.data['data']));
-      } catch (err) {
-        return Error(err.toString());
-      }
-    } else {
-      return Error(res.data['message']);
     }
   }
 
@@ -619,6 +580,45 @@ class MsgHttp {
           .toList());
     } else {
       return Error(res.data['message']);
+    }
+  }
+
+  static Future msgUnread() async {
+    var res = await Request().get(
+      Api.msgUnread,
+      queryParameters: {
+        'build': 0,
+        'mobi_app': 'web',
+        'unread_type': 0,
+        'web_location': 333.1365,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return {
+        'status': true,
+        'data': SingleUnreadData.fromJson(res.data['data'])
+      };
+    } else {
+      return {'status': false, 'data': res.data['message']};
+    }
+  }
+
+  static Future msgFeedUnread() async {
+    var res = await Request().get(
+      Api.msgFeedUnread,
+      queryParameters: {
+        'build': 0,
+        'mobi_app': 'web',
+        'web_location': 333.1365,
+      },
+    );
+    if (res.data['code'] == 0) {
+      return {
+        'status': true,
+        'data': MsgFeedUnreadData.fromJson(res.data['data'])
+      };
+    } else {
+      return {'status': false, 'data': res.data['message']};
     }
   }
 }

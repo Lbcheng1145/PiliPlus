@@ -1,6 +1,8 @@
 import 'package:PiliPlus/grpc/bilibili/community/service/dm/v1.pb.dart';
 import 'package:PiliPlus/grpc/dm.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/services/account_service.dart';
+import 'package:get/get.dart';
 
 class PlDanmakuController {
   PlDanmakuController(
@@ -10,6 +12,8 @@ class PlDanmakuController {
   final int cid;
   final PlPlayerController plPlayerController;
   final bool mergeDanmaku;
+
+  AccountService accountService = Get.find<AccountService>();
 
   Map<int, List<DanmakuElem>> dmSegMap = {};
   // 已请求的段落标记
@@ -51,13 +55,24 @@ class PlDanmakuController {
           });
         }
 
+        final shouldFilter = plPlayerController.filters.count != 0;
         for (final element in data.elems) {
+          if (element.mode == 7 && !plPlayerController.showSpecialDanmaku) {
+            continue;
+          }
+          if (accountService.isLogin.value) {
+            element.isSelf = element.midHash == plPlayerController.midHash;
+          }
+          if (!element.isSelf) {
+            if (element.weight < plPlayerController.danmakuWeight ||
+                (shouldFilter && plPlayerController.filters.remove(element))) {
+              continue;
+            }
+          }
           if (mergeDanmaku) {
             final count = counts[element.content];
             if (count != 1) {
-              element.attr = count!;
-            } else {
-              element.clearAttr();
+              element.count = count!;
             }
           }
           int pos = element.progress ~/ 100; //每0.1秒存储一次
@@ -75,14 +90,6 @@ class PlDanmakuController {
       queryDanmaku(segmentIndex);
       return null;
     }
-    if (plPlayerController.danmakuWeight == 0 &&
-        plPlayerController.filters.count == 0) {
-      return dmSegMap[progress ~/ 100];
-    } else {
-      return dmSegMap[progress ~/ 100]
-        ?..retainWhere((element) =>
-            element.weight >= plPlayerController.danmakuWeight &&
-            plPlayerController.filters.retain(element));
-    }
+    return dmSegMap[progress ~/ 100];
   }
 }

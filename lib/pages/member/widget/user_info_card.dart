@@ -1,11 +1,14 @@
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/pendant_avatar.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart';
-import 'package:PiliPlus/models/space/card.dart';
-import 'package:PiliPlus/models/space/images.dart';
+import 'package:PiliPlus/models_new/space/space/card.dart';
+import 'package:PiliPlus/models_new/space/space/images.dart';
+import 'package:PiliPlus/models_new/space/space/live.dart';
+import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/image_util.dart';
+import 'package:PiliPlus/utils/num_util.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
-import 'package:PiliPlus/utils/storage.dart' show Accounts;
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +25,6 @@ class UserInfoCard extends StatelessWidget {
     required this.onFollow,
     this.live,
     this.silence,
-    this.endTime,
   });
 
   final bool isV;
@@ -31,9 +33,8 @@ class UserInfoCard extends StatelessWidget {
   final SpaceCard card;
   final SpaceImages images;
   final VoidCallback onFollow;
-  final dynamic live;
+  final Live? live;
   final int? silence;
-  final String? endTime;
 
   @override
   Widget build(BuildContext context) {
@@ -44,16 +45,17 @@ class UserInfoCard extends StatelessWidget {
   Widget _countWidget({
     required ThemeData theme,
     required String title,
-    required int count,
+    required int? count,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            Utils.numFormat(count),
+            NumUtil.numFormat(count),
             style: const TextStyle(fontSize: 14),
           ),
           Text(
@@ -84,7 +86,7 @@ class UserInfoCard extends StatelessWidget {
           imgList: [SourceModel(url: imgUrl)],
         ),
         child: CachedNetworkImage(
-          imageUrl: Utils.thumbnailImgUrl(imgUrl),
+          imageUrl: ImageUtil.thumbnailUrl(imgUrl),
           width: double.infinity,
           height: 135,
           imageBuilder: (context, imageProvider) => DecoratedBox(
@@ -162,7 +164,7 @@ class UserInfoCard extends StatelessWidget {
                 ),
               if (card.nameplate?.imageSmall?.isNotEmpty == true)
                 CachedNetworkImage(
-                  imageUrl: Utils.thumbnailImgUrl(card.nameplate!.imageSmall!),
+                  imageUrl: ImageUtil.thumbnailUrl(card.nameplate!.imageSmall!),
                   height: 20,
                   placeholder: (context, url) {
                     return const SizedBox.shrink();
@@ -240,16 +242,15 @@ class UserInfoCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (!card.spaceTag.isNullOrEmpty)
-                ...card.spaceTag!.map(
-                  (item) => Text(
-                    item.title ?? '',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: theme.colorScheme.outline,
-                    ),
+              ...?card.spaceTag?.map(
+                (item) => Text(
+                  item.title ?? '',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.colorScheme.outline,
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -280,7 +281,7 @@ class UserInfoCard extends StatelessWidget {
                       ),
                     ),
                     TextSpan(
-                      text: ' 该账号封禁中${endTime ?? ''}',
+                      text: ' 该账号封禁中',
                       style: TextStyle(
                         color: isLight
                             ? theme.colorScheme.onErrorContainer
@@ -308,7 +309,7 @@ class UserInfoCard extends StatelessWidget {
                           ? card.fans
                           : index == 2
                               ? card.attention
-                              : card.likes?.likeNum ?? 0,
+                              : card.likes?.likeNum,
                       onTap: () {
                         if (index == 0) {
                           Get.toNamed('/fan?mid=${card.mid}&name=${card.name}');
@@ -419,14 +420,13 @@ class UserInfoCard extends StatelessWidget {
         officialType: card.officialVerify?.type,
         isVip: (card.vip?.status ?? -1) > 0,
         garbPendantImage: card.pendant!.image!,
-        roomId: live is Map && live['liveStatus'] == 1 ? live['roomid'] : null,
+        roomId: live?.liveStatus == 1 ? live!.roomid : null,
         onTap: () => context
             .imageView(imgList: [SourceModel(url: card.face.http2https)]),
       ));
 
   Column _buildV(BuildContext context, ThemeData theme) => Column(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Stack(
@@ -465,9 +465,9 @@ class UserInfoCard extends StatelessWidget {
   Widget buildPrInfo(ThemeData theme) => Builder(builder: (context) {
         final isDark = theme.brightness == Brightness.dark;
         final textColor = isDark
-            ? Color(int.parse('FF${card.prInfo?.textColorNight?.substring(1)}',
+            ? Color(int.parse('FF${card.prInfo?.textColorNight.substring(1)}',
                 radix: 16))
-            : Color(int.parse('FF${card.prInfo?.textColor?.substring(1)}',
+            : Color(int.parse('FF${card.prInfo?.textColor.substring(1)}',
                 radix: 16));
         return GestureDetector(
           onTap: () {
@@ -479,22 +479,21 @@ class UserInfoCard extends StatelessWidget {
             margin: const EdgeInsets.only(top: 8),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             color: isDark
-                ? Color(int.parse(
-                    'FF${card.prInfo?.bgColorNight?.substring(1)}',
+                ? Color(int.parse('FF${card.prInfo?.bgColorNight.substring(1)}',
                     radix: 16))
-                : Color(int.parse('FF${card.prInfo?.bgColor?.substring(1)}',
+                : Color(int.parse('FF${card.prInfo?.bgColor.substring(1)}',
                     radix: 16)),
             child: Row(
               children: [
                 if (isDark && card.prInfo?.iconNight?.isNotEmpty == true) ...[
                   CachedNetworkImage(
-                    imageUrl: Utils.thumbnailImgUrl(card.prInfo!.iconNight!),
+                    imageUrl: ImageUtil.thumbnailUrl(card.prInfo!.iconNight!),
                     height: 20,
                   ),
                   const SizedBox(width: 16),
                 ] else if (card.prInfo?.icon?.isNotEmpty == true) ...[
                   CachedNetworkImage(
-                    imageUrl: Utils.thumbnailImgUrl(card.prInfo!.icon!),
+                    imageUrl: ImageUtil.thumbnailUrl(card.prInfo!.icon!),
                     height: 20,
                   ),
                   const SizedBox(width: 16),
@@ -520,7 +519,6 @@ class UserInfoCard extends StatelessWidget {
 
   Column _buildH(BuildContext context, ThemeData theme) => Column(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // _buildHeader(context),

@@ -2,39 +2,42 @@ import 'dart:math';
 
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/member.dart';
+import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/common/member/tab_type.dart';
-import 'package:PiliPlus/models/space/data.dart';
-import 'package:PiliPlus/models/space/tab2.dart';
-import 'package:PiliPlus/models/space/tab_item.dart';
+import 'package:PiliPlus/models_new/space/space/data.dart';
+import 'package:PiliPlus/models_new/space/space/live.dart';
+import 'package:PiliPlus/models_new/space/space/setting.dart';
+import 'package:PiliPlus/models_new/space/space/tab2.dart';
 import 'package:PiliPlus/pages/common/common_data_controller.dart';
+import 'package:PiliPlus/services/account_service.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart'
     show ExtendedNestedScrollViewState;
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 
 class MemberController extends CommonDataController<SpaceData, SpaceData?>
     with GetTickerProviderStateMixin {
   MemberController({required this.mid});
   int mid;
-  int? ownerMid;
   String? username;
   RxBool showUname = false.obs;
 
-  dynamic live;
+  AccountService accountService = Get.find<AccountService>();
+
+  Live? live;
   int? silence;
-  String? endTime;
 
   int? isFollowed; // 被关注
   RxInt relation = 0.obs;
   bool get isFollow => relation.value != 0 && relation.value != 128;
 
-  List<Tab2>? tab2;
+  SpaceSetting? spaceSetting;
+  List<SpaceTab2>? tab2;
   late List<Tab> tabs;
   TabController? tabController;
   RxInt contributeInitialIndex = 0.obs;
@@ -56,7 +59,6 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
   @override
   void onInit() {
     super.onInit();
-    ownerMid = Accounts.main.mid;
     queryData();
   }
 
@@ -81,26 +83,16 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
         data.series?.item?.isNotEmpty == true) {
       hasSeasonOrSeries = true;
     }
-    if (data.card?.endTime != null) {
-      if (data.card!.endTime == 0) {
-        endTime = ': 永久封禁';
-      } else if (data.card!.endTime! >
-          DateTime.now().millisecondsSinceEpoch ~/ 1000) {
-        endTime =
-            '：至 ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.fromMillisecondsSinceEpoch(data.card!.endTime! * 1000))}';
-      }
-    }
     tab2?.retainWhere((item) => implTabs.contains(item.param));
     if (tab2?.isNotEmpty == true) {
-      if (!data.tab!.toJson().values.contains(true) &&
-          tab2!.first.param == 'home') {
+      if (data.hasItem != true && tab2!.first.param == 'home') {
         // remove empty home tab
         tab2!.removeAt(0);
       }
       if (tab2!.isNotEmpty) {
         int initialIndex = -1;
-        MemberTabType memberTab = GStorage.memberTab;
-        if (memberTab != MemberTabType.none) {
+        MemberTabType memberTab = Pref.memberTab;
+        if (memberTab != MemberTabType.def) {
           initialIndex = tab2!.indexWhere((item) {
             return item.param == memberTab.name;
           });
@@ -122,6 +114,9 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
         );
       }
     }
+    if (mid == accountService.mid) {
+      spaceSetting = data.setting;
+    }
     loadingState.value = response;
     return true;
   }
@@ -129,14 +124,14 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
   @override
   bool handleError(String? errMsg) {
     tab2 = const [
-      Tab2(title: '动态', param: 'dynamic'),
-      Tab2(
+      SpaceTab2(title: '动态', param: 'dynamic'),
+      SpaceTab2(
         title: '投稿',
         param: 'contribute',
-        items: [SpaceTabItem(title: '视频', param: 'video')],
+        items: [SpaceTab2Item(title: '视频', param: 'video')],
       ),
-      Tab2(title: '收藏', param: 'favorite'),
-      Tab2(title: '追番', param: 'bangumi'),
+      SpaceTab2(title: '收藏', param: 'favorite'),
+      SpaceTab2(title: '追番', param: 'bangumi'),
     ];
     tabs = tab2!.map((item) => Tab(text: item.title)).toList();
     tabController?.dispose();
@@ -157,7 +152,7 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
       );
 
   void blockUser(BuildContext context) {
-    if (ownerMid == 0) {
+    if (!accountService.isLogin.value) {
       SmartDialog.showToast('账号未登录');
       return;
     }
@@ -204,12 +199,12 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
   }
 
   void onFollow(BuildContext context) {
-    if (mid == ownerMid) {
+    if (mid == accountService.mid) {
       Get.toNamed('/editProfile');
     } else if (relation.value == 128) {
       _onBlock();
     } else {
-      if (ownerMid == null) {
+      if (!accountService.isLogin.value) {
         SmartDialog.showToast('账号未登录');
         return;
       }
@@ -255,6 +250,15 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOut,
       );
+    }
+  }
+
+  Future<void> vipExpAdd() async {
+    var res = await UserHttp.vipExpAdd();
+    if (res['status']) {
+      SmartDialog.showToast('领取成功');
+    } else {
+      SmartDialog.showToast(res['msg']);
     }
   }
 }

@@ -1,65 +1,67 @@
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
-import 'package:PiliPlus/models/user/fav_folder.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/models_new/fav/fav_folder/list.dart';
+import 'package:PiliPlus/utils/fav_util.dart';
 import 'package:flutter/material.dart';
 
-class FavItem extends StatelessWidget {
+class FavVideoItem extends StatelessWidget {
   final String heroTag;
-  final FavFolderItemData favFolderItem;
+  final FavFolderInfo item;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
 
-  const FavItem({
+  const FavVideoItem({
     super.key,
     this.onTap,
     this.onLongPress,
     required this.heroTag,
-    required this.favFolderItem,
+    required this.item,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      onLongPress: onLongPress ??
-          (onTap == null
-              ? null
-              : () => imageSaveDialog(
-                    title: favFolderItem.title,
-                    cover: favFolderItem.cover,
-                  )),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: StyleString.aspectRatio,
-              child: LayoutBuilder(
-                builder: (context, boxConstraints) {
-                  return Hero(
-                    tag: heroTag,
-                    child: NetworkImgLayer(
-                      src: favFolderItem.cover,
-                      width: boxConstraints.maxWidth,
-                      height: boxConstraints.maxHeight,
-                    ),
-                  );
-                },
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress ??
+            (onTap == null
+                ? null
+                : () => imageSaveDialog(
+                      title: item.title,
+                      cover: item.cover,
+                    )),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AspectRatio(
+                aspectRatio: StyleString.aspectRatio,
+                child: LayoutBuilder(
+                  builder: (context, boxConstraints) {
+                    return Hero(
+                      tag: heroTag,
+                      child: NetworkImgLayer(
+                        src: item.cover,
+                        width: boxConstraints.maxWidth,
+                        height: boxConstraints.maxHeight,
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            videoContent(context),
-          ],
+              const SizedBox(width: 10),
+              content(context),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget videoContent(context) {
+  Widget content(BuildContext context) {
     final theme = Theme.of(context);
     final fontSize = theme.textTheme.labelMedium!.fontSize;
     final color = theme.colorScheme.outline;
@@ -68,22 +70,22 @@ class FavItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            favFolderItem.title ?? '',
+            item.title,
             textAlign: TextAlign.start,
             style: const TextStyle(
               letterSpacing: 0.3,
             ),
           ),
-          if (favFolderItem.intro?.isNotEmpty == true)
+          if (item.intro?.isNotEmpty == true)
             Text(
-              favFolderItem.intro!,
+              item.intro!,
               style: TextStyle(
                 fontSize: fontSize,
                 color: color,
               ),
             ),
           Text(
-            '${favFolderItem.mediaCount}个内容',
+            '${item.mediaCount}个内容',
             style: TextStyle(
               fontSize: fontSize,
               color: color,
@@ -91,7 +93,7 @@ class FavItem extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            Utils.isPublicFavText(favFolderItem.attr ?? 0),
+            FavUtil.isPublicFavText(item.attr),
             style: TextStyle(
               fontSize: fontSize,
               color: color,

@@ -3,7 +3,7 @@ import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/msg/msgfeed_sys_msg.dart';
+import 'package:PiliPlus/models_new/msg/msg_sys/data.dart';
 import 'package:PiliPlus/pages/msg_feed_top/sys_msg/controller.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
@@ -23,6 +23,8 @@ class SysMsgPage extends StatefulWidget {
 
 class _SysMsgPageState extends State<SysMsgPage> {
   late final _sysMsgController = Get.put(SysMsgController());
+  late final RegExp urlRegExp = RegExp(
+      r'#\{([^}]*)\}\{([^}]*)\}|https?:\/\/[^\s/\$.?#].[^\s]*|www\.[^\s/\$.?#].[^\s]*|【(.*?)】|（(\d+)）');
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +51,13 @@ class _SysMsgPageState extends State<SysMsgPage> {
   }
 
   Widget _buildBody(
-      ThemeData theme, LoadingState<List<SystemNotifyList>?> loadingState) {
+      ThemeData theme, LoadingState<List<MsgSysItem>?> loadingState) {
+    late final divider = Divider(
+      indent: 72,
+      endIndent: 20,
+      height: 6,
+      color: Colors.grey.withValues(alpha: 0.1),
+    );
     return switch (loadingState) {
       Loading() => SliverSafeArea(
           sliver: SliverList.builder(
@@ -90,8 +98,8 @@ class _SysMsgPageState extends State<SysMsgPage> {
                         ),
                       ),
                       const SizedBox(height: 5),
-                      SizedBox(
-                        width: double.infinity,
+                      Align(
+                        alignment: Alignment.centerRight,
                         child: Text(
                           "${item.timeAt}",
                           maxLines: 1,
@@ -100,21 +108,13 @@ class _SysMsgPageState extends State<SysMsgPage> {
                             fontSize: 13,
                             color: theme.colorScheme.outline,
                           ),
-                          textAlign: TextAlign.end,
                         ),
                       ),
                     ],
                   ),
                 );
               },
-              separatorBuilder: (BuildContext context, int index) {
-                return Divider(
-                  indent: 72,
-                  endIndent: 20,
-                  height: 6,
-                  color: Colors.grey.withValues(alpha: 0.1),
-                );
-              },
+              separatorBuilder: (context, index) => divider,
             )
           : HttpError(onReload: _sysMsgController.onReload),
       Error(:var errMsg) => HttpError(
@@ -126,8 +126,6 @@ class _SysMsgPageState extends State<SysMsgPage> {
 
   InlineSpan _buildContent(ThemeData theme, String content) {
     final List<InlineSpan> spanChildren = <InlineSpan>[];
-    RegExp urlRegExp = RegExp(
-        r'#\{([^}]*)\}\{([^}]*)\}|https?:\/\/[^\s/\$.?#].[^\s]*|www\.[^\s/\$.?#].[^\s]*|【(.*?)】|（(\d+)）');
     content.splitMapJoin(
       urlRegExp,
       onMatch: (Match match) {

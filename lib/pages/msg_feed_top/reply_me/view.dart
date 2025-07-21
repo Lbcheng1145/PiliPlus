@@ -7,11 +7,11 @@ import 'package:PiliPlus/grpc/bilibili/app/im/v1.pbenum.dart'
     show IMSettingType;
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
-import 'package:PiliPlus/models/msg/msgfeed_reply_me.dart';
+import 'package:PiliPlus/models_new/msg/msg_reply/item.dart';
 import 'package:PiliPlus/pages/msg_feed_top/reply_me/controller.dart';
 import 'package:PiliPlus/pages/whisper_settings/view.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/date_util.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -64,7 +64,13 @@ class _ReplyMePageState extends State<ReplyMePage> {
   }
 
   Widget _buildBody(
-      ThemeData theme, LoadingState<List<ReplyMeItems>?> loadingState) {
+      ThemeData theme, LoadingState<List<MsgReplyItem>?> loadingState) {
+    late final divider = Divider(
+      indent: 72,
+      endIndent: 20,
+      height: 6,
+      color: Colors.grey.withValues(alpha: 0.1),
+    );
     return switch (loadingState) {
       Loading() => SliverList.builder(
           itemCount: 12,
@@ -80,17 +86,20 @@ class _ReplyMePageState extends State<ReplyMePage> {
                   _replyMeController.onLoadMore();
                 }
 
-                ReplyMeItems item = response[index];
+                MsgReplyItem item = response[index];
                 return ListTile(
                   onTap: () {
                     String? nativeUri = item.item?.nativeUri;
-                    if (nativeUri != null) {
-                      PiliScheme.routePushFromUrl(
-                        nativeUri,
-                        businessId: item.item?.businessId,
-                        oid: item.item?.subjectId,
-                      );
+                    if (nativeUri == null ||
+                        nativeUri.isEmpty ||
+                        nativeUri.startsWith('?')) {
+                      return;
                     }
+                    PiliScheme.routePushFromUrl(
+                      nativeUri,
+                      businessId: item.item?.businessId,
+                      oid: item.item?.subjectId,
+                    );
                   },
                   onLongPress: () => showConfirmDialog(
                     context: context,
@@ -131,7 +140,6 @@ class _ReplyMePageState extends State<ReplyMePage> {
                     ),
                   ),
                   subtitle: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 4),
@@ -153,7 +161,7 @@ class _ReplyMePageState extends State<ReplyMePage> {
                             style: theme.textTheme.labelMedium!.copyWith(
                                 color: theme.colorScheme.outline, height: 1.5)),
                       Text(
-                        Utils.dateFormat(item.replyTime),
+                        DateUtil.dateFormat(item.replyTime),
                         style: theme.textTheme.bodyMedium!.copyWith(
                           fontSize: 13,
                           color: theme.colorScheme.outline,
@@ -163,14 +171,7 @@ class _ReplyMePageState extends State<ReplyMePage> {
                   ),
                 );
               },
-              separatorBuilder: (BuildContext context, int index) {
-                return Divider(
-                  indent: 72,
-                  endIndent: 20,
-                  height: 6,
-                  color: Colors.grey.withValues(alpha: 0.1),
-                );
-              },
+              separatorBuilder: (context, index) => divider,
             )
           : HttpError(onReload: _replyMeController.onReload),
       Error(:var errMsg) => HttpError(

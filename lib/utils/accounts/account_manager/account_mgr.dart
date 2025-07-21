@@ -5,12 +5,14 @@ import 'dart:io';
 import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/models/common/account_type.dart';
+import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
+import 'package:PiliPlus/utils/app_sign.dart';
 import 'package:PiliPlus/utils/extension.dart';
-import 'package:PiliPlus/utils/storage.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
@@ -24,7 +26,7 @@ class AccountManager extends Interceptor {
       Api.replyReplyList,
       Api.heartBeat,
       Api.ab2c,
-      Api.bangumiInfo,
+      Api.pgcInfo,
       Api.liveRoomInfo,
       Api.liveRoomInfoH5,
       Api.onlineTotal,
@@ -34,8 +36,8 @@ class AccountManager extends Interceptor {
       Api.liveRoomDmToken,
       Api.liveRoomDmPrefetch,
       Api.searchByType,
-      Api.memberDynamicSearch,
-      Api.memberArchive
+      Api.dynSearch,
+      Api.searchArchive
     },
     AccountType.recommend: {
       Api.recommendListWeb,
@@ -51,7 +53,7 @@ class AccountManager extends Interceptor {
       Api.searchTrending,
       Api.searchRecommend,
     },
-    AccountType.video: {Api.videoUrl, Api.bangumiVideoUrl}
+    AccountType.video: {Api.ugcUrl, Api.pgcUrl}
   };
 
   static const loginApi = {
@@ -71,7 +73,7 @@ class AccountManager extends Interceptor {
 
   AccountManager();
 
-  String blockServer = GStorage.blockServer;
+  String blockServer = Pref.blockServer;
 
   static String getCookies(List<Cookie> cookies) {
     // Sort cookies by path (longer path first).
@@ -107,7 +109,7 @@ class AccountManager extends Interceptor {
 
     // app端不需要管理cookie
     if (path.startsWith(HttpString.appBaseUrl)) {
-      // debugPrint('is app: ${options.path}');
+      // if (kDebugMode) debugPrint('is app: ${options.path}');
       // bytes是grpc响应
       if (options.responseType != ResponseType.bytes) {
         final dataPtr = (options.method == 'POST' && options.data is Map
@@ -120,8 +122,8 @@ class AccountManager extends Interceptor {
           }
           dataPtr['ts'] ??=
               (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString();
-          Utils.appSign(dataPtr);
-          // debugPrint(dataPtr.toString());
+          AppSign.appSign(dataPtr);
+          // if (kDebugMode) debugPrint(dataPtr.toString());
         }
       }
       return handler.next(options);
@@ -213,7 +215,7 @@ class AccountManager extends Interceptor {
       'site/getCoin',
     ];
     String url = err.requestOptions.uri.toString();
-    debugPrint('🌹🌹ApiInterceptor: $url');
+    if (kDebugMode) debugPrint('🌹🌹ApiInterceptor: $url');
     if (skipShow.any((i) => url.contains(i)) ||
         (url.contains('skipSegments') && err.requestOptions.method == 'GET')) {
       // skip

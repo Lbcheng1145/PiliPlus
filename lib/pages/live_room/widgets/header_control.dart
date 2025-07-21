@@ -4,21 +4,25 @@ import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
-class LiveHeaderControl extends StatelessWidget implements PreferredSizeWidget {
+class LiveHeaderControl extends StatelessWidget {
   const LiveHeaderControl({
+    super.key,
+    required this.title,
+    required this.upName,
     required this.plPlayerController,
     required this.onSendDanmaku,
-    super.key,
+    required this.onPlayAudio,
   });
 
+  final String? title;
+  final String? upName;
   final PlPlayerController plPlayerController;
   final VoidCallback onSendDanmaku;
-
-  @override
-  Size get preferredSize => const Size(double.infinity, kToolbarHeight);
+  final VoidCallback onPlayAudio;
 
   @override
   Widget build(BuildContext context) {
@@ -29,11 +33,52 @@ class LiveHeaderControl extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       titleSpacing: 14,
       title: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        spacing: 10,
         children: [
+          if (plPlayerController.isFullScreen.value)
+            SizedBox(
+              width: 35,
+              height: 35,
+              child: IconButton(
+                tooltip: '返回',
+                icon: const Icon(
+                  FontAwesomeIcons.arrowLeft,
+                  size: 15,
+                ),
+                style: ButtonStyle(
+                  padding: WidgetStateProperty.all(EdgeInsets.zero),
+                ),
+                onPressed: () =>
+                    plPlayerController.triggerFullScreen(status: false),
+              ),
+            ),
+          if (title != null)
+            Expanded(
+              child: Column(
+                spacing: 5,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title!,
+                    maxLines: 1,
+                    style: const TextStyle(
+                        fontSize: 15, height: 1, color: Colors.white),
+                  ),
+                  if (plPlayerController.isFullScreen.value && upName != null)
+                    Text(
+                      upName!,
+                      maxLines: 1,
+                      style: const TextStyle(
+                          fontSize: 12, height: 1, color: Colors.white),
+                    ),
+                ],
+              ),
+            )
+          else
+            const Spacer(),
           SizedBox(
-            width: 42,
-            height: 34,
+            width: 35,
+            height: 35,
             child: IconButton(
               tooltip: '发弹幕',
               style: ButtonStyle(
@@ -42,32 +87,42 @@ class LiveHeaderControl extends StatelessWidget implements PreferredSizeWidget {
               onPressed: onSendDanmaku,
               icon: const Icon(
                 Icons.comment_outlined,
-                size: 19,
+                size: 18,
                 color: Colors.white,
               ),
             ),
           ),
           Obx(
-            () => IconButton(
-              onPressed: plPlayerController.setOnlyPlayAudio,
-              icon: plPlayerController.onlyPlayAudio.value
-                  ? const Icon(
-                      size: 18,
-                      MdiIcons.musicCircle,
-                      color: Colors.white,
-                    )
-                  : const Icon(
-                      size: 18,
-                      MdiIcons.musicCircleOutline,
-                      color: Colors.white,
-                    ),
+            () => SizedBox(
+              width: 35,
+              height: 35,
+              child: IconButton(
+                onPressed: () {
+                  plPlayerController.onlyPlayAudio.value =
+                      !plPlayerController.onlyPlayAudio.value;
+                  onPlayAudio();
+                },
+                style: ButtonStyle(
+                  padding: WidgetStateProperty.all(EdgeInsets.zero),
+                ),
+                icon: plPlayerController.onlyPlayAudio.value
+                    ? const Icon(
+                        size: 18,
+                        MdiIcons.musicCircle,
+                        color: Colors.white,
+                      )
+                    : const Icon(
+                        size: 18,
+                        MdiIcons.musicCircleOutline,
+                        color: Colors.white,
+                      ),
+              ),
             ),
           ),
-          const SizedBox(width: 10),
-          if (Platform.isAndroid) ...[
+          if (Platform.isAndroid)
             SizedBox(
-              width: 34,
-              height: 34,
+              width: 35,
+              height: 35,
               child: IconButton(
                 tooltip: '画中画',
                 style: ButtonStyle(
@@ -94,18 +149,24 @@ class LiveHeaderControl extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 10),
-          ],
-          IconButton(
-            onPressed: () => PageUtils.scheduleExit(
-              context,
-              plPlayerController.isFullScreen.value,
-              true,
-            ),
-            icon: const Icon(
-              size: 18,
-              Icons.schedule,
-              color: Colors.white,
+          SizedBox(
+            width: 35,
+            height: 35,
+            child: IconButton(
+              tooltip: '定时关闭',
+              style: ButtonStyle(
+                padding: WidgetStateProperty.all(EdgeInsets.zero),
+              ),
+              onPressed: () => PageUtils.scheduleExit(
+                context,
+                plPlayerController.isFullScreen.value,
+                true,
+              ),
+              icon: const Icon(
+                size: 18,
+                Icons.schedule,
+                color: Colors.white,
+              ),
             ),
           ),
         ],

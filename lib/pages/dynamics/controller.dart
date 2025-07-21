@@ -5,12 +5,12 @@ import 'package:PiliPlus/http/follow.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/dynamic/dynamics_type.dart';
 import 'package:PiliPlus/models/dynamics/up.dart';
-import 'package:PiliPlus/models/follow/result.dart';
+import 'package:PiliPlus/models_new/follow/list.dart';
 import 'package:PiliPlus/pages/common/common_controller.dart';
 import 'package:PiliPlus/pages/dynamics_tab/controller.dart';
-import 'package:PiliPlus/pages/dynamics_tab/view.dart';
+import 'package:PiliPlus/services/account_service.dart';
 import 'package:PiliPlus/utils/extension.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -26,18 +26,16 @@ class DynamicsController extends GetxController
   RxInt mid = (-1).obs;
   late TabController tabController;
   Set<int> tempBannedList = <int>{};
-  late List<Widget> tabsPageList;
-  RxBool isLogin = false.obs;
-  dynamic ownerMid;
-  dynamic face;
   List<UpItem> hasUpdatedUps = <UpItem>[];
   int allFollowedUpsPage = 1;
   int allFollowedUpsTotal = 0;
 
   late int currentMid = -1;
-  late bool showLiveItems = GStorage.expandDynLivePanel;
+  late bool showLiveItems = Pref.expandDynLivePanel;
 
-  final upPanelPosition = GStorage.upPanelPosition;
+  final upPanelPosition = Pref.upPanelPosition;
+
+  AccountService accountService = Get.find<AccountService>();
 
   DynamicsTabController? get controller {
     try {
@@ -51,21 +49,11 @@ class DynamicsController extends GetxController
   @override
   void onInit() {
     super.onInit();
-
-    dynamic userInfo = GStorage.userInfo.get('userInfoCache');
-    ownerMid = userInfo?.mid;
-    face = userInfo?.face;
-    isLogin.value = userInfo != null;
-
     tabController = TabController(
       length: DynamicsTabType.values.length,
       vsync: this,
-      initialIndex: GStorage.setting
-          .get(SettingBoxKey.defaultDynamicType, defaultValue: 0),
+      initialIndex: Pref.defaultDynamicType,
     );
-    tabsPageList = DynamicsTabType.values
-        .map((e) => DynamicsTabPage(dynamicsType: e))
-        .toList();
 
     queryFollowUp();
   }
@@ -76,7 +64,7 @@ class DynamicsController extends GetxController
       return;
     }
     var res = await FollowHttp.followings(
-      vmid: ownerMid,
+      vmid: accountService.mid,
       pn: allFollowedUpsPage,
       ps: 50,
       orderType: 'attention',
@@ -104,21 +92,20 @@ class DynamicsController extends GetxController
   }
 
   late bool isQuerying = false;
-  Future<void> queryFollowUp({type = 'init'}) async {
+  Future<void> queryFollowUp({String type = 'init'}) async {
     if (isQuerying) return;
     isQuerying = true;
-    if (!isLogin.value) {
+    if (!accountService.isLogin.value) {
       upData
         ..value.errMsg = '账号未登录'
         ..refresh();
     }
     upData.value.errMsg = null;
-    if (GStorage.setting
-        .get(SettingBoxKey.dynamicsShowAllFollowedUp, defaultValue: false)) {
+    if (Pref.dynamicsShowAllFollowedUp) {
       allFollowedUpsPage = 1;
       final f1 = DynamicsHttp.followUp();
       final f2 = FollowHttp.followings(
-        vmid: ownerMid,
+        vmid: accountService.mid,
         pn: allFollowedUpsPage,
         ps: 50,
         orderType: 'attention',
@@ -161,7 +148,7 @@ class DynamicsController extends GetxController
       var res = await DynamicsHttp.followUp();
       if (res.isSuccess) {
         upData.value = res.data;
-        if (upData.value.upList!.isEmpty) {
+        if (upData.value.upList.isNullOrEmpty) {
           mid.value = -1;
         }
       } else {

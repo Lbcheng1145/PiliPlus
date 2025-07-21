@@ -1,8 +1,11 @@
 import 'dart:convert';
 
 import 'package:PiliPlus/common/widgets/pendant_avatar.dart';
+import 'package:PiliPlus/models/common/dynamic/dynamics_type.dart';
 import 'package:PiliPlus/models/dynamics/article_content_model.dart';
 import 'package:PiliPlus/models/model_avatar.dart';
+import 'package:PiliPlus/models_new/live/live_feed_index/watched_show.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 
 class DynamicsDataModel {
   bool? hasMore;
@@ -10,11 +13,50 @@ class DynamicsDataModel {
   String? offset;
   int? total;
 
-  DynamicsDataModel.fromJson(Map<String, dynamic> json) {
+  static RegExp banWordForDyn =
+      RegExp(Pref.banWordForDyn, caseSensitive: false);
+  static bool enableFilter = banWordForDyn.pattern.isNotEmpty;
+
+  static bool antiGoodsDyn = Pref.antiGoodsDyn;
+
+  DynamicsDataModel.fromJson(
+    Map<String, dynamic> json, {
+    DynamicsTabType type = DynamicsTabType.all,
+    Set<int>? tempBannedList,
+  }) {
     hasMore = json['has_more'];
-    items = (json['items'] as List?)
-        ?.map<DynamicItemModel>((e) => DynamicItemModel.fromJson(e))
-        .toList();
+
+    List? list = json['items'] as List?;
+    if (list != null && list.isNotEmpty) {
+      items = <DynamicItemModel>[];
+      late final filterBan =
+          type != DynamicsTabType.up && tempBannedList?.isNotEmpty == true;
+      for (var e in list) {
+        DynamicItemModel item = DynamicItemModel.fromJson(e);
+        if (antiGoodsDyn &&
+            (item.orig?.modules.moduleDynamic?.additional?.type ==
+                    'ADDITIONAL_TYPE_GOODS' ||
+                item.modules.moduleDynamic?.additional?.type ==
+                    'ADDITIONAL_TYPE_GOODS')) {
+          continue;
+        }
+        if (enableFilter &&
+            banWordForDyn.hasMatch((item.orig?.modules.moduleDynamic?.major
+                        ?.opus?.summary?.text ??
+                    '') +
+                (item.modules.moduleDynamic?.major?.opus?.summary?.text ?? '') +
+                (item.orig?.modules.moduleDynamic?.desc?.text ?? '') +
+                (item.modules.moduleDynamic?.desc?.text ?? ''))) {
+          continue;
+        }
+        if (filterBan &&
+            tempBannedList!.contains(item.modules.moduleAuthor?.mid)) {
+          continue;
+        }
+        items!.add(item);
+      }
+    }
+
     offset = json['offset'];
     total = json['total'];
   }
@@ -55,7 +97,7 @@ class DynamicItemModel {
     modules = json['item']?['modules'] == null
         ? ItemModulesModel()
         : ItemModulesModel.fromOpusJson(
-            (json['item']?['modules'] as List).cast());
+            (json['item']['modules'] as List).cast());
 
     if (json['fallback'] != null) {
       fallback = Fallback.fromJson(json['fallback']);
@@ -161,7 +203,7 @@ class ItemModulesModel {
         // case 'MODULE_TYPE_BOTTOM':
         //   break;
         // default:
-        //   debugPrint('unknown type: ${i}');
+        // if (kDebugMode) debugPrint('unknown type: ${i}');
       }
     }
   }
@@ -1071,27 +1113,6 @@ class LivePlayInfo {
       );
 }
 
-class WatchedShow {
-  bool? watchedShowSwitch;
-  int? num;
-  String? textSmall;
-  String? textLarge;
-
-  WatchedShow({
-    this.watchedShowSwitch,
-    this.num,
-    this.textSmall,
-    this.textLarge,
-  });
-
-  factory WatchedShow.fromJson(Map<String, dynamic> json) => WatchedShow(
-        watchedShowSwitch: json["switch"],
-        num: json["num"],
-        textSmall: json["text_small"],
-        textLarge: json["text_large"],
-      );
-}
-
 class DynamicTopicModel {
   DynamicTopicModel({
     this.id,
@@ -1195,13 +1216,13 @@ class DynamicOpusModel {
   });
 
   String? jumpUrl;
-  List<OpusPicsModel>? pics;
+  List<OpusPicModel>? pics;
   SummaryModel? summary;
   String? title;
   DynamicOpusModel.fromJson(Map<String, dynamic> json) {
     jumpUrl = json['jump_url'];
     pics = (json['pics'] as List?)
-        ?.map<OpusPicsModel>((e) => OpusPicsModel.fromJson(e))
+        ?.map<OpusPicModel>((e) => OpusPicModel.fromJson(e))
         .toList();
     summary =
         json['summary'] != null ? SummaryModel.fromJson(json['summary']) : null;
@@ -1239,7 +1260,8 @@ class RichTextNodeItem {
   String? text;
   String? type;
   String? rid;
-  List<OpusPicsModel>? pics;
+  List<OpusPicModel>? pics;
+  List<OpusPicModel>? dynPic;
   String? jumpUrl;
 
   RichTextNodeItem.fromJson(Map<String, dynamic> json) {
@@ -1251,7 +1273,7 @@ class RichTextNodeItem {
     pics = json['pics'] == null
         ? null
         : (json['pics'] as List?)
-            ?.map((e) => OpusPicsModel.fromJson(e))
+            ?.map((e) => OpusPicModel.fromJson(e))
             .toList();
     jumpUrl = json['jump_url'];
   }
@@ -1287,26 +1309,23 @@ class DynamicNoneModel {
   }
 }
 
-class OpusPicsModel {
-  OpusPicsModel({
+class OpusPicModel {
+  OpusPicModel({
     this.width,
     this.height,
-    this.size,
     this.src,
     this.url,
   });
 
   int? width;
   int? height;
-  int? size;
   String? src;
   String? url;
   String? liveUrl;
 
-  OpusPicsModel.fromJson(Map<String, dynamic> json) {
+  OpusPicModel.fromJson(Map<String, dynamic> json) {
     width = json['width'];
     height = json['height'];
-    size = json['size'] != null ? json['size'].toInt() : 0;
     src = json['src'];
     url = json['url'];
     liveUrl = json['live_url'];
@@ -1443,9 +1462,11 @@ class ModuleStatModel {
   // DynamicStat? coin;
 
   ModuleStatModel.fromJson(Map<String, dynamic> json) {
-    comment = DynamicStat.fromJson(json['comment']);
-    forward = DynamicStat.fromJson(json['forward']);
-    like = DynamicStat.fromJson(json['like']);
+    comment =
+        json['comment'] == null ? null : DynamicStat.fromJson(json['comment']);
+    forward =
+        json['forward'] == null ? null : DynamicStat.fromJson(json['forward']);
+    like = json['like'] == null ? null : DynamicStat.fromJson(json['like']);
     if (json['favorite'] != null) {
       favorite = DynamicStat.fromJson(json['favorite']);
     }

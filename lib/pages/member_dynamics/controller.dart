@@ -34,18 +34,11 @@ class MemberDynamicsController
 
   @override
   List<DynamicItemModel>? getDataList(DynamicsDataModel response) {
-    return response.items;
-  }
-
-  @override
-  bool customHandleResponse(
-      bool isRefresh, Success<DynamicsDataModel> response) {
-    DynamicsDataModel data = response.response;
-    offset = data.offset?.isNotEmpty == true ? data.offset! : '-1';
-    if (data.hasMore == false) {
+    offset = response.offset?.isNotEmpty == true ? response.offset! : '-1';
+    if (response.hasMore == false) {
       isEnd = true;
     }
-    return false;
+    return response.items;
   }
 
   @override
@@ -55,7 +48,7 @@ class MemberDynamicsController
         mid: mid,
       );
 
-  Future<void> onRemove(dynamicId) async {
+  Future<void> onRemove(dynamic dynamicId) async {
     var res = await MsgHttp.removeDynamic(dynIdStr: dynamicId);
     if (res['status']) {
       loadingState
@@ -68,7 +61,9 @@ class MemberDynamicsController
   }
 
   Future<void> onSetTop(bool isTop, dynamic dynamicId) async {
-    var res = await DynamicsHttp.setTop(dynamicId: dynamicId);
+    var res = isTop
+        ? await DynamicsHttp.rmTop(dynamicId: dynamicId)
+        : await DynamicsHttp.setTop(dynamicId: dynamicId);
     if (res['status']) {
       List<DynamicItemModel> list = loadingState.value.data!;
       list[0].modules.moduleTag = null;

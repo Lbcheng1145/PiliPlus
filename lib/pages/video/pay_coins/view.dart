@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:PiliPlus/utils/global_data.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_navigation/src/dialog/dialog_route.dart';
@@ -59,7 +61,7 @@ class _PayCoinsPageState extends State<PayCoinsPage>
     with TickerProviderStateMixin {
   bool _isPaying = false;
   late final _controller = PageController(viewportFraction: 0.30);
-  late final RxBool _coinWithLike = GStorage.coinWithLike.obs;
+  late final RxBool _coinWithLike = Pref.coinWithLike.obs;
   final _key = GlobalKey();
 
   int get _index => _controller.hasClients ? _controller.page?.round() ?? 0 : 0;
@@ -188,9 +190,7 @@ class _PayCoinsPageState extends State<PayCoinsPage>
   }
 
   void _scale() {
-    _scale22Controller.forward().whenComplete(() {
-      _scale22Controller.reverse();
-    });
+    _scale22Controller.forward().whenComplete(_scale22Controller.reverse);
   }
 
   void _onScroll(int index) {
@@ -218,7 +218,7 @@ class _PayCoinsPageState extends State<PayCoinsPage>
     });
   }
 
-  Widget _buildBody(isV) => Stack(
+  Widget _buildBody(bool isV) => Stack(
         key: _key,
         clipBehavior: Clip.none,
         alignment: Alignment.center,
@@ -267,9 +267,7 @@ class _PayCoinsPageState extends State<PayCoinsPage>
                             physics: const ClampingScrollPhysics(),
                             itemCount: widget.copyright == 1 ? 2 : 1,
                             controller: _controller,
-                            onPageChanged: (index) => setState(() {
-                              _scale();
-                            }),
+                            onPageChanged: (index) => setState(_scale),
                             itemBuilder: (context, index) {
                               return ListenableBuilder(
                                 listenable: _controller,
@@ -433,7 +431,7 @@ class _PayCoinsPageState extends State<PayCoinsPage>
                   ),
                   SizedBox(
                       height: (isV ? 50 : 10) +
-                          MediaQuery.of(context).padding.bottom),
+                          MediaQuery.paddingOf(context).bottom),
                 ],
               ),
             ),
@@ -480,9 +478,7 @@ class _PayCoinsPageState extends State<PayCoinsPage>
             }
           });
         }
-        _boxAnimController.forward().whenComplete(() {
-          _boxAnimController.reverse();
-        });
+        _boxAnimController.forward().whenComplete(_boxAnimController.reverse);
         _coinSlideController.forward().whenComplete(() {
           _coinFadeController.forward().whenComplete(() {
             Get.back();

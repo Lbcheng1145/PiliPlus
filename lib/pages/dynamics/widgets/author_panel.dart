@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/dialog/report.dart';
 import 'package:PiliPlus/common/widgets/pendant_avatar.dart';
 import 'package:PiliPlus/http/constants.dart';
@@ -8,11 +9,12 @@ import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/dynamics/controller.dart';
 import 'package:PiliPlus/pages/save_panel/view.dart';
+import 'package:PiliPlus/utils/accounts.dart';
+import 'package:PiliPlus/utils/date_util.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
-import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +24,7 @@ import 'package:get/get.dart';
 class AuthorPanel extends StatelessWidget {
   final DynamicItemModel item;
   final Function? addBannedList;
-  final String? source;
+  final bool isDetail;
   final ValueChanged? onRemove;
   final bool isSave;
   final Function(bool isTop, dynamic dynId)? onSetTop;
@@ -32,7 +34,7 @@ class AuthorPanel extends StatelessWidget {
     super.key,
     required this.item,
     this.addBannedList,
-    this.source,
+    this.isDetail = false,
     this.onRemove,
     this.isSave = false,
     this.onSetTop,
@@ -59,11 +61,9 @@ class AuthorPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final pubTime = item.modules.moduleAuthor?.pubTs != null
         ? isSave
-            ? DateTime.fromMillisecondsSinceEpoch(
-                    item.modules.moduleAuthor!.pubTs! * 1000)
-                .toString()
-                .substring(0, 19)
-            : Utils.dateFormat(item.modules.moduleAuthor!.pubTs)
+            ? DateUtil.format(item.modules.moduleAuthor!.pubTs,
+                format: DateUtil.longFormatDs)
+            : DateUtil.dateFormat(item.modules.moduleAuthor!.pubTs)
         : item.modules.moduleAuthor?.pubTime;
     return Stack(
       clipBehavior: Clip.none,
@@ -77,11 +77,7 @@ class AuthorPanel extends StatelessWidget {
                 ? () {
                     feedBack();
                     Get.toNamed(
-                      '/member?mid=${item.modules.moduleAuthor!.mid}',
-                      arguments: {
-                        'face': item.modules.moduleAuthor!.face,
-                      },
-                    );
+                        '/member?mid=${item.modules.moduleAuthor!.mid}');
                   }
                 : null,
             child: Row(
@@ -119,7 +115,7 @@ class AuthorPanel extends StatelessWidget {
         ),
         Align(
           alignment: Alignment.centerRight,
-          child: source != 'detail' && item.modules.moduleTag?.text != null
+          child: !isDetail && item.modules.moduleTag?.text != null
               ? Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -242,16 +238,13 @@ class AuthorPanel extends StatelessWidget {
         final theme = Theme.of(context);
         return Padding(
           padding:
-              EdgeInsets.only(bottom: MediaQuery.of(context1).padding.bottom),
+              EdgeInsets.only(bottom: MediaQuery.paddingOf(context1).bottom),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               InkWell(
                 onTap: Get.back,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  topRight: Radius.circular(18),
-                ),
+                borderRadius: StyleString.bottomSheetRadius,
                 child: Container(
                   height: 35,
                   padding: const EdgeInsets.only(bottom: 2),

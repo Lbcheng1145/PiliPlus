@@ -6,14 +6,17 @@ import 'package:PiliPlus/common/widgets/stat/stat.dart';
 import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models/common/search_type.dart';
-import 'package:PiliPlus/models/user/sub_detail.dart';
+import 'package:PiliPlus/models/common/stat_type.dart';
+import 'package:PiliPlus/models_new/sub/sub_detail/media.dart';
+import 'package:PiliPlus/utils/date_util.dart';
+import 'package:PiliPlus/utils/duration_util.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 
 // 收藏视频卡片 - 水平布局
 class SubVideoCardH extends StatelessWidget {
-  final SubDetailMediaItem videoItem;
+  final SubDetailItemModel videoItem;
   final int? searchType;
 
   const SubVideoCardH({
@@ -24,76 +27,77 @@ class SubVideoCardH extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    int id = videoItem.id!;
-    String bvid = videoItem.bvid!;
-    return InkWell(
-      onTap: () async {
-        int? cid = await SearchHttp.ab2c(bvid: bvid);
-        if (cid != null) {
-          PageUtils.toVideoPage(
-            'bvid=$bvid&cid=$cid',
-            arguments: {
-              'videoItem': videoItem,
-              'heroTag': Utils.makeHeroTag(id),
-              'videoType': SearchType.video,
-            },
-          );
-        }
-      },
-      onLongPress: () => imageSaveDialog(
-        title: videoItem.title,
-        cover: videoItem.cover,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: StyleString.safeSpace,
-          vertical: 5,
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: () async {
+          int? cid = await SearchHttp.ab2c(bvid: videoItem.bvid);
+          if (cid != null) {
+            PageUtils.toVideoPage(
+              'bvid=${videoItem.bvid}&cid=$cid',
+              arguments: {
+                'videoItem': videoItem,
+                'heroTag': Utils.makeHeroTag(videoItem.id),
+                'videoType': SearchType.video,
+              },
+            );
+          }
+        },
+        onLongPress: () => imageSaveDialog(
+          title: videoItem.title,
+          cover: videoItem.cover,
+          bvid: videoItem.bvid,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: StyleString.aspectRatio,
-              child: LayoutBuilder(
-                builder: (context, boxConstraints) {
-                  double maxWidth = boxConstraints.maxWidth;
-                  double maxHeight = boxConstraints.maxHeight;
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      NetworkImgLayer(
-                        src: videoItem.cover,
-                        width: maxWidth,
-                        height: maxHeight,
-                      ),
-                      PBadge(
-                        text: Utils.timeFormat(videoItem.duration!),
-                        right: 6.0,
-                        bottom: 6.0,
-                        type: PBadgeType.gray,
-                      ),
-                    ],
-                  );
-                },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: StyleString.safeSpace,
+            vertical: 5,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AspectRatio(
+                aspectRatio: StyleString.aspectRatio,
+                child: LayoutBuilder(
+                  builder: (context, boxConstraints) {
+                    double maxWidth = boxConstraints.maxWidth;
+                    double maxHeight = boxConstraints.maxHeight;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        NetworkImgLayer(
+                          src: videoItem.cover,
+                          width: maxWidth,
+                          height: maxHeight,
+                        ),
+                        PBadge(
+                          text: DurationUtil.formatDuration(videoItem.duration),
+                          right: 6.0,
+                          bottom: 6.0,
+                          type: PBadgeType.gray,
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            videoContent(context),
-          ],
+              const SizedBox(width: 10),
+              content(context),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget videoContent(context) {
+  Widget content(BuildContext context) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Text(
-              '${videoItem.title}',
+              videoItem.title!,
               textAlign: TextAlign.start,
               style: const TextStyle(
                 letterSpacing: 0.3,
@@ -103,7 +107,7 @@ class SubVideoCardH extends StatelessWidget {
             ),
           ),
           Text(
-            Utils.dateFormat(videoItem.pubtime),
+            DateUtil.dateFormat(videoItem.pubtime),
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.outline,
@@ -111,19 +115,16 @@ class SubVideoCardH extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Row(
+            spacing: 8,
             children: [
-              StatView(
-                context: context,
-                theme: 'gray',
-                value: Utils.numFormat(videoItem.cntInfo?['play']),
+              StatWidget(
+                type: StatType.play,
+                value: videoItem.cntInfo?.play,
               ),
-              const SizedBox(width: 8),
-              StatDanMu(
-                context: context,
-                theme: 'gray',
-                value: Utils.numFormat(videoItem.cntInfo?['danmaku']),
+              StatWidget(
+                type: StatType.danmaku,
+                value: videoItem.cntInfo?.danmaku,
               ),
-              const Spacer(),
             ],
           ),
         ],

@@ -1,7 +1,8 @@
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/stat/stat.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
-import 'package:PiliPlus/models/space_opus/item.dart';
+import 'package:PiliPlus/models/common/stat_type.dart';
+import 'package:PiliPlus/models_new/space/space_opus/item.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:flutter/material.dart';
 
@@ -18,7 +19,6 @@ class SpaceOpusItem extends StatelessWidget {
     final hasPic = item.cover?.url?.isNotEmpty == true;
     return Card(
       clipBehavior: Clip.hardEdge,
-      margin: EdgeInsets.zero,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(6)),
       ),
@@ -57,10 +57,10 @@ class SpaceOpusItem extends StatelessWidget {
                           colors: [Colors.transparent, Colors.black54],
                         ),
                       ),
-                      child: StatView(
-                        context: context,
-                        value: item.stat?.like ?? 0,
-                        goto: 'like',
+                      child: StatWidget(
+                        type: StatType.like,
+                        value: item.stat?.like,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -79,11 +79,10 @@ class SpaceOpusItem extends StatelessWidget {
             if (!hasPic)
               Padding(
                 padding: const EdgeInsets.only(left: 8, bottom: 8, right: 8),
-                child: StatView(
-                  context: context,
-                  value: item.stat?.like ?? 0,
-                  goto: 'like',
-                  textColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                child: StatWidget(
+                  type: StatType.like,
+                  value: item.stat?.like,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
           ],

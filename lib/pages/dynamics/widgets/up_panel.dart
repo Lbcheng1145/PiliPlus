@@ -3,8 +3,8 @@ import 'package:PiliPlus/models/common/dynamic/up_panel_position.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/models/dynamics/up.dart';
 import 'package:PiliPlus/pages/dynamics/controller.dart';
+import 'package:PiliPlus/pages/live_follow/view.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
-import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -29,7 +29,7 @@ class _UpPanelState extends State<UpPanel> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (!widget.dynamicsController.isLogin.value) {
+    if (!widget.dynamicsController.accountService.isLogin.value) {
       return const SizedBox.shrink();
     }
     return CustomScrollView(
@@ -43,6 +43,7 @@ class _UpPanelState extends State<UpPanel> {
               widget.dynamicsController.showLiveItems =
                   !widget.dynamicsController.showLiveItems;
             }),
+            onLongPress: () => Get.to(const LiveFollowPage()),
             child: Container(
               alignment: Alignment.center,
               height: isTop ? 76 : 60,
@@ -100,12 +101,14 @@ class _UpPanelState extends State<UpPanel> {
           child: upItemBuild(theme, UpItem(face: '', uname: '全部动态', mid: -1)),
         ),
         SliverToBoxAdapter(
-          child: upItemBuild(
-            theme,
-            UpItem(
-              uname: '我',
-              face: widget.dynamicsController.face,
-              mid: widget.dynamicsController.ownerMid,
+          child: Obx(
+            () => upItemBuild(
+              theme,
+              UpItem(
+                uname: '我',
+                face: widget.dynamicsController.accountService.face.value,
+                mid: widget.dynamicsController.accountService.mid,
+              ),
             ),
           ),
         ),
@@ -122,8 +125,9 @@ class _UpPanelState extends State<UpPanel> {
   }
 
   void _onSelect(UserItem data) {
-    widget.dynamicsController.currentMid = data.mid;
-    widget.dynamicsController.onSelectUp(data.mid);
+    widget.dynamicsController
+      ..currentMid = data.mid
+      ..onSelectUp(data.mid);
 
     data.hasUpdate = false;
 
@@ -151,11 +155,7 @@ class _UpPanelState extends State<UpPanel> {
         onDoubleTap: data is LiveUserItem ? () => _onSelect(data) : null,
         onLongPress: data.mid == -1
             ? null
-            : () {
-                String heroTag = Utils.makeHeroTag(data.mid);
-                Get.toNamed('/member?mid=${data.mid}',
-                    arguments: {'face': data.face, 'heroTag': heroTag});
-              },
+            : () => Get.toNamed('/member?mid=${data.mid}'),
         child: AnimatedOpacity(
           opacity: isCurrent ? 1 : 0.6,
           duration: const Duration(milliseconds: 200),

@@ -6,13 +6,14 @@ import 'package:PiliPlus/models/search/result.dart';
 import 'package:PiliPlus/pages/search/widgets/search_text.dart';
 import 'package:PiliPlus/pages/search_panel/controller.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
+import 'package:PiliPlus/utils/date_util.dart';
+import 'package:PiliPlus/utils/id_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 
 class SearchVideoController
-    extends SearchPanelController<SearchVideoModel, SearchVideoItemModel> {
+    extends SearchPanelController<SearchVideoData, SearchVideoItemModel> {
   SearchVideoController({
     required super.keyword,
     required super.searchType,
@@ -46,13 +47,12 @@ class SearchVideoController
   }
 
   @override
-  List<SearchVideoItemModel>? getDataList(SearchVideoModel response) {
+  List<SearchVideoItemModel>? getDataList(SearchVideoData response) {
     return response.list;
   }
 
   @override
-  bool customHandleResponse(
-      bool isRefresh, Success<SearchVideoModel> response) {
+  bool customHandleResponse(bool isRefresh, Success<SearchVideoData> response) {
     searchResultController?.count[searchType.index] =
         response.response.numResults ?? 0;
     if (searchType == SearchType.video && hasJump2Video != true && isRefresh) {
@@ -62,25 +62,24 @@ class SearchVideoController
     return false;
   }
 
-  void onPushDetail(resultList) {
+  void onPushDetail(List<SearchVideoItemModel>? resultList) {
     try {
       int? aid = int.tryParse(keyword);
-      if (aid != null && resultList.first.aid == aid) {
+      if (aid != null && resultList?.firstOrNull?.aid == aid) {
         PiliScheme.videoPush(aid, null, showDialog: false);
       }
     } catch (_) {}
   }
 
   void jump2Video() {
-    if (RegExp(r'^av\d+$', caseSensitive: false).hasMatch(keyword)) {
+    if (IdUtils.avRegexExact.hasMatch(keyword)) {
       hasJump2Video = true;
       PiliScheme.videoPush(
         int.parse(keyword.substring(2)),
         null,
         showDialog: false,
       );
-    } else if (RegExp(r'^bv[a-z\d]{10}$', caseSensitive: false)
-        .hasMatch(keyword)) {
+    } else if (IdUtils.bvRegexExact.hasMatch(keyword)) {
       hasJump2Video = true;
       PiliScheme.videoPush(null, keyword, showDialog: false);
     }
@@ -89,7 +88,7 @@ class SearchVideoController
   // sort
   late final List<Map> filterList = ArchiveFilterType.values
       .map((type) => {
-            'label': type.description,
+            'label': type.desc,
             'type': type,
           })
       .toList();
@@ -145,7 +144,6 @@ class SearchVideoController
       context: context,
       useSafeArea: true,
       isScrollControlled: true,
-      clipBehavior: Clip.hardEdge,
       constraints: BoxConstraints(
         maxWidth: min(640, context.mediaQueryShortestSide),
       ),
@@ -154,7 +152,7 @@ class SearchVideoController
           final theme = Theme.of(context);
           Widget dateWidget([bool isFirst = true]) {
             return SearchText(
-              text: DateFormat('yyyy-MM-dd')
+              text: DateUtil.longFormat
                   .format(isFirst ? pubBeginDate : pubEndDate),
               textAlign: TextAlign.center,
               onTap: (text) {
@@ -217,7 +215,7 @@ class SearchVideoController
                 top: 20,
                 left: 16,
                 right: 16,
-                bottom: 80 + MediaQuery.of(context).padding.bottom,
+                bottom: 80 + MediaQuery.paddingOf(context).bottom,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

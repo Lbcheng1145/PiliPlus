@@ -3,10 +3,13 @@ import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
 import 'package:PiliPlus/grpc/reply.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/pages/common/reply_controller.dart';
+import 'package:PiliPlus/pages/video/reply_new/view.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/request_utils.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get/get_navigation/src/dialog/dialog_route.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 class VideoReplyReplyController extends ReplyController
@@ -36,7 +39,7 @@ class VideoReplyReplyController extends ReplyController
   int? index;
   AnimationController? controller;
 
-  late final horizontalPreview = GStorage.horizontalPreview;
+  late final horizontalPreview = Pref.horizontalPreview;
 
   @override
   dynamic get sourceId => replyType == 1 ? IdUtils.av2bv(oid) : oid;
@@ -111,7 +114,6 @@ class VideoReplyReplyController extends ReplyController
           root: rpid,
           dialog: dialog!,
           offset: paginationReply?.nextOffset,
-          antiGoodsReply: antiGoodsReply,
         )
       : ReplyGrpc.detailList(
           type: replyType,
@@ -120,7 +122,6 @@ class VideoReplyReplyController extends ReplyController
           rpid: id ?? 0,
           mode: mode.value,
           offset: paginationReply?.nextOffset,
-          antiGoodsReply: antiGoodsReply,
         );
 
   @override
@@ -129,6 +130,71 @@ class VideoReplyReplyController extends ReplyController
         ? Mode.MAIN_LIST_TIME
         : Mode.MAIN_LIST_HOT;
     onReload();
+  }
+
+  @override
+  void onReply(
+    BuildContext context, {
+    int? oid,
+    ReplyInfo? replyItem,
+    int? replyType,
+    int? index,
+  }) {
+    assert(replyItem != null && index != null);
+    final oid = replyItem!.oid.toInt();
+    final root = replyItem.id.toInt();
+    final key = oid + root;
+
+    Navigator.of(context)
+        .push(
+      GetDialogRoute(
+        pageBuilder: (buildContext, animation, secondaryAnimation) {
+          return ReplyPage(
+            oid: oid,
+            root: root,
+            parent: root,
+            replyType: this.replyType,
+            replyItem: replyItem,
+            items: savedReplies[key],
+            onSave: (reply) {
+              if (reply.isEmpty) {
+                savedReplies.remove(key);
+              } else {
+                savedReplies[key] = reply.toList();
+              }
+            },
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 500),
+        transitionBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.linear;
+
+          var tween =
+              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+      ),
+    )
+        .then((res) {
+      if (res != null) {
+        savedReplies.remove(key);
+        ReplyInfo replyInfo = RequestUtils.replyCast(res);
+
+        count.value += 1;
+        loadingState
+          ..value.dataOrNull?.insert(index! + 1, replyInfo)
+          ..refresh();
+        if (enableCommAntifraud) {
+          onCheckReply(replyInfo, isManual: false);
+        }
+      }
+    });
   }
 
   @override

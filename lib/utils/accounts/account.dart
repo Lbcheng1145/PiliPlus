@@ -1,6 +1,6 @@
 import 'package:PiliPlus/models/common/account_type.dart';
-import 'package:PiliPlus/utils/storage.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/accounts.dart';
+import 'package:PiliPlus/utils/id_utils.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:hive/hive.dart';
 
@@ -15,7 +15,7 @@ abstract class Account {
   late String csrf;
   final Map<String, String> headers = const {};
 
-  // bool activited = false;
+  bool activited = false;
 
   Future<void> delete();
   Future<void> onChange();
@@ -41,12 +41,15 @@ class LoginAccount implements Account {
   late final Set<AccountType> type;
 
   @override
+  bool activited = false;
+
+  @override
   late final int mid = int.parse(_midStr);
 
   @override
   late final Map<String, String> headers = {
     'x-bili-mid': _midStr,
-    'x-bili-aurora-eid': Utils.genAuroraEid(mid),
+    'x-bili-aurora-eid': IdUtils.genAuroraEid(mid),
   };
   @override
   late String csrf =
@@ -73,10 +76,12 @@ class LoginAccount implements Account {
 
   LoginAccount(this.cookieJar, this.accessKey, this.refresh,
       [Set<AccountType>? type])
-      : type = type ?? {};
+      : type = type ?? {} {
+    cookieJar.setBuvid3();
+  }
 
   LoginAccount.fromJson(Map json) {
-    cookieJar = BiliCookieJar.fromJson(json['cookies']);
+    cookieJar = BiliCookieJar.fromJson(json['cookies'])..setBuvid3();
     accessKey = json['accessKey'];
     refresh = json['refresh'];
     type = (json['type'] as Iterable?)
@@ -110,6 +115,9 @@ class AnonymousAccount implements Account {
   String csrf = '';
   @override
   final Map<String, String> headers = const {};
+
+  @override
+  bool activited = false;
 
   @override
   Future<void> delete() async {
@@ -165,7 +173,7 @@ extension BiliCookieJar on DefaultCookieJar {
   void setBuvid3() {
     domainCookies['bilibili.com'] ??= {'/': {}};
     domainCookies['bilibili.com']!['/']!['buvid3'] ??= SerializableCookie(
-        Cookie('buvid3', Utils.genBuvid3())..setBiliDomain());
+        Cookie('buvid3', IdUtils.genBuvid3())..setBiliDomain());
   }
 
   static DefaultCookieJar fromJson(Map json) =>

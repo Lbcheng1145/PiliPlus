@@ -4,7 +4,7 @@ import 'dart:ui';
 
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
-import 'package:PiliPlus/models/live/live_room/room_info_h5.dart';
+import 'package:PiliPlus/models_new/live/live_room_info_h5/data.dart';
 import 'package:PiliPlus/pages/live_room/controller.dart';
 import 'package:PiliPlus/pages/live_room/send_danmaku/view.dart';
 import 'package:PiliPlus/pages/live_room/widgets/bottom_control.dart';
@@ -17,6 +17,7 @@ import 'package:PiliPlus/services/service_locator.dart';
 import 'package:PiliPlus/utils/extension.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
@@ -84,7 +85,9 @@ class _LiveRoomPageState extends State<LiveRoomPage>
   void playerListener(PlayerStatus? status) {
     if (status != PlayerStatus.playing) {
       plPlayerController.danmakuController?.pause();
-      _liveRoomController.msgStream?.close();
+      _liveRoomController
+        ..msgStream?.close()
+        ..msgStream = null;
     } else {
       plPlayerController.danmakuController?.resume();
       _liveRoomController.liveMsg();
@@ -105,10 +108,10 @@ class _LiveRoomPageState extends State<LiveRoomPage>
     }
   }
 
-  double _getFontSize(isFullScreen) {
+  double _getFontSize(bool isFullScreen) {
     return isFullScreen == false || _isPipMode == true
-        ? 15 * plPlayerController.fontSize
-        : 15 * plPlayerController.fontSizeFS;
+        ? 15 * plPlayerController.danmakuFontScale
+        : 15 * plPlayerController.danmakuFontScaleFS;
   }
 
   void videoSourceInit() {
@@ -122,7 +125,9 @@ class _LiveRoomPageState extends State<LiveRoomPage>
     WidgetsBinding.instance.removeObserver(this);
     ScreenBrightness().resetApplicationScreenBrightness();
     PlPlayerController.setPlayCallBack(null);
-    _liveRoomController.msgStream?.close();
+    _liveRoomController
+      ..msgStream?.close()
+      ..msgStream = null;
     plPlayerController
       ..removeStatusLister(playerListener)
       ..dispose();
@@ -155,14 +160,18 @@ class _LiveRoomPageState extends State<LiveRoomPage>
         future: _futureBuilderFuture,
         builder: (BuildContext context, AsyncSnapshot snapshot) {
           if (snapshot.hasData && snapshot.data['status']) {
+            final roomInfoH5 = _liveRoomController.roomInfoH5.value;
             return PLVideoPlayer(
               key: playerKey,
               fill: fill,
               alignment: alignment,
               plPlayerController: plPlayerController,
               headerControl: LiveHeaderControl(
+                title: roomInfoH5?.roomInfo?.title,
+                upName: roomInfoH5?.anchorInfo?.baseInfo?.uname,
                 plPlayerController: plPlayerController,
                 onSendDanmaku: onSendDanmaku,
+                onPlayAudio: _liveRoomController.queryLiveInfo,
               ),
               bottomControl: BottomControl(
                 plPlayerController: plPlayerController,
@@ -173,7 +182,7 @@ class _LiveRoomPageState extends State<LiveRoomPage>
               ),
               danmuWidget: Obx(
                 () => AnimatedOpacity(
-                  opacity: plPlayerController.isOpenDanmu.value ? 1 : 0,
+                  opacity: plPlayerController.enableShowDanmaku.value ? 1 : 0,
                   duration: const Duration(milliseconds: 100),
                   child: DanmakuScreen(
                     createdController: (DanmakuController e) {
@@ -184,7 +193,7 @@ class _LiveRoomPageState extends State<LiveRoomPage>
                       fontSize: _getFontSize(isFullScreen),
                       fontWeight: plPlayerController.fontWeight,
                       area: plPlayerController.showArea,
-                      opacity: plPlayerController.opacity,
+                      opacity: plPlayerController.danmakuOpacity,
                       hideTop: plPlayerController.blockTypes.contains(5),
                       hideScroll: plPlayerController.blockTypes.contains(2),
                       hideBottom: plPlayerController.blockTypes.contains(4),
@@ -355,37 +364,40 @@ class _LiveRoomPageState extends State<LiveRoomPage>
 
   final Color _color = const Color(0xFFEEEEEE);
 
-  PreferredSizeWidget get _buildAppBar => AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        toolbarHeight: isFullScreen ? 0 : null,
-        titleTextStyle: const TextStyle(color: Colors.white),
-        title: Obx(
-          () {
-            RoomInfoH5Model? roomInfoH5 = _liveRoomController.roomInfoH5.value;
-            return roomInfoH5 == null
-                ? const SizedBox.shrink()
-                : Row(
+  PreferredSizeWidget get _buildAppBar {
+    final color = Theme.of(context).colorScheme.onSurfaceVariant;
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      foregroundColor: Colors.white,
+      toolbarHeight: isFullScreen ? 0 : null,
+      titleTextStyle: const TextStyle(color: Colors.white),
+      title: Obx(
+        () {
+          RoomInfoH5Data? roomInfoH5 = _liveRoomController.roomInfoH5.value;
+          return roomInfoH5 == null
+              ? const SizedBox.shrink()
+              : GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () =>
+                      Get.toNamed('/member?mid=${roomInfoH5.roomInfo?.uid}'),
+                  child: Row(
+                    spacing: 10,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      GestureDetector(
-                        onTap: () => Get.toNamed(
-                            '/member?mid=${roomInfoH5.roomInfo?.uid}'),
-                        child: NetworkImgLayer(
-                          width: 34,
-                          height: 34,
-                          type: ImageType.avatar,
-                          src: roomInfoH5.anchorInfo!.baseInfo!.face,
-                        ),
+                      NetworkImgLayer(
+                        width: 34,
+                        height: 34,
+                        type: ImageType.avatar,
+                        src: roomInfoH5.anchorInfo!.baseInfo!.face,
                       ),
-                      const SizedBox(width: 10),
                       Column(
+                        spacing: 1,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             roomInfoH5.anchorInfo!.baseInfo!.uname!,
                             style: const TextStyle(fontSize: 14),
                           ),
-                          const SizedBox(height: 1),
                           if (roomInfoH5.watchedShow?.textLarge?.isNotEmpty ==
                               true)
                             Text(
@@ -395,70 +407,80 @@ class _LiveRoomPageState extends State<LiveRoomPage>
                         ],
                       ),
                     ],
-                  );
-          },
+                  ),
+                );
+        },
+      ),
+      actions: [
+        IconButton(
+          tooltip: '刷新',
+          onPressed: () =>
+              _futureBuilderFuture = _liveRoomController.queryLiveInfo(),
+          icon: const Icon(Icons.refresh, size: 20),
         ),
-        actions: [
-          IconButton(
-            tooltip: '刷新',
-            onPressed: () =>
-                _futureBuilderFuture = _liveRoomController.queryLiveInfo(),
-            icon: const Icon(Icons.refresh),
-          ),
-          PopupMenuButton(
-            icon: const Icon(Icons.more_vert, size: 19),
-            itemBuilder: (BuildContext context) => <PopupMenuEntry>[
+        PopupMenuButton(
+          icon: const Icon(Icons.more_vert, size: 20),
+          itemBuilder: (BuildContext context) => <PopupMenuEntry>[
+            PopupMenuItem(
+              onTap: () => PageUtils.inAppWebview(
+                'https://live.bilibili.com/h5/${_liveRoomController.roomId}',
+                off: true,
+              ),
+              child: Row(
+                spacing: 10,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.open_in_browser,
+                    size: 19,
+                    color: color,
+                  ),
+                  const Text('浏览器打开'),
+                ],
+              ),
+            ),
+            if (_liveRoomController.roomInfoH5.value != null)
               PopupMenuItem(
-                onTap: () => PageUtils.inAppWebview(
-                  'https://live.bilibili.com/h5/${_liveRoomController.roomId}',
-                  off: true,
-                ),
-                child: const Row(
+                onTap: () {
+                  try {
+                    RoomInfoH5Data roomInfo =
+                        _liveRoomController.roomInfoH5.value!;
+                    PageUtils.pmShare(
+                      this.context,
+                      content: {
+                        "cover": roomInfo.roomInfo!.cover!,
+                        "sourceID": _liveRoomController.roomId.toString(),
+                        "title": roomInfo.roomInfo!.title!,
+                        "url":
+                            "https://live.bilibili.com/${_liveRoomController.roomId}",
+                        "authorID": roomInfo.roomInfo!.uid.toString(),
+                        "source": "直播",
+                        "desc": roomInfo.roomInfo!.title!,
+                        "author": roomInfo.anchorInfo!.baseInfo!.uname,
+                      },
+                    );
+                  } catch (e) {
+                    SmartDialog.showToast(e.toString());
+                  }
+                },
+                child: Row(
+                  spacing: 10,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.open_in_browser, size: 19),
-                    SizedBox(width: 10),
-                    Text('浏览器打开'),
+                    Icon(
+                      Icons.forward_to_inbox,
+                      size: 19,
+                      color: color,
+                    ),
+                    const Text('分享至消息'),
                   ],
                 ),
               ),
-              if (_liveRoomController.roomInfoH5.value != null)
-                PopupMenuItem(
-                  onTap: () {
-                    try {
-                      RoomInfoH5Model roomInfo =
-                          _liveRoomController.roomInfoH5.value!;
-                      PageUtils.pmShare(
-                        this.context,
-                        content: {
-                          "cover": roomInfo.roomInfo!.cover!,
-                          "sourceID": _liveRoomController.roomId.toString(),
-                          "title": roomInfo.roomInfo!.title!,
-                          "url":
-                              "https://live.bilibili.com/${_liveRoomController.roomId}",
-                          "authorID": roomInfo.roomInfo!.uid.toString(),
-                          "source": "直播",
-                          "desc": roomInfo.roomInfo!.title!,
-                          "author": roomInfo.anchorInfo!.baseInfo!.uname,
-                        },
-                      );
-                    } catch (e) {
-                      SmartDialog.showToast(e.toString());
-                    }
-                  },
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.forward_to_inbox, size: 19),
-                      SizedBox(width: 10),
-                      Text('分享至消息'),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ],
-      );
+          ],
+        ),
+      ],
+    );
+  }
 
   Widget get _buildBodyH {
     double videoWidth =
@@ -474,12 +496,7 @@ class _LiveRoomPageState extends State<LiveRoomPage>
               color: isFullScreen ? Colors.black : null,
               width: isFullScreen ? Get.size.width : videoWidth,
               height: isFullScreen ? Get.size.height : Get.size.width * 9 / 16,
-              child: MediaQuery.removePadding(
-                removeTop: true,
-                removeRight: true,
-                context: context,
-                child: videoPlayerPanel(fill: Colors.transparent),
-              ),
+              child: videoPlayerPanel(fill: Colors.transparent),
             ),
           ),
           Expanded(
@@ -524,10 +541,10 @@ class _LiveRoomPageState extends State<LiveRoomPage>
 
   Widget get _buildInputWidget => Container(
         padding: EdgeInsets.only(
+          top: 5,
           left: 10,
-          top: 10,
           right: 10,
-          bottom: 25 + MediaQuery.of(context).padding.bottom,
+          bottom: 15 + MediaQuery.paddingOf(context).bottom,
         ),
         decoration: const BoxDecoration(
           borderRadius: BorderRadius.only(
@@ -539,44 +556,47 @@ class _LiveRoomPageState extends State<LiveRoomPage>
           ),
           color: Color(0x1AFFFFFF),
         ),
-        child: Row(
-          children: [
-            Obx(
-              () => IconButton(
-                onPressed: () {
-                  plPlayerController.isOpenDanmu.value =
-                      !plPlayerController.isOpenDanmu.value;
-                  GStorage.setting.put(SettingBoxKey.enableShowDanmaku,
-                      plPlayerController.isOpenDanmu.value);
-                },
-                icon: Icon(
-                  plPlayerController.isOpenDanmu.value
-                      ? Icons.subtitles_outlined
-                      : Icons.subtitles_off_outlined,
-                  color: _color,
+        child: GestureDetector(
+          onTap: onSendDanmaku,
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 5, bottom: 10),
+            child: Row(
+              children: [
+                Obx(
+                  () => IconButton(
+                    onPressed: () {
+                      plPlayerController.enableShowDanmaku.value =
+                          !plPlayerController.enableShowDanmaku.value;
+                      GStorage.setting.put(SettingBoxKey.enableShowDanmaku,
+                          plPlayerController.enableShowDanmaku.value);
+                    },
+                    icon: Icon(
+                      plPlayerController.enableShowDanmaku.value
+                          ? Icons.subtitles_outlined
+                          : Icons.subtitles_off_outlined,
+                      color: _color,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: onSendDanmaku,
-                behavior: HitTestBehavior.opaque,
-                child: Text(
-                  '发送弹幕',
-                  style: TextStyle(color: _color),
+                Expanded(
+                  child: Text(
+                    '发送弹幕',
+                    style: TextStyle(color: _color),
+                  ),
                 ),
-              ),
+                IconButton(
+                  onPressed: () => onSendDanmaku(true),
+                  icon: Icon(Icons.emoji_emotions_outlined, color: _color),
+                ),
+              ],
             ),
-            IconButton(
-              onPressed: () => onSendDanmaku(true),
-              icon: Icon(Icons.emoji_emotions_outlined, color: _color),
-            ),
-          ],
+          ),
         ),
       );
 
   void onSendDanmaku([bool fromEmote = false]) {
-    if (!_liveRoomController.isLogin) {
+    if (!_liveRoomController.accountService.isLogin.value) {
       SmartDialog.showToast('账号未登录');
       return;
     }
@@ -587,8 +607,16 @@ class _LiveRoomPageState extends State<LiveRoomPage>
         return LiveSendDmPanel(
           fromEmote: fromEmote,
           liveRoomController: _liveRoomController,
-          initialValue: _liveRoomController.savedDanmaku,
-          onSave: (msg) => _liveRoomController.savedDanmaku = msg,
+          items: _liveRoomController.savedDanmaku,
+          onSave: (msg) {
+            if (msg.isEmpty) {
+              _liveRoomController
+                ..savedDanmaku?.clear()
+                ..savedDanmaku = null;
+            } else {
+              _liveRoomController.savedDanmaku = msg.toList();
+            }
+          },
         );
       },
       transitionDuration: const Duration(milliseconds: 500),

@@ -52,7 +52,9 @@ class _RelatedVideoPanelState extends State<RelatedVideoPanel>
                 (context, index) {
                   return VideoCardH(
                     videoItem: response[index],
-                    showPubdate: true,
+                    onRemove: () => _relatedController.loadingState
+                      ..value.data!.removeAt(index)
+                      ..refresh(),
                   );
                 },
                 childCount: response!.length,

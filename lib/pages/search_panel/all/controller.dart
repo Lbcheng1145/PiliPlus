@@ -4,9 +4,10 @@ import 'package:PiliPlus/models/common/search_type.dart';
 import 'package:PiliPlus/models/search/result.dart';
 import 'package:PiliPlus/pages/search_panel/controller.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
+import 'package:PiliPlus/utils/id_utils.dart';
 
 class SearchAllController
-    extends SearchPanelController<SearchAllModel, dynamic> {
+    extends SearchPanelController<SearchAllData, dynamic> {
   SearchAllController({
     required super.keyword,
     required super.searchType,
@@ -38,7 +39,7 @@ class SearchAllController
   }
 
   @override
-  Future<LoadingState<SearchAllModel>> customGetData() => SearchHttp.searchAll(
+  Future<LoadingState<SearchAllData>> customGetData() => SearchHttp.searchAll(
         keyword: keyword,
         page: page,
         order: order.value,
@@ -51,7 +52,7 @@ class SearchAllController
         pubEnd: pubEnd,
       );
 
-  void onPushDetail(resultList) {
+  void onPushDetail(dynamic resultList) {
     try {
       int? aid = int.tryParse(keyword);
       if (aid != null && resultList.first.aid == aid) {
@@ -61,15 +62,14 @@ class SearchAllController
   }
 
   void jump2Video() {
-    if (RegExp(r'^av\d+$', caseSensitive: false).hasMatch(keyword)) {
+    if (IdUtils.avRegexExact.hasMatch(keyword)) {
       hasJump2Video = true;
       PiliScheme.videoPush(
         int.parse(keyword.substring(2)),
         null,
         showDialog: false,
       );
-    } else if (RegExp(r'^bv[a-z\d]{10}$', caseSensitive: false)
-        .hasMatch(keyword)) {
+    } else if (IdUtils.bvRegexExact.hasMatch(keyword)) {
       hasJump2Video = true;
       PiliScheme.videoPush(null, keyword, showDialog: false);
     }

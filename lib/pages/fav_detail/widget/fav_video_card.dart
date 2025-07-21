@@ -5,15 +5,17 @@ import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/stat/stat.dart';
 import 'package:PiliPlus/models/common/badge_type.dart';
-import 'package:PiliPlus/models/user/fav_detail.dart';
+import 'package:PiliPlus/models/common/stat_type.dart';
+import 'package:PiliPlus/models_new/fav/fav_detail/media.dart';
+import 'package:PiliPlus/utils/date_util.dart';
+import 'package:PiliPlus/utils/duration_util.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
-import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 // 收藏视频卡片 - 水平布局
 class FavVideoCardH extends StatelessWidget {
-  final FavDetailItemData videoItem;
+  final FavDetailItemModel item;
   final GestureTapCallback? onTap;
   final GestureLongPressCallback? onLongPress;
   final VoidCallback? onDelFav;
@@ -22,7 +24,7 @@ class FavVideoCardH extends StatelessWidget {
 
   const FavVideoCardH({
     super.key,
-    required this.videoItem,
+    required this.item,
     this.onDelFav,
     this.onTap,
     this.onLongPress,
@@ -32,105 +34,118 @@ class FavVideoCardH extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: isSort == true
-          ? null
-          : onTap ??
-              () {
-                if (!const [0, 16].contains(videoItem.attr)) {
-                  Get.toNamed('/member?mid=${videoItem.owner.mid}');
-                  return;
-                }
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: isSort == true
+            ? null
+            : onTap ??
+                () {
+                  if (!const [0, 16].contains(item.attr)) {
+                    Get.toNamed('/member?mid=${item.upper?.mid}');
+                    return;
+                  }
 
-                // pgc
-                if (videoItem.type == 24) {
-                  PageUtils.viewBangumi(
-                    seasonId: videoItem.ogv!.seasonId,
-                    epId: videoItem.epId,
-                  );
-                  return;
-                }
+                  // pgc
+                  if (item.type == 24) {
+                    PageUtils.viewPgc(
+                      seasonId: item.ogv!.seasonId,
+                      epId: item.id,
+                    );
+                    return;
+                  }
 
-                onViewFav?.call();
-              },
-      onLongPress: isSort == true
-          ? null
-          : onLongPress ??
-              () => imageSaveDialog(
-                    title: videoItem.title,
-                    cover: videoItem.pic,
-                  ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: StyleString.safeSpace,
-          vertical: 5,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: StyleString.aspectRatio,
-              child: LayoutBuilder(
-                builder: (context, boxConstraints) {
-                  double maxWidth = boxConstraints.maxWidth;
-                  double maxHeight = boxConstraints.maxHeight;
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      NetworkImgLayer(
-                        src: videoItem.pic,
-                        width: maxWidth,
-                        height: maxHeight,
-                      ),
-                      PBadge(
-                        text: Utils.timeFormat(videoItem.duration),
-                        right: 6.0,
-                        bottom: 6.0,
-                        type: PBadgeType.gray,
-                      ),
-                      PBadge(
-                        text: videoItem.ogv?.typeName,
-                        top: 6.0,
-                        right: 6.0,
-                        bottom: null,
-                        left: null,
-                      ),
-                    ],
-                  );
+                  onViewFav?.call();
                 },
+        onLongPress: isSort == true
+            ? null
+            : onLongPress ??
+                () => imageSaveDialog(
+                      title: item.title,
+                      cover: item.cover,
+                      bvid: item.bvid,
+                    ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: StyleString.safeSpace,
+            vertical: 5,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AspectRatio(
+                aspectRatio: StyleString.aspectRatio,
+                child: LayoutBuilder(
+                  builder: (context, boxConstraints) {
+                    double maxWidth = boxConstraints.maxWidth;
+                    double maxHeight = boxConstraints.maxHeight;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        NetworkImgLayer(
+                          src: item.cover,
+                          width: maxWidth,
+                          height: maxHeight,
+                        ),
+                        PBadge(
+                          text: DurationUtil.formatDuration(item.duration),
+                          right: 6.0,
+                          bottom: 6.0,
+                          type: PBadgeType.gray,
+                        ),
+                        PBadge(
+                          text: item.ogv?.typeName,
+                          top: 6.0,
+                          right: 6.0,
+                          bottom: null,
+                          left: null,
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            videoContent(context),
-          ],
+              const SizedBox(width: 10),
+              content(context),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget videoContent(context) {
+  Widget content(BuildContext context) {
     final theme = Theme.of(context);
     return Expanded(
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Column(
+            spacing: 3,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  videoItem.title,
-                  textAlign: TextAlign.start,
-                  style: const TextStyle(
-                    letterSpacing: 0.3,
-                  ),
+              Text(
+                item.title!,
+                textAlign: TextAlign.start,
+                style: const TextStyle(
+                  letterSpacing: 0.3,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (item.type == 24 && item.intro?.isNotEmpty == true)
+                Text(
+                  item.intro!,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: theme.colorScheme.outline,
+                  ),
                 ),
-              ),
+              const Spacer(),
               Text(
-                '${Utils.dateFormat(videoItem.favTime)} ${videoItem.owner.name}',
+                '${DateUtil.dateFormat(item.favTime)} ${item.upper?.name}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -139,23 +154,20 @@ class FavVideoCardH extends StatelessWidget {
                   color: theme.colorScheme.outline,
                 ),
               ),
-              const SizedBox(height: 3),
-              Row(
-                children: [
-                  StatView(
-                    context: context,
-                    theme: 'gray',
-                    value: videoItem.stat.viewStr,
-                  ),
-                  const SizedBox(width: 8),
-                  StatDanMu(
-                    context: context,
-                    theme: 'gray',
-                    value: videoItem.stat.danmuStr,
-                  ),
-                  const Spacer(),
-                ],
-              ),
+              if (item.type != 24)
+                Row(
+                  spacing: 8,
+                  children: [
+                    StatWidget(
+                      type: StatType.play,
+                      value: item.cntInfo?.play,
+                    ),
+                    StatWidget(
+                      type: StatType.danmaku,
+                      value: item.cntInfo?.danmaku,
+                    ),
+                  ],
+                ),
             ],
           ),
           if (onDelFav != null)

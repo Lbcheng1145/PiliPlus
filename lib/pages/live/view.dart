@@ -8,8 +8,8 @@ import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/self_sized_horizontal_list.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
-import 'package:PiliPlus/models/live/live_feed_index/card_data_list_item.dart';
-import 'package:PiliPlus/models/live/live_feed_index/card_list.dart';
+import 'package:PiliPlus/models_new/live/live_feed_index/card_data_list_item.dart';
+import 'package:PiliPlus/models_new/live/live_feed_index/card_list.dart';
 import 'package:PiliPlus/pages/common/common_page.dart';
 import 'package:PiliPlus/pages/live/controller.dart';
 import 'package:PiliPlus/pages/live/widgets/live_item_app.dart';
@@ -41,8 +41,7 @@ class _LivePageState extends CommonPageState<LivePage, LiveController>
     final ThemeData theme = Theme.of(context);
     return Container(
       clipBehavior: Clip.hardEdge,
-      margin: const EdgeInsets.only(
-          left: StyleString.safeSpace, right: StyleString.safeSpace),
+      margin: const EdgeInsets.symmetric(horizontal: StyleString.safeSpace),
       decoration: const BoxDecoration(borderRadius: StyleString.mdRadius),
       child: refreshIndicator(
         onRefresh: controller.onRefresh,

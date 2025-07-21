@@ -1,6 +1,8 @@
 import 'package:PiliPlus/models/common/member/contribute_type.dart';
+import 'package:PiliPlus/models_new/space/space/tab2.dart';
 import 'package:PiliPlus/pages/member_article/view.dart';
 import 'package:PiliPlus/pages/member_audio/view.dart';
+import 'package:PiliPlus/pages/member_comic/view.dart';
 import 'package:PiliPlus/pages/member_contribute/controller.dart';
 import 'package:PiliPlus/pages/member_opus/view.dart';
 import 'package:PiliPlus/pages/member_season_series/view.dart';
@@ -72,13 +74,10 @@ class _MemberContributeState extends State<MemberContribute>
                 ),
               ),
               Expanded(
-                child: Material(
-                  color: Colors.transparent,
-                  child: TabBarView(
-                    physics: const NeverScrollableScrollPhysics(),
-                    controller: _controller.tabController,
-                    children: _controller.items!.map(_getPageFromType).toList(),
-                  ),
+                child: TabBarView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  controller: _controller.tabController,
+                  children: _controller.items!.map(_getPageFromType).toList(),
                 ),
               ),
             ],
@@ -88,7 +87,7 @@ class _MemberContributeState extends State<MemberContribute>
             : const SizedBox.shrink();
   }
 
-  Widget _getPageFromType(item) {
+  Widget _getPageFromType(SpaceTab2Item item) {
     return switch (item.param) {
       'video' => MemberVideo(
           type: ContributeType.video,
@@ -112,7 +111,14 @@ class _MemberContributeState extends State<MemberContribute>
           heroTag: widget.heroTag,
           mid: widget.mid,
         ),
-      'audio' => MemberAudio(heroTag: widget.heroTag),
+      'audio' => MemberAudio(
+          heroTag: widget.heroTag,
+          mid: widget.mid,
+        ),
+      'comic' => MemberComic(
+          heroTag: widget.heroTag,
+          mid: widget.mid,
+        ),
       'season_video' => MemberVideo(
           type: ContributeType.season,
           heroTag: widget.heroTag,

@@ -5,7 +5,6 @@ import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
     show ReplyInfo;
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
 import 'package:PiliPlus/pages/video/reply/controller.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
@@ -17,7 +16,7 @@ class VideoReplyPanel extends StatefulWidget {
   final String? bvid;
   final int oid;
   final int rpid;
-  final String replyLevel;
+  final int replyLevel;
   final String heroTag;
   final Function(ReplyInfo replyItem, int? rpid) replyReply;
   final VoidCallback? onViewImage;
@@ -30,7 +29,7 @@ class VideoReplyPanel extends StatefulWidget {
     this.bvid,
     required this.oid,
     this.rpid = 0,
-    this.replyLevel = '1',
+    this.replyLevel = 1,
     required this.heroTag,
     required this.replyReply,
     this.onViewImage,
@@ -163,7 +162,7 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
             ],
           ),
           Positioned(
-            bottom: MediaQuery.of(context).padding.bottom + 14,
+            bottom: MediaQuery.paddingOf(context).bottom + 14,
             right: 14,
             child: SlideTransition(
               position: _videoReplyController.anim,
@@ -198,7 +197,7 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
       Success(:var response) => response?.isNotEmpty == true
           ? SliverList.builder(
               itemBuilder: (context, index) {
-                double bottom = MediaQuery.of(context).padding.bottom;
+                double bottom = MediaQuery.paddingOf(context).bottom;
                 if (index == response.length) {
                   _videoReplyController.onLoadMore();
                   return Container(
@@ -218,27 +217,24 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
                     replyItem: response[index],
                     replyLevel: widget.replyLevel,
                     replyReply: widget.replyReply,
-                    onReply: () => _videoReplyController.onReply(
+                    onReply: (replyItem) => _videoReplyController.onReply(
                       context,
-                      replyItem: response[index],
-                      index: index,
+                      replyItem: replyItem,
                     ),
-                    onDelete: (subIndex) =>
-                        _videoReplyController.onRemove(index, subIndex),
+                    onDelete: (item, subIndex) =>
+                        _videoReplyController.onRemove(index, item, subIndex),
                     upMid: _videoReplyController.upMid,
                     getTag: () => heroTag,
                     onViewImage: widget.onViewImage,
                     onDismissed: widget.onDismissed,
                     callback: widget.callback,
                     onCheckReply: (item) => _videoReplyController
-                        .onCheckReply(context, item, isManual: true),
-                    onToggleTop: (isUpTop, rpid) =>
-                        _videoReplyController.onToggleTop(
+                        .onCheckReply(item, isManual: true),
+                    onToggleTop: (item) => _videoReplyController.onToggleTop(
+                      item,
                       index,
                       _videoReplyController.aid,
                       1,
-                      isUpTop,
-                      rpid,
                     ),
                   );
                 }

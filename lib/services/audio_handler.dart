@@ -1,9 +1,9 @@
-import 'package:PiliPlus/models/live/live_room/room_info_h5.dart';
-import 'package:PiliPlus/models/pgc/pgc_info_model/result.dart';
-import 'package:PiliPlus/models/video_detail/data.dart';
+import 'package:PiliPlus/models_new/live/live_room_info_h5/data.dart';
+import 'package:PiliPlus/models_new/pgc/pgc_info_model/result.dart';
+import 'package:PiliPlus/models_new/video/video_detail/data.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:get/get_utils/get_utils.dart';
 
@@ -25,17 +25,7 @@ Future<VideoPlayerServiceHandler> initAudioService() async {
 
 class VideoPlayerServiceHandler extends BaseAudioHandler with SeekHandler {
   static final List<MediaItem> _item = [];
-  bool enableBackgroundPlay = true;
-  // PlPlayerController player = PlPlayerController.getInstance();
-
-  VideoPlayerServiceHandler() {
-    revalidateSetting();
-  }
-
-  void revalidateSetting() {
-    enableBackgroundPlay = GStorage.setting
-        .get(SettingBoxKey.enableBackgroundPlay, defaultValue: true);
-  }
+  bool enableBackgroundPlay = Pref.enableBackgroundPlay;
 
   @override
   Future<void> play() async {
@@ -60,10 +50,12 @@ class VideoPlayerServiceHandler extends BaseAudioHandler with SeekHandler {
 
   Future<void> setMediaItem(MediaItem newMediaItem) async {
     if (!enableBackgroundPlay) return;
-    // debugPrint("此时调用栈为：");
-    // debugPrint(newMediaItem);
-    // debugPrint(newMediaItem.title);
-    // debugPrint(StackTrace.current.toString());
+    // if (kDebugMode) {
+    //   debugPrint("此时调用栈为：");
+    //   debugPrint(newMediaItem);
+    //   debugPrint(newMediaItem.title);
+    //   debugPrint(StackTrace.current.toString());
+    // }
     if (!mediaItem.isClosed) mediaItem.add(newMediaItem);
   }
 
@@ -113,8 +105,10 @@ class VideoPlayerServiceHandler extends BaseAudioHandler with SeekHandler {
 
   void onVideoDetailChange(dynamic data, int cid, String herotag) {
     if (!enableBackgroundPlay) return;
-    // debugPrint('当前调用栈为：');
-    // debugPrint(StackTrace.current);
+    // if (kDebugMode) {
+    //   debugPrint('当前调用栈为：');
+    //   debugPrint(StackTrace.current);
+    // }
     if (!PlPlayerController.instanceExists()) return;
     if (data == null) return;
 
@@ -141,7 +135,7 @@ class VideoPlayerServiceHandler extends BaseAudioHandler with SeekHandler {
           artUri: Uri.parse(data.pic ?? ""),
         );
       }
-    } else if (data is BangumiInfoModel) {
+    } else if (data is PgcInfoModel) {
       final current =
           data.episodes?.firstWhereOrNull((element) => element.cid == cid);
       mediaItem = MediaItem(
@@ -151,7 +145,7 @@ class VideoPlayerServiceHandler extends BaseAudioHandler with SeekHandler {
         duration: Duration(milliseconds: current?.duration ?? 0),
         artUri: Uri.parse(data.cover ?? ""),
       );
-    } else if (data is RoomInfoH5Model) {
+    } else if (data is RoomInfoH5Data) {
       mediaItem = MediaItem(
         id: id,
         title: data.roomInfo?.title ?? '',
@@ -161,7 +155,7 @@ class VideoPlayerServiceHandler extends BaseAudioHandler with SeekHandler {
       );
     }
     if (mediaItem == null) return;
-    // debugPrint("exist: ${PlPlayerController.instanceExists()}");
+    // if (kDebugMode) debugPrint("exist: ${PlPlayerController.instanceExists()}");
     if (!PlPlayerController.instanceExists()) return;
     _item.add(mediaItem);
     setMediaItem(mediaItem);

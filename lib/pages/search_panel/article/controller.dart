@@ -8,7 +8,7 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
 class SearchArticleController
-    extends SearchPanelController<SearchArticleModel, SearchArticleItemModel> {
+    extends SearchPanelController<SearchArticleData, SearchArticleItemModel> {
   SearchArticleController({
     required super.keyword,
     required super.searchType,
@@ -23,7 +23,7 @@ class SearchArticleController
 
   void jump2Article() {
     String? cvid = RegExp(r'^cv(id)?(\d+)$', caseSensitive: false)
-        .firstMatch(keyword)
+        .matchAsPrefix(keyword)
         ?.group(2);
     if (cvid != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -65,7 +65,6 @@ class SearchArticleController
       context: context,
       useSafeArea: true,
       isScrollControlled: true,
-      clipBehavior: Clip.hardEdge,
       constraints: BoxConstraints(
         maxWidth: min(640, context.mediaQueryShortestSide),
       ),
@@ -78,7 +77,7 @@ class SearchArticleController
               top: 20,
               left: 16,
               right: 16,
-              bottom: 80 + MediaQuery.of(context).padding.bottom,
+              bottom: 80 + MediaQuery.paddingOf(context).bottom,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,

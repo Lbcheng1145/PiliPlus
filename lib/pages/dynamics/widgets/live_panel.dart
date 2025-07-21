@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 
 Widget livePanel(
   ThemeData theme,
-  String? source,
+  bool isDetail,
   DynamicItemModel item,
   BuildContext context, {
   int floor = 1,
@@ -29,7 +29,6 @@ Widget livePanel(
           );
         },
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             NetworkImgLayer(
@@ -41,12 +40,11 @@ Widget livePanel(
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Text(
                     content.live!.title!,
-                    maxLines: source == 'detail' ? null : 2,
-                    overflow: source == 'detail' ? null : TextOverflow.ellipsis,
+                    maxLines: isDetail ? null : 2,
+                    overflow: isDetail ? null : TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   if (content.live?.descFirst != null)

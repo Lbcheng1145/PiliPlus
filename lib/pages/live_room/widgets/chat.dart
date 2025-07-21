@@ -1,7 +1,7 @@
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/pages/live_room/controller.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -32,6 +32,7 @@ class LiveRoomChat extends StatelessWidget {
             itemCount: liveRoomController.messages.length,
             physics: const ClampingScrollPhysics(),
             itemBuilder: (context, index) {
+              final item = liveRoomController.messages[index];
               return Container(
                 alignment: Alignment.centerLeft,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -48,8 +49,7 @@ class LiveRoomChat extends StatelessWidget {
                     TextSpan(
                       children: [
                         TextSpan(
-                          text:
-                              '${liveRoomController.messages[index]['name']}: ',
+                          text: '${item['name']}: ',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.6),
                             fontSize: 14,
@@ -57,20 +57,13 @@ class LiveRoomChat extends StatelessWidget {
                           recognizer: TapGestureRecognizer()
                             ..onTap = () {
                               try {
-                                dynamic uid =
-                                    liveRoomController.messages[index]['uid'];
-                                Get.toNamed(
-                                  '/member?mid=$uid',
-                                  arguments: {
-                                    'heroTag': Utils.makeHeroTag(uid),
-                                  },
-                                );
+                                Get.toNamed('/member?mid=${item['uid']}');
                               } catch (err) {
-                                debugPrint(err.toString());
+                                if (kDebugMode) debugPrint(err.toString());
                               }
                             },
                         ),
-                        _buildMsg(liveRoomController.messages[index]),
+                        _buildMsg(item),
                       ],
                     ),
                   ),
@@ -101,21 +94,15 @@ class LiveRoomChat extends StatelessWidget {
     );
   }
 
-  TextSpan _buildMsg(obj) {
+  TextSpan _buildMsg(dynamic obj) {
     dynamic emots = obj['emots'];
     dynamic uemote = obj['uemote'];
-    List list = [
+    List<String> list = [
       if (emots != null) ...emots.keys,
       if (uemote is Map) uemote['emoticon_unique'].replaceFirst('upower_', '')
     ];
     if (list.isNotEmpty) {
-      list = list.map((e) {
-        return e.toString().replaceAllMapped(
-              RegExp(r'\[(.*?)\]'),
-              (match) => r'\[' + match.group(1)! + r'\]',
-            );
-      }).toList();
-      RegExp regExp = RegExp(list.join('|'));
+      RegExp regExp = RegExp(list.map(RegExp.escape).join('|'));
       final List<InlineSpan> spanChildren = <InlineSpan>[];
       (obj['text'] as String).splitMapJoin(
         regExp,

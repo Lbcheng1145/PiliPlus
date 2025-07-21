@@ -1,8 +1,8 @@
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
-import 'package:PiliPlus/models/live/live_search/room_item.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/models_new/live/live_search/room_item.dart';
+import 'package:PiliPlus/utils/num_util.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -17,10 +17,8 @@ class LiveCardVSearch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String heroTag = Utils.makeHeroTag(item.roomid);
     return Card(
       clipBehavior: Clip.hardEdge,
-      margin: EdgeInsets.zero,
       child: InkWell(
         onTap: () => Get.toNamed('/liveRoom?roomid=${item.roomid}'),
         onLongPress: () => imageSaveDialog(
@@ -38,13 +36,11 @@ class LiveCardVSearch extends StatelessWidget {
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Hero(
-                      tag: heroTag,
-                      child: NetworkImgLayer(
-                        src: item.cover!,
-                        width: maxWidth,
-                        height: maxHeight,
-                      ),
+                    NetworkImgLayer(
+                      src: item.cover!,
+                      width: maxWidth,
+                      height: maxHeight,
+                      radius: 0,
                     ),
                     Positioned(
                       left: 0,
@@ -78,7 +74,7 @@ class LiveCardVSearch extends StatelessWidget {
     );
   }
 
-  Widget videoStat(context) {
+  Widget videoStat(BuildContext context) {
     return Container(
       height: 50,
       padding: const EdgeInsets.only(top: 26, left: 10, right: 10),
@@ -102,7 +98,7 @@ class LiveCardVSearch extends StatelessWidget {
           ),
           if (item.watchedShow?.textSmall != null)
             Text(
-              '${Utils.numFormat(item.watchedShow!.textSmall)}围观',
+              '${NumUtil.numFormat(item.watchedShow!.textSmall)}围观',
               style: const TextStyle(fontSize: 11, color: Colors.white),
             ),
         ],

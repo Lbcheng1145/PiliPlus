@@ -1,8 +1,10 @@
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
 class SetDisplayMode extends StatefulWidget {
@@ -17,39 +19,22 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   DisplayMode? active;
   DisplayMode? preferred;
 
-  Box get setting => GStorage.setting;
-
-  final ValueNotifier<int> page = ValueNotifier<int>(0);
-  late final PageController controller = PageController()
-    ..addListener(listener);
-
-  void listener() {
-    page.value = controller.page!.round();
-  }
+  Box setting = GStorage.setting;
 
   @override
   void initState() {
     super.initState();
     init();
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      fetchAll();
-    });
-  }
-
-  @override
-  void dispose() {
-    controller
-      ..removeListener(listener)
-      ..dispose();
-    super.dispose();
   }
 
   // 获取所有的mode
   Future<void> fetchAll() async {
     preferred = await FlutterDisplayMode.preferred;
     active = await FlutterDisplayMode.active;
-    await setting.put(SettingBoxKey.displayMode, preferred.toString());
-    setState(() {});
+    setting.put(SettingBoxKey.displayMode, preferred.toString());
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   // 初始化mode/手动设置
@@ -57,21 +42,19 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
     try {
       modes = await FlutterDisplayMode.supported;
     } on PlatformException catch (e) {
-      debugPrint(e.toString());
+      if (kDebugMode) debugPrint(e.toString());
     }
-    var res = getDisplayModeType(modes);
 
-    preferred = modes.toList().firstWhere((el) => el == res);
-    FlutterDisplayMode.setPreferredMode(preferred!);
-  }
-
-  DisplayMode getDisplayModeType(modes) {
     var value = setting.get(SettingBoxKey.displayMode);
-    DisplayMode f = DisplayMode.auto;
     if (value != null) {
-      f = modes.firstWhere((e) => e.toString() == value);
+      preferred = modes.firstWhereOrNull((e) => e.toString() == value);
     }
-    return f;
+
+    preferred ??= DisplayMode.auto;
+
+    FlutterDisplayMode.setPreferredMode(preferred!).whenComplete(() {
+      Future.delayed(const Duration(milliseconds: 100)).whenComplete(fetchAll);
+    });
   }
 
   @override
@@ -80,10 +63,10 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
       appBar: AppBar(title: const Text('屏幕帧率设置')),
       body: SafeArea(
         top: false,
+        bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            if (modes.isEmpty) const Text('Nothing here'),
+          children: [
             Padding(
               padding: const EdgeInsets.only(left: 25, top: 10, bottom: 5),
               child: Text(
@@ -94,20 +77,19 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
             Expanded(
               child: ListView.builder(
                 itemCount: modes.length,
-                itemBuilder: (context, int i) {
-                  final DisplayMode mode = modes[i];
+                itemBuilder: (context, index) {
+                  final DisplayMode mode = modes[index];
                   return RadioListTile<DisplayMode>(
                     value: mode,
                     title: mode == DisplayMode.auto
                         ? const Text('自动')
-                        : Text('$mode${mode == active ? "  [系统]" : ""}'),
+                        : Text('$mode${mode == active ? '  [系统]' : ''}'),
                     groupValue: preferred,
-                    onChanged: (DisplayMode? newMode) async {
-                      await FlutterDisplayMode.setPreferredMode(newMode!);
-                      await Future<dynamic>.delayed(
-                        const Duration(milliseconds: 100),
-                      );
-                      await fetchAll();
+                    onChanged: (DisplayMode? newMode) {
+                      FlutterDisplayMode.setPreferredMode(newMode!)
+                          .whenComplete(() =>
+                              Future.delayed(const Duration(milliseconds: 100))
+                                  .whenComplete(fetchAll));
                     },
                   );
                 },

@@ -3,10 +3,12 @@ import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/common_btn.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/play_pause_btn.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
-class BottomControl extends StatelessWidget implements PreferredSizeWidget {
+class BottomControl extends StatelessWidget {
   const BottomControl({
     super.key,
     required this.plPlayerController,
@@ -22,9 +24,6 @@ class BottomControl extends StatelessWidget implements PreferredSizeWidget {
 
   final TextStyle subTitleStyle;
   final TextStyle titleStyle;
-
-  @override
-  Size get preferredSize => const Size(double.infinity, kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {
@@ -49,20 +48,56 @@ class BottomControl extends StatelessWidget implements PreferredSizeWidget {
             onTap: onRefresh,
           ),
           const Spacer(),
-          Obx(
-            () => IconButton(
+          SizedBox(
+            width: 35,
+            height: 35,
+            child: IconButton(
+              tooltip: '弹幕屏蔽',
+              style: ButtonStyle(
+                padding: WidgetStateProperty.all(EdgeInsets.zero),
+              ),
               onPressed: () {
-                plPlayerController.isOpenDanmu.value =
-                    !plPlayerController.isOpenDanmu.value;
-                GStorage.setting.put(SettingBoxKey.enableShowDanmaku,
-                    plPlayerController.isOpenDanmu.value);
+                if (liveRoomCtr.accountService.isLogin.value) {
+                  Get.toNamed(
+                    '/liveDmBlockPage',
+                    parameters: {
+                      'roomId': liveRoomCtr.roomId.toString(),
+                    },
+                  );
+                } else {
+                  SmartDialog.showToast('账号未登录');
+                }
               },
-              icon: Icon(
+              icon: const Icon(
                 size: 18,
-                plPlayerController.isOpenDanmu.value
-                    ? Icons.subtitles_outlined
-                    : Icons.subtitles_off_outlined,
+                Icons.block,
                 color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Obx(
+            () => SizedBox(
+              width: 35,
+              height: 35,
+              child: IconButton(
+                tooltip: '弹幕开关',
+                style: ButtonStyle(
+                  padding: WidgetStateProperty.all(EdgeInsets.zero),
+                ),
+                onPressed: () {
+                  plPlayerController.enableShowDanmaku.value =
+                      !plPlayerController.enableShowDanmaku.value;
+                  GStorage.setting.put(SettingBoxKey.enableShowDanmaku,
+                      plPlayerController.enableShowDanmaku.value);
+                },
+                icon: Icon(
+                  size: 18,
+                  plPlayerController.enableShowDanmaku.value
+                      ? Icons.subtitles_outlined
+                      : Icons.subtitles_off_outlined,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),

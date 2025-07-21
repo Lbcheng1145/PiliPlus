@@ -1,12 +1,12 @@
-import 'package:PiliPlus/models/search/search_trending/trending_list.dart';
+import 'package:PiliPlus/models_new/search/search_trending/list.dart';
 import 'package:PiliPlus/utils/extension.dart';
-import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/image_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class HotKeyword extends StatelessWidget {
   final double width;
-  final List<SearchKeywordList> hotSearchList;
+  final List<SearchTrendingItemModel> hotSearchList;
   final Function? onClick;
   final bool showMore;
   const HotKeyword({
@@ -27,10 +27,10 @@ class HotKeyword extends StatelessWidget {
           SizedBox(
             width: width,
             child: Material(
-              color: Colors.transparent,
+              type: MaterialType.transparency,
               borderRadius: const BorderRadius.all(Radius.circular(3)),
-              clipBehavior: Clip.hardEdge,
               child: InkWell(
+                borderRadius: const BorderRadius.all(Radius.circular(3)),
                 onTap: () => onClick?.call(i.keyword),
                 child: Padding(
                   padding: const EdgeInsets.only(left: 2, right: 10),
@@ -53,7 +53,7 @@ class HotKeyword extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(left: 4),
                             child: CachedNetworkImage(
-                              imageUrl: Utils.thumbnailImgUrl(i.icon!),
+                              imageUrl: ImageUtil.thumbnailUrl(i.icon!),
                               height: 15,
                             ),
                           )

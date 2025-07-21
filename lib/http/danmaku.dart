@@ -1,6 +1,6 @@
 import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/init.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/accounts.dart';
 import 'package:dio/dio.dart';
 
 class DanmakuHttp {
@@ -35,7 +35,7 @@ class DanmakuHttp {
       //'aid': aid,
       'bvid': bvid,
       'progress': progress,
-      'color': colorful == true ? null : color,
+      'color': colorful == true ? 16777215 : color,
       'fontsize': fontsize,
       'pool': pool,
       'rnd': DateTime.now().microsecondsSinceEpoch,

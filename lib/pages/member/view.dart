@@ -3,7 +3,10 @@ import 'package:PiliPlus/common/widgets/dynamic_sliver_appbar.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/space/data.dart';
+import 'package:PiliPlus/models_new/space/space/data.dart';
+import 'package:PiliPlus/pages/coin_log/view.dart';
+import 'package:PiliPlus/pages/exp_log/view.dart';
+import 'package:PiliPlus/pages/login_log/view.dart';
 import 'package:PiliPlus/pages/member/controller.dart';
 import 'package:PiliPlus/pages/member/widget/user_info_card.dart';
 import 'package:PiliPlus/pages/member_contribute/view.dart';
@@ -14,6 +17,7 @@ import 'package:PiliPlus/pages/member_pgc/view.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 
 class MemberPage extends StatefulWidget {
@@ -80,8 +84,8 @@ class _MemberPageState extends State<MemberPage> {
           PopupMenuButton(
             icon: const Icon(Icons.more_vert),
             itemBuilder: (BuildContext context) => <PopupMenuEntry>[
-              if (_userController.ownerMid != 0 &&
-                  _userController.ownerMid != _mid) ...[
+              if (_userController.accountService.isLogin.value &&
+                  _userController.accountService.mid != _mid) ...[
                 PopupMenuItem(
                   onTap: () => _userController.blockUser(context),
                   child: Row(
@@ -115,45 +119,124 @@ class _MemberPageState extends State<MemberPage> {
                   children: [
                     const Icon(Icons.share_outlined, size: 19),
                     const SizedBox(width: 10),
-                    Text(_userController.ownerMid != _mid ? '分享UP主' : '分享我的主页'),
+                    Text(_userController.accountService.mid != _mid
+                        ? '分享UP主'
+                        : '分享我的主页'),
                   ],
                 ),
               ),
-              if (_userController.ownerMid != null &&
-                  _userController.mid != _userController.ownerMid) ...[
-                const PopupMenuDivider(),
-                PopupMenuItem(
-                  onTap: () => showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      clipBehavior: Clip.hardEdge,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                      content: MemberReportPanel(
-                        name: _userController.username,
-                        mid: _mid,
+              PopupMenuItem(
+                onTap: () => Get.toNamed(
+                  '/upowerRank',
+                  parameters: {
+                    'mid': _userController.mid.toString(),
+                  },
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.electric_bolt, size: 19),
+                    SizedBox(width: 10),
+                    Text('充电排行榜'),
+                  ],
+                ),
+              ),
+              if (_userController.accountService.isLogin.value)
+                if (_userController.mid ==
+                    _userController.accountService.mid) ...[
+                  if ((_userController.loadingState.value.dataOrNull?.card?.vip
+                              ?.status ??
+                          0) >
+                      0)
+                    PopupMenuItem(
+                      onTap: _userController.vipExpAdd,
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.upcoming_outlined, size: 19),
+                          SizedBox(width: 10),
+                          Text('大会员经验'),
+                        ],
                       ),
                     ),
+                  PopupMenuItem(
+                    onTap: () => Get.to(const LoginLogPage()),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.login, size: 18),
+                        SizedBox(width: 10),
+                        Text('登录记录'),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 19,
-                        color: theme.colorScheme.error,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        '举报',
-                        style: TextStyle(color: theme.colorScheme.error),
-                      ),
-                    ],
+                  PopupMenuItem(
+                    onTap: () => Get.to(const CoinLogPage()),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(FontAwesomeIcons.b, size: 16),
+                        SizedBox(width: 10),
+                        Text('硬币记录'),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  PopupMenuItem(
+                    onTap: () => Get.to(const ExpLogPage()),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.linear_scale, size: 18),
+                        SizedBox(width: 10),
+                        Text('经验记录'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    onTap: () => Get.toNamed('/spaceSetting'),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.settings_outlined, size: 19),
+                        SizedBox(width: 10),
+                        Text('空间设置'),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        clipBehavior: Clip.hardEdge,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        content: MemberReportPanel(
+                          name: _userController.username,
+                          mid: _mid,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 19,
+                          color: theme.colorScheme.error,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '举报',
+                          style: TextStyle(color: theme.colorScheme.error),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
             ],
           ),
           const SizedBox(width: 4),
@@ -251,21 +334,21 @@ class _MemberPageState extends State<MemberPage> {
     );
   }
 
-  Widget _buildUserInfo(LoadingState userState, [bool isV = true]) {
+  Widget _buildUserInfo(LoadingState<SpaceData?> userState, [bool isV = true]) {
     return switch (userState) {
       Loading() => const CircularProgressIndicator(),
-      Success(:var response) => response is SpaceData
+      Success(:var response) => response != null
           ? Obx(
               () => UserInfoCard(
                 isV: isV,
-                isOwner: _userController.mid == _userController.ownerMid,
+                isOwner:
+                    _userController.mid == _userController.accountService.mid,
                 relation: _userController.relation.value,
                 card: response.card!,
                 images: response.images!,
                 onFollow: () => _userController.onFollow(context),
                 live: _userController.live,
                 silence: _userController.silence,
-                endTime: _userController.endTime,
               ),
             )
           : GestureDetector(

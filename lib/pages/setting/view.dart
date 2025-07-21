@@ -9,9 +9,9 @@ import 'package:PiliPlus/pages/setting/style_setting.dart';
 import 'package:PiliPlus/pages/setting/video_setting.dart';
 import 'package:PiliPlus/pages/setting/widgets/multi_select_dialog.dart';
 import 'package:PiliPlus/pages/webdav/view.dart';
+import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/extension.dart';
-import 'package:PiliPlus/utils/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -287,25 +287,28 @@ class _SettingPageState extends State<SettingPage> {
           right: 16,
           bottom: 8,
         ),
-        child: InkWell(
-          onTap: () => Get.toNamed('/settingsSearch'),
-          borderRadius: const BorderRadius.all(Radius.circular(50)),
-          child: Ink(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.all(Radius.circular(50)),
-              color: theme.colorScheme.onInverseSurface,
-            ),
-            child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    size: MediaQuery.textScalerOf(context).scale(18),
-                    Icons.search,
-                  ),
-                  const Text(' 搜索'),
-                ],
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: () => Get.toNamed('/settingsSearch'),
+            borderRadius: const BorderRadius.all(Radius.circular(50)),
+            child: Ink(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.all(Radius.circular(50)),
+                color: theme.colorScheme.onInverseSurface,
+              ),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      size: MediaQuery.textScalerOf(context).scale(18),
+                      Icons.search,
+                    ),
+                    const Text(' 搜索'),
+                  ],
+                ),
               ),
             ),
           ),

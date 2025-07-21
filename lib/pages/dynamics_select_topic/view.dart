@@ -1,12 +1,14 @@
 import 'dart:async';
+import 'dart:math';
 
-import 'package:PiliPlus/common/widgets/custom_icon.dart';
+import 'package:PiliPlus/common/widgets/draggable_sheet/draggable_scrollable_sheet_topic.dart'
+    as topic_sheet;
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/topic_pub_search/topic_item.dart';
+import 'package:PiliPlus/models_new/dynamic/dyn_topic_top/topic_item.dart';
 import 'package:PiliPlus/pages/dynamics_select_topic/controller.dart';
+import 'package:PiliPlus/pages/dynamics_select_topic/widgets/item.dart';
 import 'package:PiliPlus/utils/extension.dart';
-import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:stream_transform/stream_transform.dart';
@@ -20,6 +22,34 @@ class SelectTopicPanel extends StatefulWidget {
 
   final ScrollController? scrollController;
   final ValueChanged<double>? callback;
+
+  static Future<TopicItem?> onSelectTopic(
+    BuildContext context, {
+    double offset = 0,
+    ValueChanged<double>? callback,
+  }) {
+    return showModalBottomSheet<TopicItem?>(
+      context: Get.context!,
+      useSafeArea: true,
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxWidth: min(600, context.mediaQueryShortestSide),
+      ),
+      builder: (context) => topic_sheet.DraggableScrollableSheet(
+        expand: false,
+        snap: true,
+        minChildSize: 0,
+        maxChildSize: 1,
+        initialChildSize: offset == 0 ? 0.65 : 1,
+        initialScrollOffset: offset,
+        snapSizes: const [0.65],
+        builder: (context, scrollController) => SelectTopicPanel(
+          scrollController: scrollController,
+          callback: callback,
+        ),
+      ),
+    );
+  }
 
   @override
   State<SelectTopicPanel> createState() => _SelectTopicPanelState();
@@ -130,8 +160,17 @@ class _SelectTopicPanelState extends State<SelectTopicPanel> {
           ),
         ),
         Expanded(
-          child: Material(
-            color: Colors.transparent,
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is UserScrollNotification) {
+                if (_controller.focusNode.hasFocus) {
+                  _controller.focusNode.unfocus();
+                }
+              } else if (notification is ScrollEndNotification) {
+                widget.callback?.call(notification.metrics.pixels);
+              }
+              return false;
+            },
             child: Obx(() => _buildBody(theme, _controller.loadingState.value)),
           ),
         ),
@@ -140,70 +179,29 @@ class _SelectTopicPanelState extends State<SelectTopicPanel> {
   }
 
   Widget _buildBody(
-      ThemeData theme, LoadingState<List<TopicPubSearchItem>?> loadingState) {
+      ThemeData theme, LoadingState<List<TopicItem>?> loadingState) {
     return switch (loadingState) {
       Loading() => loadingWidget,
-      Success<List<TopicPubSearchItem>?>(:var response) =>
-        response?.isNotEmpty == true
-            ? NotificationListener<ScrollNotification>(
-                onNotification: (notification) {
-                  if (notification is UserScrollNotification) {
-                    if (_controller.focusNode.hasFocus) {
-                      _controller.focusNode.unfocus();
-                    }
-                  } else if (notification is ScrollEndNotification) {
-                    widget.callback?.call(notification.metrics.pixels);
-                  }
-                  return false;
-                },
-                child: ListView.builder(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.paddingOf(context).bottom +
-                        MediaQuery.viewInsetsOf(context).bottom +
-                        80,
-                  ),
-                  controller: widget.scrollController,
-                  itemBuilder: (context, index) {
-                    if (index == response.length - 1) {
-                      _controller.onLoadMore();
-                    }
-                    final item = response[index];
-                    return ListTile(
-                      dense: true,
-                      onTap: () => Get.back(result: item),
-                      title: Text.rich(
-                        TextSpan(
-                          children: [
-                            const WidgetSpan(
-                              alignment: PlaceholderAlignment.middle,
-                              child: Padding(
-                                padding: EdgeInsets.only(right: 5),
-                                child: Icon(
-                                  CustomIcon.topic_tag,
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                            TextSpan(
-                              text: item.name,
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(left: 23),
-                        child: Text(
-                          '${Utils.numFormat(item.view)}浏览 · ${Utils.numFormat(item.discuss)}讨论',
-                          style: TextStyle(color: theme.colorScheme.outline),
-                        ),
-                      ),
-                    );
-                  },
-                  itemCount: response!.length,
-                ),
-              )
-            : _errWidget(),
+      Success<List<TopicItem>?>(:var response) => response?.isNotEmpty == true
+          ? ListView.builder(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.paddingOf(context).bottom +
+                    MediaQuery.viewInsetsOf(context).bottom +
+                    80,
+              ),
+              controller: widget.scrollController,
+              itemBuilder: (context, index) {
+                if (index == response.length - 1) {
+                  _controller.onLoadMore();
+                }
+                return DynTopicItem(
+                  item: response[index],
+                  onTap: (item) => Get.back(result: item),
+                );
+              },
+              itemCount: response!.length,
+            )
+          : _errWidget(),
       Error(:var errMsg) => _errWidget(errMsg),
     };
   }

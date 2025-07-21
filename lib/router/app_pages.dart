@@ -4,8 +4,10 @@ import 'package:PiliPlus/pages/article_list/view.dart';
 import 'package:PiliPlus/pages/blacklist/view.dart';
 import 'package:PiliPlus/pages/danmaku_block/view.dart';
 import 'package:PiliPlus/pages/dynamics/view.dart';
+import 'package:PiliPlus/pages/dynamics_create_vote/view.dart';
 import 'package:PiliPlus/pages/dynamics_detail/view.dart';
 import 'package:PiliPlus/pages/dynamics_topic/view.dart';
+import 'package:PiliPlus/pages/dynamics_topic_rcmd/view.dart';
 import 'package:PiliPlus/pages/fan/view.dart';
 import 'package:PiliPlus/pages/fav/view.dart';
 import 'package:PiliPlus/pages/fav_create/view.dart';
@@ -19,15 +21,19 @@ import 'package:PiliPlus/pages/home/view.dart';
 import 'package:PiliPlus/pages/hot/view.dart';
 import 'package:PiliPlus/pages/later/view.dart';
 import 'package:PiliPlus/pages/later_search/view.dart';
+import 'package:PiliPlus/pages/live_dm_block/view.dart';
 import 'package:PiliPlus/pages/live_room/view.dart';
 import 'package:PiliPlus/pages/login/view.dart';
 import 'package:PiliPlus/pages/main/view.dart';
+import 'package:PiliPlus/pages/match_info/view.dart';
 import 'package:PiliPlus/pages/media/view.dart';
 import 'package:PiliPlus/pages/member/view.dart';
 import 'package:PiliPlus/pages/member_dynamics/view.dart';
 import 'package:PiliPlus/pages/member_profile/view.dart';
 import 'package:PiliPlus/pages/member_search/view.dart';
+import 'package:PiliPlus/pages/member_upower_rank/view.dart';
 import 'package:PiliPlus/pages/msg_feed_top/at_me/view.dart';
+import 'package:PiliPlus/pages/msg_feed_top/like_detail/view.dart';
 import 'package:PiliPlus/pages/msg_feed_top/like_me/view.dart';
 import 'package:PiliPlus/pages/msg_feed_top/reply_me/view.dart';
 import 'package:PiliPlus/pages/msg_feed_top/sys_msg/view.dart';
@@ -48,6 +54,7 @@ import 'package:PiliPlus/pages/setting/style_setting.dart';
 import 'package:PiliPlus/pages/setting/video_setting.dart';
 import 'package:PiliPlus/pages/setting/view.dart';
 import 'package:PiliPlus/pages/settings_search/view.dart';
+import 'package:PiliPlus/pages/space_setting/view.dart';
 import 'package:PiliPlus/pages/sponsor_block/view.dart';
 import 'package:PiliPlus/pages/subscription/view.dart';
 import 'package:PiliPlus/pages/subscription_detail/view.dart';
@@ -56,7 +63,7 @@ import 'package:PiliPlus/pages/webdav/view.dart';
 import 'package:PiliPlus/pages/webview/view.dart';
 import 'package:PiliPlus/pages/whisper/view.dart';
 import 'package:PiliPlus/pages/whisper_detail/view.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -173,6 +180,14 @@ class Routes {
     CustomGetPage(name: '/dynTopic', page: () => const DynTopicPage()),
     CustomGetPage(name: '/articleList', page: () => const ArticleListPage()),
     CustomGetPage(name: '/barSetting', page: () => const BarSetPage()),
+    CustomGetPage(name: '/upowerRank', page: () => const UpowerRankPage()),
+    CustomGetPage(name: '/spaceSetting', page: () => const SpaceSettingPage()),
+    CustomGetPage(name: '/dynTopicRcmd', page: () => const DynTopicRcmdPage()),
+    CustomGetPage(name: '/matchInfo', page: () => const MatchInfoPage()),
+    CustomGetPage(name: '/msgLikeDetail', page: () => const LikeDetailPage()),
+    CustomGetPage(
+        name: '/liveDmBlockPage', page: () => const LiveDmBlockPage()),
+    CustomGetPage(name: '/createVote', page: () => const CreateVotePage()),
   ];
 }
 
@@ -184,9 +199,10 @@ class CustomGetPage extends GetPage<dynamic> {
     super.transitionDuration,
   }) : super(
           curve: Curves.linear,
-          transition: GStorage.pageTransition,
+          transition: pageTransition,
           showCupertinoParallax: false,
           popGesture: false,
           fullscreenDialog: fullscreen,
         );
+  static Transition pageTransition = Transition.values[Pref.pageTransition];
 }

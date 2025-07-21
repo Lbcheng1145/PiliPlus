@@ -1,10 +1,11 @@
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/skeleton/video_card_h.dart';
+import 'package:PiliPlus/common/widgets/keep_alive_wrapper.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/models/user/history.dart';
+import 'package:PiliPlus/models_new/history/list.dart';
 import 'package:PiliPlus/pages/history/base_controller.dart';
 import 'package:PiliPlus/pages/history/controller.dart';
 import 'package:PiliPlus/pages/history/widgets/item.dart';
@@ -203,21 +204,18 @@ class _HistoryPageState extends State<HistoryPage>
                                 ],
                               ),
                               Expanded(
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: TabBarView(
-                                    physics: enableMultiSelect
-                                        ? const NeverScrollableScrollPhysics()
-                                        : const CustomTabBarViewScrollPhysics(),
-                                    controller:
-                                        _historyController.tabController,
-                                    children: [
-                                      _buildPage,
-                                      ..._historyController.tabs.map(
-                                        (item) => HistoryPage(type: item.type),
-                                      ),
-                                    ],
-                                  ),
+                                child: TabBarView(
+                                  physics: enableMultiSelect
+                                      ? const NeverScrollableScrollPhysics()
+                                      : const CustomTabBarViewScrollPhysics(),
+                                  controller: _historyController.tabController,
+                                  children: [
+                                    KeepAliveWrapper(
+                                        builder: (context) => _buildPage),
+                                    ..._historyController.tabs.map(
+                                      (item) => HistoryPage(type: item.type),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -243,7 +241,7 @@ class _HistoryPageState extends State<HistoryPage>
             SliverPadding(
               padding: EdgeInsets.only(
                 top: StyleString.safeSpace - 5,
-                bottom: MediaQuery.of(context).padding.bottom + 80,
+                bottom: MediaQuery.paddingOf(context).bottom + 80,
               ),
               sliver:
                   Obx(() => _buildBody(_historyController.loadingState.value)),
@@ -252,7 +250,7 @@ class _HistoryPageState extends State<HistoryPage>
         ),
       );
 
-  Widget _buildBody(LoadingState<List<HisListItem>?> loadingState) {
+  Widget _buildBody(LoadingState<List<HistoryItemModel>?> loadingState) {
     return switch (loadingState) {
       Loading() => SliverGrid(
           gridDelegate: Grid.videoCardHDelegate(context),
@@ -273,9 +271,9 @@ class _HistoryPageState extends State<HistoryPage>
                   }
                   final item = response[index];
                   return HistoryItem(
-                    videoItem: item,
+                    item: item,
                     ctr: _historyController.baseCtr,
-                    onChoose: () => _historyController.onSelect(index),
+                    onChoose: () => _historyController.onSelect(item),
                     onDelete: (kid, business) =>
                         _historyController.delHistory(item),
                   );
@@ -294,7 +292,7 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   @override
-  bool get wantKeepAlive => true;
+  bool get wantKeepAlive => widget.type != null;
 }
 
 class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {

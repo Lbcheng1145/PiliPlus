@@ -2,19 +2,23 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:PiliPlus/build_config.dart';
+import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/retry_interceptor.dart';
 import 'package:PiliPlus/http/user.dart';
+import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/accounts/account_manager/account_mgr.dart';
 import 'package:PiliPlus/utils/global_data.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
+import 'package:PiliPlus/utils/utils.dart';
 import 'package:archive/archive.dart';
 import 'package:brotli/brotli.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:dio_http2_adapter/dio_http2_adapter.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart' as web;
 
 class Request {
@@ -25,8 +29,6 @@ class Request {
   static late AccountManager accountManager;
   static late final Dio dio;
   factory Request() => _instance;
-  // static final _rand = Random();
-  // static final RegExp _spmPrefixExp = RegExp(r'<meta name="spm_prefix" content="([^"]+?)">');
 
   /// 设置cookie
   static Future<void> setCookie() async {
@@ -62,36 +64,35 @@ class Request {
     }
   }
 
-  // static Future<void> buvidActive(Account account) async {
-  //   // 这样线程不安全, 但仍按预期进行
-  //   if (account.activited) return;
-  //   account.activited = true;
-  //   try {
-  //     final html = await Request().get(Api.dynamicSpmPrefix,
-  //         options: Options(extra: {'account': account}));
-  //     final String spmPrefix = _spmPrefixExp.firstMatch(html.data)!.group(1)!;
-  //     final String randPngEnd = base64.encode(
-  //         List<int>.generate(32, (_) => _rand.nextInt(256)) +
-  //             List<int>.filled(4, 0) +
-  //             [73, 69, 78, 68] +
-  //             List<int>.generate(4, (_) => _rand.nextInt(256)));
+  static Future<void> buvidActive(Account account) async {
+    // 这样线程不安全, 但仍按预期进行
+    if (account.activited) return;
+    account.activited = true;
+    try {
+      // final html = await Request().get(Api.dynamicSpmPrefix,
+      //     options: Options(extra: {'account': account}));
+      // final String spmPrefix = _spmPrefixExp.firstMatch(html.data)!.group(1)!;
+      final String randPngEnd = base64.encode(
+          List<int>.generate(32, (_) => Utils.random.nextInt(256)) +
+              List<int>.filled(4, 0) +
+              [73, 69, 78, 68] +
+              List<int>.generate(4, (_) => Utils.random.nextInt(256)));
 
-  //     String jsonData = json.encode({
-  //       '3064': 1,
-  //       '39c8': '$spmPrefix.fp.risk',
-  //       '3c43': {
-  //         'adca': 'Linux',
-  //         'bfe9': randPngEnd.substring(randPngEnd.length - 50),
-  //       },
-  //     });
+      String jsonData = json.encode({
+        '3064': 1,
+        '39c8':
+            '${account is AnonymousAccount ? '333.1365' : '333.788'}.fp.risk',
+        '3c43': {
+          'adca': 'Linux',
+          'bfe9': randPngEnd.substring(randPngEnd.length - 50),
+        },
+      });
 
-  //     await Request().post(Api.activateBuvidApi,
-  //         data: {'payload': jsonData},
-  //         options: Options(contentType: Headers.jsonContentType));
-  //   } catch (e) {
-  //     log("setCookie, $e");
-  //   }
-  // }
+      await Request().post(Api.activateBuvidApi,
+          data: {'payload': jsonData},
+          options: Options(contentType: Headers.jsonContentType));
+    } catch (_) {}
+  }
 
   /*
    * config it and create
@@ -118,10 +119,9 @@ class Request {
         responseDecoder: responseDecoder, // Http2Adapter没有自动解压
         persistentConnection: true);
 
-    final bool enableSystemProxy = GStorage.setting
-        .get(SettingBoxKey.enableSystemProxy, defaultValue: false);
-    final String systemProxyHost = GStorage.defaultSystemProxyHost;
-    final String systemProxyPort = GStorage.defaultSystemProxyPort;
+    final bool enableSystemProxy = Pref.enableSystemProxy;
+    final String systemProxyHost = Pref.systemProxyHost;
+    final String systemProxyPort = Pref.systemProxyPort;
 
     final http11Adapter = IOHttpClientAdapter(createHttpClient: () {
       final client = HttpClient()
@@ -146,31 +146,29 @@ class Request {
     }
 
     dio = Dio(options)
-      ..httpClientAdapter =
-          GStorage.setting.get(SettingBoxKey.enableHttp2, defaultValue: false)
-              ? Http2Adapter(
-                  ConnectionManager(
-                      idleTimeout: const Duration(seconds: 15),
-                      onClientCreate: enableSystemProxy
+      ..httpClientAdapter = Pref.enableHttp2
+          ? Http2Adapter(
+              ConnectionManager(
+                  idleTimeout: const Duration(seconds: 15),
+                  onClientCreate: enableSystemProxy
+                      ? (_, config) {
+                          config
+                            ..proxy = proxy
+                            ..onBadCertificate = (_) => true;
+                        }
+                      : Pref.badCertificateCallback
                           ? (_, config) {
-                              config
-                                ..proxy = proxy
-                                ..onBadCertificate = (_) => true;
+                              config.onBadCertificate = (_) => true;
                             }
-                          : GStorage.badCertificateCallback
-                              ? (_, config) {
-                                  config.onBadCertificate = (_) => true;
-                                }
-                              : null),
-                  fallbackAdapter: http11Adapter)
-              : http11Adapter;
+                          : null),
+              fallbackAdapter: http11Adapter)
+          : http11Adapter;
 
     // 先于其他Interceptor
-    dio.interceptors
-        .add(RetryInterceptor(GStorage.retryCount, GStorage.retryDelay));
+    dio.interceptors.add(RetryInterceptor(Pref.retryCount, Pref.retryDelay));
 
     // 日志拦截器 输出请求、响应内容
-    if (BuildConfig.isDebug) {
+    if (kDebugMode) {
       dio.interceptors.add(LogInterceptor(
         request: false,
         requestHeader: false,
@@ -228,7 +226,7 @@ class Request {
     Options? options,
     CancelToken? cancelToken,
   }) async {
-    // debugPrint('post-data: $data');
+    // if (kDebugMode) debugPrint('post-data: $data');
     try {
       return await dio.post<T>(
         url,
@@ -260,14 +258,14 @@ class Request {
         savePath,
         cancelToken: cancelToken,
         // onReceiveProgress: (int count, int total) {
-        //进度
-        // debugPrint("$count $total");
+        // 进度
+        // if (kDebugMode) debugPrint("$count $total");
         // },
       );
-      // debugPrint('downloadFile success: ${response.data}');
+      // if (kDebugMode) debugPrint('downloadFile success: ${response.data}');
       return response;
     } on DioException catch (e) {
-      // debugPrint('downloadFile error: $e');
+      // if (kDebugMode) debugPrint('downloadFile error: $e');
       return Response(
         data: {
           'message': await AccountManager.dioError(e),

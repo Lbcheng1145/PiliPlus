@@ -3,8 +3,9 @@ import 'package:PiliPlus/common/widgets/keep_alive_wrapper.dart';
 import 'package:PiliPlus/common/widgets/page/tabs.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart';
 import 'package:PiliPlus/common/widgets/stat/stat.dart';
-import 'package:PiliPlus/models/pgc/pgc_info_model/result.dart';
-import 'package:PiliPlus/models/video_tag/data.dart';
+import 'package:PiliPlus/models/common/stat_type.dart';
+import 'package:PiliPlus/models_new/pgc/pgc_info_model/result.dart';
+import 'package:PiliPlus/models_new/video/video_tag/data.dart';
 import 'package:PiliPlus/pages/common/common_collapse_slide_page.dart';
 import 'package:PiliPlus/pages/pgc_review/view.dart';
 import 'package:PiliPlus/pages/search/widgets/search_text.dart';
@@ -13,22 +14,22 @@ import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart' hide TabBarView;
 import 'package:get/get.dart';
 
-class IntroDetail extends CommonCollapseSlidePage {
-  final BangumiInfoModel bangumiDetail;
+class PgcIntroPanel extends CommonCollapseSlidePage {
+  final PgcInfoModel item;
   final List<VideoTagItem>? videoTags;
 
-  const IntroDetail({
+  const PgcIntroPanel({
     super.key,
-    required this.bangumiDetail,
+    required this.item,
     super.enableSlide = false,
     this.videoTags,
   });
 
   @override
-  State<IntroDetail> createState() => _IntroDetailState();
+  State<PgcIntroPanel> createState() => _IntroDetailState();
 }
 
-class _IntroDetailState extends CommonCollapseSlidePageState<IntroDetail> {
+class _IntroDetailState extends CommonCollapseSlidePageState<PgcIntroPanel> {
   late final _tabController = TabController(length: 2, vsync: this);
   final _controller = ScrollController();
 
@@ -77,8 +78,8 @@ class _IntroDetailState extends CommonCollapseSlidePageState<IntroDetail> {
       children: [
         KeepAliveWrapper(builder: (context) => buildList(theme)),
         PgcReviewPage(
-          name: widget.bangumiDetail.title!,
-          mediaId: widget.bangumiDetail.mediaId,
+          name: widget.item.title!,
+          mediaId: widget.item.mediaId,
         ),
       ],
     );
@@ -101,22 +102,20 @@ class _IntroDetailState extends CommonCollapseSlidePageState<IntroDetail> {
       ),
       children: [
         SelectableText(
-          widget.bangumiDetail.title!,
+          widget.item.title!,
           style: const TextStyle(fontSize: 16),
         ),
         const SizedBox(height: 4),
         Row(
+          spacing: 6,
           children: [
-            StatView(
-              context: context,
-              theme: 'gray',
-              value: Utils.numFormat(widget.bangumiDetail.stat!.views),
+            StatWidget(
+              type: StatType.play,
+              value: widget.item.stat!.views,
             ),
-            const SizedBox(width: 6),
-            StatDanMu(
-              context: context,
-              theme: 'gray',
-              value: Utils.numFormat(widget.bangumiDetail.stat!.danmakus),
+            StatWidget(
+              type: StatType.danmaku,
+              value: widget.item.stat!.danmakus,
             ),
           ],
         ),
@@ -124,17 +123,17 @@ class _IntroDetailState extends CommonCollapseSlidePageState<IntroDetail> {
         Row(
           children: [
             Text(
-              widget.bangumiDetail.areas!.first.name!,
+              widget.item.areas!.first.name!,
               style: smallTitle,
             ),
             const SizedBox(width: 6),
             Text(
-              widget.bangumiDetail.publish!.pubTimeShow!,
+              widget.item.publish!.pubTimeShow!,
               style: smallTitle,
             ),
             const SizedBox(width: 6),
             Text(
-              widget.bangumiDetail.newEp!.desc!,
+              widget.item.newEp!.desc!,
               style: smallTitle,
             ),
           ],
@@ -146,7 +145,7 @@ class _IntroDetailState extends CommonCollapseSlidePageState<IntroDetail> {
         ),
         const SizedBox(height: 4),
         SelectableText(
-          widget.bangumiDetail.evaluate!,
+          widget.item.evaluate!,
           style: smallTitle.copyWith(fontSize: 14),
         ),
         const SizedBox(height: 20),
@@ -156,7 +155,7 @@ class _IntroDetailState extends CommonCollapseSlidePageState<IntroDetail> {
         ),
         const SizedBox(height: 4),
         SelectableText(
-          widget.bangumiDetail.actors!,
+          widget.item.actors!,
           style: smallTitle.copyWith(fontSize: 14),
         ),
         if (widget.videoTags?.isNotEmpty == true) ...[

@@ -1,20 +1,25 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:PiliPlus/common/widgets/text_field/controller.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/live.dart';
 import 'package:PiliPlus/http/video.dart';
+import 'package:PiliPlus/models/common/account_type.dart';
 import 'package:PiliPlus/models/common/video/live_quality.dart';
-import 'package:PiliPlus/models/live/live_room/danmu_info.dart';
-import 'package:PiliPlus/models/live/live_room/room_info.dart';
-import 'package:PiliPlus/models/live/live_room/room_info_h5.dart';
-import 'package:PiliPlus/pages/mine/controller.dart';
+import 'package:PiliPlus/models_new/live/live_dm_info/data.dart';
+import 'package:PiliPlus/models_new/live/live_room_info_h5/data.dart';
+import 'package:PiliPlus/models_new/live/live_room_play_info/codec.dart';
+import 'package:PiliPlus/models_new/live/live_room_play_info/data.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/data_source.dart';
+import 'package:PiliPlus/services/account_service.dart';
 import 'package:PiliPlus/services/service_locator.dart';
 import 'package:PiliPlus/tcp/live.dart';
+import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/danmaku_utils.dart';
-import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/extension.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/video_utils.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -32,7 +37,7 @@ class LiveRoomController extends GetxController {
   RxBool volumeOff = false.obs;
   PlPlayerController plPlayerController =
       PlPlayerController.getInstance(videoType: 'live');
-  Rx<RoomInfoH5Model?> roomInfoH5 = Rx<RoomInfoH5Model?>(null);
+  Rx<RoomInfoH5Data?> roomInfoH5 = Rx<RoomInfoH5Data?>(null);
 
   RxList<dynamic> messages = [].obs;
   RxBool disableAutoScroll = false.obs;
@@ -44,21 +49,24 @@ class LiveRoomController extends GetxController {
   late List<({int code, String desc})> acceptQnList = [];
   RxString currentQnDesc = ''.obs;
 
-  String? savedDanmaku;
+  List<RichTextItem>? savedDanmaku;
 
-  late final isLogin = Accounts.main.isLogin;
+  AccountService accountService = Get.find<AccountService>();
+  late final isLogin = accountService.isLogin.value;
+
+  LiveDmInfoData? dmInfo;
 
   @override
   void onInit() {
     super.onInit();
     roomId = int.parse(Get.parameters['roomid']!);
     queryLiveInfoH5();
-    if (Accounts.main.isLogin && !MineController.anonymity.value) {
+    if (Accounts.get(AccountType.heartbeat).isLogin && !Pref.historyPause) {
       VideoHttp.roomEntryAction(roomId: roomId);
     }
   }
 
-  Future<void> playerInit(source) async {
+  Future<void> playerInit(String source) async {
     await plPlayerController.setDataSource(
       DataSource(
         videoSource: source,
@@ -81,13 +89,24 @@ class LiveRoomController extends GetxController {
     if (currentQn == null) {
       await Connectivity().checkConnectivity().then((res) {
         currentQn = res.contains(ConnectivityResult.wifi)
-            ? GStorage.liveQuality
-            : GStorage.liveQualityCellular;
+            ? Pref.liveQuality
+            : Pref.liveQualityCellular;
       });
     }
-    var res = await LiveHttp.liveRoomInfo(roomId: roomId, qn: currentQn);
+    var res = await LiveHttp.liveRoomInfo(
+      roomId: roomId,
+      qn: currentQn,
+      onlyAudio: plPlayerController.onlyPlayAudio.value,
+    );
     if (res['status']) {
-      RoomInfoModel data = res['data'];
+      RoomPlayInfoData data = res['data'];
+      if (data.liveStatus != 1) {
+        _dialog(title: '当前直播间未开播');
+        return;
+      }
+      if (data.roomId != null) {
+        roomId = data.roomId!;
+      }
       isPortrait.value = data.isPortrait ?? false;
       List<CodecItem> codec =
           data.playurlInfo!.playurl!.stream!.first.format!.first.codec!;
@@ -96,7 +115,7 @@ class LiveRoomController extends GetxController {
       currentQn = item.currentQn!;
       acceptQnList = item.acceptQn!.map((e) {
         return (
-          code: e as int,
+          code: e,
           desc: LiveQuality.values
               .firstWhere((element) => element.code == e)
               .description,
@@ -120,11 +139,41 @@ class LiveRoomController extends GetxController {
         roomId,
         heroTag,
       );
+    } else {
+      if (res['msg'] != null) {
+        _dialog(title: res['msg']);
+      }
     }
   }
 
+  void _dialog({
+    required String title,
+  }) {
+    Get.dialog(
+      AlertDialog(
+        title: Text(title),
+        actions: [
+          TextButton(
+            onPressed: Get.back,
+            child: Text(
+              '关闭',
+              style: TextStyle(color: Get.theme.colorScheme.outline),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Get
+              ..back()
+              ..back(),
+            child: const Text('退出'),
+          ),
+        ],
+      ),
+    );
+  }
+
   LiveMessageStream? msgStream;
-  final ScrollController scrollController = ScrollController();
+  late final ScrollController scrollController = ScrollController()
+    ..addListener(listener);
 
   void scrollToBottom() {
     if (disableAutoScroll.value) return;
@@ -142,68 +191,37 @@ class LiveRoomController extends GetxController {
       LiveHttp.liveRoomDanmaPrefetch(roomId: roomId).then((v) {
         if (v['status']) {
           if ((v['data'] as List?)?.isNotEmpty == true) {
-            messages.addAll((v['data'] as List)
-                .map((obj) => {
-                      'name': obj['user']['base']['name'],
-                      'uid': obj['user']['uid'],
-                      'text': obj['text'],
-                      'emots': obj['emots'],
-                      'uemote': obj['emoticon']['emoticon_unique'] != ""
-                          ? obj['emoticon']
-                          : null,
-                    })
-                .toList());
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => scrollToBottom(),
-            );
+            try {
+              messages.addAll((v['data'] as List)
+                  .map((obj) => {
+                        'name': obj['user']['base']['name'],
+                        'uid': obj['user']['uid'],
+                        'text': obj['text'],
+                        'emots': obj['emots'],
+                        'uemote': obj['emoticon']['emoticon_unique'] != ""
+                            ? obj['emoticon']
+                            : null,
+                      })
+                  .toList());
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => scrollToBottom(),
+              );
+            } catch (_) {}
           }
         }
       });
     }
-    LiveHttp.liveRoomGetDanmakuToken(roomId: roomId).then((v) {
-      if (v['status']) {
-        LiveDanmakuInfo info = v['data'];
-        // logger.d("info => $info");
-        List<String> servers = [];
-        for (final host in info.data.hostList) {
-          servers.add('wss://${host.host}:${host.wssPort}/sub');
-        }
-        msgStream = LiveMessageStream(
-          streamToken: info.data.token,
-          roomId: roomId,
-          uid: Accounts.main.mid,
-          servers: servers,
-        );
-        msgStream?.addEventListener((obj) {
-          if (obj['cmd'] == 'DANMU_MSG') {
-            // logger.i(' 原始弹幕消息 ======> ${jsonEncode(obj)}');
-            final info = obj['info'];
-            final first = info[0];
-            final content = first[15];
-            final extra = jsonDecode(content['extra']);
-            final user = content['user'];
-            messages.add({
-              'name': user['base']['name'],
-              'uid': user['uid'],
-              'text': info[1],
-              'emots': extra['emots'],
-              'uemote': first[13],
-            });
-            if (showDanmaku) {
-              controller?.addDanmaku(
-                DanmakuContentItem(
-                  extra['content'],
-                  color: DmUtils.decimalToColor(extra['color']),
-                  type: DmUtils.getPosition(extra['mode']),
-                ),
-              );
-              WidgetsBinding.instance
-                  .addPostFrameCallback((_) => scrollToBottom());
-            }
-          }
-        });
-        msgStream?.init();
-        scrollController.addListener(listener);
+    if (msgStream != null) {
+      return;
+    }
+    if (dmInfo != null) {
+      initDm(dmInfo!);
+      return;
+    }
+    LiveHttp.liveRoomGetDanmakuToken(roomId: roomId).then((res) {
+      if (res['status']) {
+        dmInfo = res['data'];
+        initDm(dmInfo!);
       }
     });
   }
@@ -223,6 +241,8 @@ class LiveRoomController extends GetxController {
 
   @override
   void onClose() {
+    savedDanmaku?.clear();
+    savedDanmaku = null;
     scrollController
       ..removeListener(listener)
       ..dispose();
@@ -239,5 +259,52 @@ class LiveRoomController extends GetxController {
         .firstWhere((element) => element.code == currentQn)
         .description;
     return queryLiveInfo();
+  }
+
+  void initDm(LiveDmInfoData info) {
+    if (info.hostList.isNullOrEmpty) {
+      return;
+    }
+    msgStream = LiveMessageStream(
+      streamToken: info.token!,
+      roomId: roomId,
+      uid: Accounts.main.mid,
+      servers: info.hostList!
+          .map((host) => 'wss://${host.host}:${host.wssPort}/sub')
+          .toList(),
+    )
+      ..addEventListener((obj) {
+        try {
+          if (obj['cmd'] == 'DANMU_MSG') {
+            // logger.i(' 原始弹幕消息 ======> ${jsonEncode(obj)}');
+            final info = obj['info'];
+            final first = info[0];
+            final content = first[15];
+            final extra = jsonDecode(content['extra']);
+            final user = content['user'];
+            final uid = user['uid'];
+            messages.add({
+              'name': user['base']['name'],
+              'uid': uid,
+              'text': info[1],
+              'emots': extra['emots'],
+              'uemote': first[13],
+            });
+            if (showDanmaku) {
+              controller?.addDanmaku(
+                DanmakuContentItem(
+                  extra['content'],
+                  color: DmUtils.decimalToColor(extra['color']),
+                  type: DmUtils.getPosition(extra['mode']),
+                  selfSend: isLogin && uid == accountService.mid,
+                ),
+              );
+              WidgetsBinding.instance
+                  .addPostFrameCallback((_) => scrollToBottom());
+            }
+          }
+        } catch (_) {}
+      })
+      ..init();
   }
 }
